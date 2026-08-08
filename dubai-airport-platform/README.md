@@ -6,11 +6,41 @@ A modular, frontend-only prototype for automating and managing airport operation
 
 ## 🚀 Quick Start & How to Run
 
-1. Clone or download this repository.
-2. Locate `index.html` in the root directory.
-3. Double-click `index.html` or open it directly in any modern web browser (Chrome, Safari, Firefox, Edge).
+### Option A: Direct Browser Mode (Standalone / Zero Setup)
+1. Clone or download this repository:
+   ```bash
+   git clone git@github.com:ahmadabd/airport-ui.git
+   ```
+2. Open `dubai-airport-platform/index.html` directly in any modern web browser (Chrome, Safari, Firefox, Edge).
+3. The dashboard, live clock, active flight metrics, and built-in module views work **100% out of the box**.
 
-> **Note**: No backend, database, Node.js, `npm install`, or web server is required. The application runs natively in the browser directly over the `file://` protocol.
+> **Note**: No backend, database, Node.js, `npm install`, or web server is required for this mode.
+
+---
+
+### Option B: Developer Mode (Live `pages/*.html` Fetching)
+If you want to edit HTML files inside `pages/*.html` (e.g., `pages/crew-flow.html`, `pages/gate-management.html`) and see your edits loaded dynamically upon browser refresh:
+
+Modern browsers block local `fetch()` calls over `file://` for security. To bypass this, launch a simple local HTTP server:
+
+* **VS Code Live Server**:
+  Right-click `dubai-airport-platform/index.html` → **Open with Live Server**.
+
+* **Python 3 (Built-in on macOS / Linux)**:
+  ```bash
+  cd dubai-airport-platform
+  python3 -m http.server 8080
+  ```
+  Open **`http://localhost:8080`** in your browser.
+
+* **Node.js (`npx serve`)**:
+  ```bash
+  cd dubai-airport-platform
+  npx serve
+  ```
+  Open the URL displayed in your terminal.
+
+When running in Developer Mode, `js/app.js` automatically detects your local server and fetches user-edited HTML files directly from `pages/*.html`.
 
 ---
 
@@ -29,12 +59,12 @@ dubai-airport-platform/
 │   └── app.js                  # Navigation engine, live clock, dashboard & module rendering
 │
 ├── pages/
-│   ├── dashboard.html          # Operational overview responsibility placeholder
-│   ├── gate-management.html    # Gate assignment & occupancy responsibility placeholder
-│   ├── aircraft-turnaround.html # Ground services & turnaround responsibility placeholder
-│   ├── tower-control.html      # Air traffic & taxiway responsibility placeholder
-│   ├── crew-flow.html          # Flight crew roster responsibility placeholder
-│   └── passenger-journey.html  # Passenger processing & check-in responsibility placeholder
+│   ├── dashboard.html          # Operational overview module page
+│   ├── gate-management.html    # Gate assignment & occupancy module page
+│   ├── aircraft-turnaround.html # Ground services & turnaround module page
+│   ├── tower-control.html      # Air traffic & taxiway module page
+│   ├── crew-flow.html          # Flight crew roster module page
+│   └── passenger-journey.html  # Passenger processing & check-in module page
 │
 ├── components/
 │   ├── sidebar.html            # Reusable navigation sidebar spec
@@ -92,10 +122,8 @@ The system is architected into discrete operational domains so different enginee
 
 To add business logic and custom visual views to your module:
 
-1. **Locate your domain file** in `pages/<module-name>.html` for documentation or detailed markup references.
-2. **Register module rendering in `js/app.js`**:
-   - Update `MODULE_DATA['<your-module-id>']` with rich domain dataset or interactive components.
-   - Replace the default placeholder render call in `renderModulePlaceholder()` with a dedicated function (e.g. `renderGateManagement()`).
+1. **Edit your module HTML file** under `pages/<module-name>.html` (e.g. `pages/crew-flow.html`).
+2. Run in **Developer Mode** (using Python, Live Server, or `npx serve`) so the browser fetches your `pages/*.html` markup dynamically.
 3. **Reuse Design Tokens**:
    - Always use CSS custom properties from `css/design-system.css` (e.g., `var(--bg-surface-1)`, `var(--color-primary)`, `var(--status-active-bg)`).
    - Use standardized status badges (`.badge-active`, `.badge-warning`, `.badge-danger`, `.badge-info`).
