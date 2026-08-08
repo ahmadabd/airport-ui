@@ -1,13 +1,13 @@
 /**
  * Dubai Airport Operating Platform - Application Core Engine
  * Handlers for real-time dynamic clock, sidebar navigation,
- * dashboard views, and module placeholder page rendering.
+ * page module loading with external fetch support & fallback renderer.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initClock();
   initNavigation();
-  renderDashboard();
+  loadModuleView('dashboard');
 });
 
 /* ==========================================================================
@@ -177,18 +177,54 @@ function initNavigation() {
       navItems.forEach(nav => nav.classList.remove('active'));
       item.classList.add('active');
 
-      // Switch Main View
-      if (moduleId === 'dashboard') {
-        renderDashboard();
-      } else {
-        renderModulePlaceholder(moduleId);
-      }
+      // Load Module View (with external fetch support & fallback)
+      loadModuleView(moduleId);
     });
   });
 }
 
 /* ==========================================================================
-   4. Dashboard Rendering Function
+   4. Module View Loader (External Fetch + Fallback Engine)
+   ========================================================================== */
+async function loadModuleView(moduleId) {
+  const contentArea = document.getElementById('main-content');
+  if (!contentArea) return;
+
+  // 1. Try to dynamically fetch page content from pages/<moduleId>.html
+  try {
+    const pagePath = `pages/${moduleId}.html`;
+    const response = await fetch(pagePath);
+    if (response.ok) {
+      const htmlText = await response.text();
+      
+      // Strip HTML comments to determine if real user markup exists
+      const cleanedContent = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim();
+      
+      if (cleanedContent.length > 0) {
+        // Render custom user content from the module HTML file directly!
+        contentArea.innerHTML = `
+          <div class="custom-module-content">
+            ${htmlText}
+          </div>
+        `;
+        return;
+      }
+    }
+  } catch (err) {
+    // Normal fallback when opened over file:// protocol without a local web server
+    console.info(`[DXB OCC] Using built-in OCC renderer for '${moduleId}'.`);
+  }
+
+  // 2. Fallback to built-in template renderer
+  if (moduleId === 'dashboard') {
+    renderDashboard();
+  } else {
+    renderModulePlaceholder(moduleId);
+  }
+}
+
+/* ==========================================================================
+   5. Built-in Dashboard Renderer
    ========================================================================== */
 function renderDashboard() {
   const contentArea = document.getElementById('main-content');
@@ -393,7 +429,7 @@ function renderDashboard() {
 }
 
 /* ==========================================================================
-   5. Module Placeholder Page Renderer
+   6. Built-in Module Placeholder Renderer
    ========================================================================== */
 function renderModulePlaceholder(moduleId) {
   const contentArea = document.getElementById('main-content');
