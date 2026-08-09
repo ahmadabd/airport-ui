@@ -1,17 +1,19 @@
 /**
- * Emirates–DXB Responsive Prototype Engine
- * Supports Fluid Desktop OCC Layout (>768px) and Mobile Viewport (<=768px)
+ * Emirates–DXB Prototype Engine & Router
+ * Public Landing Page, Ticket Booking, User Authentication & /admin OCC Platform
  * Design Guide Version: 7 August 2026
  */
 
 document.addEventListener('DOMContentLoaded', () => {
   initModuleStrip();
   initBottomNav();
-  loadModuleView('dashboard');
+  
+  // Default to public landing & ticket booking route
+  switchRoute('landing');
 });
 
 /* ==========================================================================
-   1. Shared Scenario Data (Emirates & DXB Standard)
+   1. Shared Scenario Data & App State
    ========================================================================== */
 const SHARED_SCENARIO = {
   flight: 'EK 001',
@@ -23,8 +25,292 @@ const SHARED_SCENARIO = {
   aircraft: 'A380-800'
 };
 
+let currentRoute = 'landing';
+let currentAdminModule = 'dashboard';
+
 /* ==========================================================================
-   2. Module Navigation Strip & Bottom Nav Interactivity
+   2. Router & View Controller (Landing, Auth, /admin)
+   ========================================================================== */
+function switchRoute(route) {
+  currentRoute = route;
+
+  const publicNav = document.getElementById('public-nav-strip');
+  const adminNav = document.getElementById('admin-module-strip');
+  const headerSubtitle = document.getElementById('header-subtitle');
+  
+  const btnLanding = document.getElementById('nav-btn-landing');
+  const btnAuth = document.getElementById('nav-btn-auth');
+  const btnAdmin = document.getElementById('nav-btn-admin');
+
+  // Reset top button active states
+  [btnLanding, btnAuth, btnAdmin].forEach(b => b && b.classList.remove('active'));
+
+  if (route === 'landing') {
+    if (btnLanding) btnLanding.classList.add('active');
+    if (publicNav) publicNav.style.display = 'flex';
+    if (adminNav) adminNav.style.display = 'none';
+    if (headerSubtitle) headerSubtitle.textContent = 'Fly Better • Dubai International Airport';
+    
+    renderLandingView();
+  } else if (route === 'auth') {
+    if (btnAuth) btnAuth.classList.add('active');
+    if (publicNav) publicNav.style.display = 'flex';
+    if (adminNav) adminNav.style.display = 'none';
+    if (headerSubtitle) headerSubtitle.textContent = 'User & Staff Authentication';
+    
+    renderAuthView();
+  } else if (route === 'admin') {
+    if (btnAdmin) btnAdmin.classList.add('active');
+    if (publicNav) publicNav.style.display = 'none';
+    if (adminNav) adminNav.style.display = 'flex';
+    if (headerSubtitle) headerSubtitle.textContent = '/admin OCC Operations Control Center';
+    
+    loadAdminModule(currentAdminModule);
+  }
+}
+
+/* ==========================================================================
+   3. Public Landing Page & Buy Ticket Implementation
+   ========================================================================== */
+function renderLandingView() {
+  const contentArea = document.getElementById('main-content');
+  if (!contentArea) return;
+
+  contentArea.innerHTML = `
+    <!-- Hero Banner Card -->
+    <div class="card" style="background: linear-gradient(135deg, #1D1B1A 0%, #3D3836 100%); color: #FFFFFF; border: none; padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+          <span style="color: var(--color-gold); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Emirates Experience</span>
+          <h1 class="page-title" style="color: #FFFFFF; font-size: 26px; margin-top: 4px; margin-bottom: 8px;">Fly Better from Dubai</h1>
+          <p class="supporting-text" style="color: #DED8D1; font-size: 15px;">Book non-stop flights from DXB Terminal 3 to over 150 destinations worldwide.</p>
+        </div>
+        <span class="chip" style="background-color: rgba(198, 161, 91, 0.2); color: var(--color-gold); border-color: var(--color-gold);">
+          DXB Hub
+        </span>
+      </div>
+    </div>
+
+    <!-- Buy Ticket Form Card -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="caption-text">Flight Booking</span>
+          <h2 class="card-title" style="color: var(--color-primary);">Buy Tickets</h2>
+        </div>
+        <span class="chip chip-completed">Best Fares</span>
+      </div>
+
+      <form id="booking-form" onsubmit="event.preventDefault(); handleBuyTicket();">
+        <div class="grid-2col" style="gap: 12px; margin-bottom: 0;">
+          <!-- Origin -->
+          <div class="input-group">
+            <label class="input-label">From (Departure)</label>
+            <select class="input-field" id="flight-from">
+              <option value="DXB" selected>Dubai (DXB) — Terminal 3</option>
+            </select>
+          </div>
+
+          <!-- Destination -->
+          <div class="input-group">
+            <label class="input-label">To (Destination)</label>
+            <select class="input-field" id="flight-to">
+              <option value="LHR">London Heathrow (LHR)</option>
+              <option value="CDG">Paris Charles de Gaulle (CDG)</option>
+              <option value="FRA">Frankfurt Airport (FRA)</option>
+              <option value="RUH">Riyadh King Khalid (RUH)</option>
+              <option value="JFK">New York (JFK)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid-2col" style="gap: 12px; margin-bottom: 0;">
+          <!-- Date -->
+          <div class="input-group">
+            <label class="input-label">Travel Date</label>
+            <input type="text" class="input-field" id="flight-date" value="Tue, 4 Aug">
+          </div>
+
+          <!-- Class -->
+          <div class="input-group">
+            <label class="input-label">Cabin Class</label>
+            <select class="input-field" id="flight-class">
+              <option value="Economy">Economy Class</option>
+              <option value="Business">Business Class</option>
+              <option value="First">First Class</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Single Primary Red CTA Rule -->
+        <button type="submit" class="btn-primary" style="margin-top: 8px;">
+          Search Flights & Buy Tickets
+        </button>
+      </form>
+    </div>
+
+    <!-- Booking Results Output Container -->
+    <div id="booking-result-container"></div>
+
+    <!-- Quick Navigation to Admin Platform -->
+    <div class="card" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h3 class="card-title" style="font-size: 16px;">Airport Operations Personnel?</h3>
+          <p class="supporting-text">Access the DXB OCC Operations Control Center dashboard.</p>
+        </div>
+        <button class="btn-secondary" style="width: auto; padding: 0 16px; height: 40px;" onclick="switchRoute('admin')">
+          Go to /admin
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function handleBuyTicket() {
+  const destination = document.getElementById('flight-to').value;
+  const travelClass = document.getElementById('flight-class').value;
+  const date = document.getElementById('flight-date').value;
+  const resultContainer = document.getElementById('booking-result-container');
+
+  const destNames = {
+    'LHR': 'London Heathrow (LHR)',
+    'CDG': 'Paris Charles de Gaulle (CDG)',
+    'FRA': 'Frankfurt Airport (FRA)',
+    'RUH': 'Riyadh (RUH)',
+    'JFK': 'New York (JFK)'
+  };
+
+  const prices = {
+    'Economy': 'USD 850',
+    'Business': 'USD 2,450',
+    'First': 'USD 5,800'
+  };
+
+  resultContainer.innerHTML = `
+    <div class="card" style="border-color: var(--border-success); background-color: var(--bg-success);">
+      <div class="card-header">
+        <div>
+          <span class="caption-text" style="color: var(--color-success);">Booking Confirmed</span>
+          <h3 class="card-title" style="color: var(--color-success);">Ticket Reserved Successfully!</h3>
+        </div>
+        <span class="chip chip-completed">Confirmed</span>
+      </div>
+
+      <div style="background-color: var(--bg-surface); padding: 16px; border-radius: 12px; border: var(--border-standard); margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <div>
+            <span class="caption-text">Passenger Ticket</span>
+            <p class="body-text" style="font-weight: 700; color: var(--color-primary);">EK 001 • ${travelClass}</p>
+          </div>
+          <div style="text-align: right;">
+            <span class="caption-text">Booking Ref</span>
+            <p class="body-text" style="font-weight: 700;">EK-98214</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+          <div><strong>Route:</strong> DXB → ${destination}</div>
+          <div><strong>Seat:</strong> 14A (Window)</div>
+          <div><strong>Date:</strong> ${date}</div>
+          <div><strong>Boarding:</strong> 08:30</div>
+          <div><strong>Terminal:</strong> DXB Terminal 3</div>
+          <div><strong>Total Fare:</strong> <span style="color: var(--color-success); font-weight: 700;">${prices[travelClass]}</span></div>
+        </div>
+      </div>
+
+      <button class="btn-secondary" onclick="alert('Digital Boarding Pass saved to Apple Wallet / Google Pay!')">
+        Download Digital Boarding Pass
+      </button>
+    </div>
+  `;
+}
+
+/* ==========================================================================
+   4. User & Staff Authentication Page Implementation
+   ========================================================================== */
+function renderAuthView() {
+  const contentArea = document.getElementById('main-content');
+  if (!contentArea) return;
+
+  contentArea.innerHTML = `
+    <div class="card" style="max-width: 500px; margin: 0 auto;">
+      <div class="card-header">
+        <div>
+          <span class="caption-text">Authentication</span>
+          <h1 class="page-title">Sign In</h1>
+        </div>
+        <span class="flight-badge-gold">Skywards & Staff</span>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; background-color: var(--bg-secondary); padding: 4px; border-radius: 12px;">
+        <button class="btn-secondary" id="tab-passenger" style="flex: 1; height: 36px; border: none; font-size: 14px;" onclick="switchAuthTab('passenger')">
+          Passenger Sign In
+        </button>
+        <button class="btn-secondary" id="tab-staff" style="flex: 1; height: 36px; border: none; font-size: 14px; background: transparent; color: var(--text-secondary);" onclick="switchAuthTab('staff')">
+          OCC Staff Access
+        </button>
+      </div>
+
+      <!-- Passenger Form -->
+      <form id="auth-form" onsubmit="event.preventDefault(); handleAuthSubmit();">
+        <div class="input-group">
+          <label class="input-label" id="auth-label-id">Emirates Skywards Number or Email</label>
+          <input type="email" class="input-field" placeholder="skywards@emirates.com" required>
+        </div>
+
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input type="password" class="input-field" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn-primary" id="auth-submit-btn" style="margin-top: 8px;">
+          Sign In to Skywards Account
+        </button>
+      </form>
+
+      <div style="margin-top: 16px; text-align: center;">
+        <a href="#" class="supporting-text" style="color: var(--color-primary); text-decoration: none;" onclick="switchRoute('admin')">
+          Need to access Airport OCC Control Center? Go to /admin →
+        </a>
+      </div>
+    </div>
+  `;
+}
+
+function switchAuthTab(type) {
+  const tabPassenger = document.getElementById('tab-passenger');
+  const tabStaff = document.getElementById('tab-staff');
+  const labelId = document.getElementById('auth-label-id');
+  const submitBtn = document.getElementById('auth-submit-btn');
+
+  if (type === 'staff') {
+    tabStaff.style.background = 'var(--bg-surface)';
+    tabStaff.style.color = 'var(--color-primary)';
+    tabPassenger.style.background = 'transparent';
+    tabPassenger.style.color = 'var(--text-secondary)';
+
+    labelId.textContent = 'Emirates Staff ID / OCC Access Code';
+    submitBtn.textContent = 'Access OCC Operations Platform (/admin)';
+  } else {
+    tabPassenger.style.background = 'var(--bg-surface)';
+    tabPassenger.style.color = 'var(--color-primary)';
+    tabStaff.style.background = 'transparent';
+    tabStaff.style.color = 'var(--text-secondary)';
+
+    labelId.textContent = 'Emirates Skywards Number or Email';
+    submitBtn.textContent = 'Sign In to Skywards Account';
+  }
+}
+
+function handleAuthSubmit() {
+  alert('Authentication Successful! Directing to your dashboard...');
+  switchRoute('admin');
+}
+
+/* ==========================================================================
+   5. /admin Operations Control Platform Implementation
    ========================================================================== */
 function initModuleStrip() {
   const chips = document.querySelectorAll('.module-chip');
@@ -36,7 +322,8 @@ function initModuleStrip() {
       chips.forEach(c => c.classList.remove('active'));
       chip.classList.add('active');
 
-      loadModuleView(moduleId);
+      currentAdminModule = moduleId;
+      loadAdminModule(moduleId);
     });
   });
 }
@@ -51,33 +338,27 @@ function initBottomNav() {
 
       const target = item.getAttribute('data-nav');
       if (target === 'home') {
-        document.querySelector('[data-module="dashboard"]').click();
-      } else if (target === 'schedule') {
-        document.querySelector('[data-module="crew-flow"]').click();
-      } else if (target === 'notifications') {
-        renderNotificationsView();
-      } else if (target === 'profile') {
-        renderProfileView();
+        switchRoute('landing');
+      } else if (target === 'auth') {
+        switchRoute('auth');
+      } else if (target === 'admin') {
+        switchRoute('admin');
       }
     });
   });
 }
 
-/* ==========================================================================
-   3. Module View Loader (External Fetch + Fallback Engine)
-   ========================================================================== */
-async function loadModuleView(moduleId) {
+async function loadAdminModule(moduleId) {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
 
-  // Sync active module chip if loaded programmatically
   const targetChip = document.querySelector(`.module-chip[data-module="${moduleId}"]`);
   if (targetChip) {
     document.querySelectorAll('.module-chip').forEach(c => c.classList.remove('active'));
     targetChip.classList.add('active');
   }
 
-  // 1. Try to fetch custom page markup from pages/<moduleId>.html
+  // Fetch module HTML from pages/<moduleId>.html
   try {
     const pagePath = `pages/${moduleId}.html`;
     const response = await fetch(pagePath);
@@ -94,18 +375,14 @@ async function loadModuleView(moduleId) {
     console.info(`[Emirates-DXB] Using built-in responsive template for '${moduleId}'.`);
   }
 
-  // 2. Fallback to built-in templates
   if (moduleId === 'dashboard') {
-    renderDashboard();
+    renderAdminDashboard();
   } else {
     renderModulePlaceholder(moduleId);
   }
 }
 
-/* ==========================================================================
-   4. Responsive Dashboard Renderer (Desktop Grid + Mobile Support)
-   ========================================================================== */
-function renderDashboard() {
+function renderAdminDashboard() {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
 
@@ -117,7 +394,7 @@ function renderDashboard() {
       <div class="card" style="margin-bottom: 0;">
         <div class="card-header">
           <div>
-            <span class="caption-text">Active Flight Context</span>
+            <span class="caption-text">DXB OCC Active Telemetry</span>
             <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
           </div>
           <span class="chip chip-completed">
@@ -147,7 +424,7 @@ function renderDashboard() {
           </div>
         </div>
 
-        <button class="btn-primary" onclick="document.querySelector('[data-module=\\'crew-flow\\']').click()">
+        <button class="btn-primary" onclick="loadAdminModule('crew-flow')">
           View Flight Operations
         </button>
       </div>
@@ -174,7 +451,7 @@ function renderDashboard() {
     <!-- Active Flight Status List -->
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Live Operational Telemetry</h3>
+        <h3 class="card-title">Live Operational Status</h3>
         <span class="supporting-text">${SHARED_SCENARIO.date} • ${SHARED_SCENARIO.airport}</span>
       </div>
 
@@ -222,9 +499,6 @@ function renderDashboard() {
   `;
 }
 
-/* ==========================================================================
-   5. Built-in Module Placeholder Renderer
-   ========================================================================== */
 function renderModulePlaceholder(moduleId) {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
@@ -264,66 +538,8 @@ function renderModulePlaceholder(moduleId) {
         <span class="supporting-text">${SHARED_SCENARIO.terminal} • ${SHARED_SCENARIO.date} • Boarding ${SHARED_SCENARIO.boarding}</span>
       </div>
 
-      <button class="btn-primary" onclick="document.querySelector('[data-module=\\'dashboard\\']').click()">
-        Return to Home Dashboard
-      </button>
-    </div>
-  `;
-}
-
-function renderNotificationsView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  contentArea.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <h1 class="page-title">Notifications</h1>
-        <span class="chip chip-completed">2 New</span>
-      </div>
-
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <div style="padding: 12px; background-color: var(--bg-secondary); border-radius: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span class="body-text" style="font-weight: 600;">Gate A14 Boarding</span>
-            <span class="caption-text">08:30</span>
-          </div>
-          <p class="supporting-text">Passenger check-in for flight ${SHARED_SCENARIO.flight} is now open.</p>
-        </div>
-
-        <div style="padding: 12px; background-color: var(--bg-secondary); border-radius: 12px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span class="body-text" style="font-weight: 600;">Runway 30L Inspection</span>
-            <span class="caption-text">08:15</span>
-          </div>
-          <p class="supporting-text">Scheduled maintenance window active until 09:15.</p>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderProfileView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  contentArea.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <h1 class="page-title">Duty Officer Profile</h1>
-          <span class="supporting-text">Emirates Flight Operations</span>
-        </div>
-        <span class="flight-badge-gold" style="font-weight: 700;">DXB OCC</span>
-      </div>
-
-      <div style="padding: 16px; background-color: var(--bg-secondary); border-radius: 12px; margin-bottom: 16px;">
-        <p class="body-text" style="font-weight: 600;">Duty Officer — Shift Alpha</p>
-        <span class="supporting-text">ID: EK-884912 • Dubai International Airport</span>
-      </div>
-
-      <button class="btn-secondary" onclick="alert('Platform Settings & Preferences')">
-        Account Settings
+      <button class="btn-primary" onclick="loadAdminModule('dashboard')">
+        Return to OCC Dashboard
       </button>
     </div>
   `;

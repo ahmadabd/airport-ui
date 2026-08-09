@@ -1,6 +1,6 @@
 /* ==========================================================================
    Emirates–DXB Prototype - Design System
-   Mobile-first, Premium, Clear & Operational Design Token System
+   Mobile-first & Desktop Responsive Theme with Landing, Auth & Admin Routing
    Version: Lightweight Design Guide — 7 August 2026
    ========================================================================== */
 
@@ -40,10 +40,6 @@
   /* Typography */
   --font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Mobile Frame Geometry (390 x 844 px) */
-  --frame-width: 390px;
-  --frame-height: 844px;
-
   /* Spacing Scale (Multiples of 4px) */
   --page-padding: 16px;
   --space-4: 4px;
@@ -62,7 +58,7 @@
 
   /* Elevation / Border */
   --border-standard: 1px solid var(--border-color);
-  --shadow-subtle: 0 2px 4px rgba(29, 27, 26, 0.04);
+  --shadow-subtle: 0 2px 6px rgba(29, 27, 26, 0.05);
 }
 
 /* Base Reset */
@@ -74,7 +70,7 @@
 
 html, body {
   height: 100%;
-  background-color: #EAE6DF; /* Outer canvas background for desktop preview */
+  background-color: var(--bg-app);
   color: var(--text-main);
   font-family: var(--font-family);
   font-size: 16px;
@@ -133,7 +129,7 @@ p, .body-text {
   border: var(--border-standard);
   border-radius: var(--radius-card);
   padding: var(--space-16);
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-16);
   box-shadow: var(--shadow-subtle);
 }
 
@@ -144,7 +140,7 @@ p, .body-text {
   margin-bottom: var(--space-12);
 }
 
-/* Primary Button (Only 1 per screen) */
+/* Primary Button (Max 1 per screen) */
 .btn-primary {
   display: flex;
   align-items: center;
@@ -209,7 +205,7 @@ p, .body-text {
   color: var(--text-main);
 }
 
-.input-field {
+.input-field, select.input-field {
   width: 100%;
   height: 48px;
   padding: 0 var(--space-16);
@@ -224,13 +220,6 @@ p, .body-text {
 
 .input-field:focus {
   border-color: var(--color-primary);
-}
-
-.input-error-text {
-  font-size: 12px;
-  line-height: 16px;
-  color: var(--color-error);
-  margin-top: 2px;
 }
 
 /* Status Chips (Icon + Label + Color) */
@@ -278,7 +267,6 @@ p, .body-text {
   border-color: var(--border-error);
 }
 
-/* Common Flight Info Component Formatting */
 .flight-badge-gold {
   color: var(--color-gold);
   font-weight: 600;

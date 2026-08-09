@@ -1,10 +1,8 @@
 /* ==========================================================================
-   Emirates–DXB Prototype - Responsive Layout System
-   Desktop View (> 768px): Full OCC Dashboard Layout
-   Mobile View (<= 768px): Mobile-First Viewport & Bottom Navigation
+   Emirates–DXB Prototype - Responsive Layout System & Router Styling
+   Supports Public Landing, Buy Ticket, Auth, and /admin OCC Platform
    ========================================================================== */
 
-/* App Wrapper Container */
 #app-viewport {
   display: flex;
   flex-direction: column;
@@ -13,7 +11,7 @@
   background-color: var(--bg-app);
 }
 
-/* Mobile Top Status Bar & Notch (Hidden on Desktop) */
+/* Mobile Notch (Shown on mobile screens <=768px) */
 .mobile-status-bar {
   display: none;
   height: 38px;
@@ -36,7 +34,7 @@
   border-bottom-right-radius: 10px;
 }
 
-/* App Header (Responsive Header across all screen sizes) */
+/* App Header (Header across both Landing & /admin modes) */
 .app-header {
   background-color: var(--bg-surface);
   border-bottom: var(--border-standard);
@@ -51,6 +49,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  cursor: pointer;
 }
 
 .emirates-badge-icon {
@@ -86,7 +85,38 @@
   letter-spacing: 0.04em;
 }
 
-/* Module Selector Navigation Bar (Desktop & Mobile) */
+/* Route & Mode Switcher Bar */
+.mode-switcher-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-chip);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: var(--border-standard);
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+  transition: all 0.15s ease;
+}
+
+.mode-btn.active {
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  border-color: var(--color-primary);
+}
+
+.admin-badge {
+  background-color: #1D1B1A;
+  color: var(--color-gold);
+  border-color: var(--color-gold);
+}
+
+/* Module Selector Navigation Bar (Admin OCC Mode) */
 .module-selector-strip {
   background-color: var(--bg-secondary);
   border-bottom: var(--border-standard);
@@ -127,7 +157,35 @@
   font-weight: 600;
 }
 
-/* Main Content Area */
+/* Public Landing Header Navigation Strip */
+.public-nav-strip {
+  background-color: var(--bg-surface);
+  border-bottom: var(--border-standard);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.public-nav-links {
+  display: flex;
+  gap: 16px;
+}
+
+.public-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.public-nav-link:hover, .public-nav-link.active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Main Content Container */
 .content-area {
   flex: 1;
   padding: 24px;
@@ -137,7 +195,7 @@
   margin: 0 auto;
 }
 
-/* Responsive Desktop Grid Systems */
+/* Responsive Grid Systems */
 .grid-2col {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -156,7 +214,7 @@
   gap: var(--space-16);
 }
 
-/* Bottom Navigation Bar (Shown on Mobile, Hidden on Desktop) */
+/* Bottom Navigation Bar (Shown on Mobile) */
 .bottom-nav {
   display: none;
   height: 64px;
@@ -195,9 +253,7 @@
   justify-content: center;
 }
 
-/* ==========================================================================
-   Responsive Breakpoints (Mobile Adaptations <= 768px)
-   ========================================================================== */
+/* Responsive Mobile Adaptations */
 @media (max-width: 768px) {
   .mobile-status-bar {
     display: flex;
@@ -215,27 +271,20 @@
     font-size: 11px;
   }
 
-  .module-selector-strip {
+  .module-selector-strip, .public-nav-strip {
     padding: 8px 16px;
     gap: 8px;
-  }
-
-  .module-chip {
-    padding: 6px 12px;
-    font-size: 13px;
   }
 
   .content-area {
     padding: 16px;
   }
 
-  /* Single Column Stacking on Mobile */
   .grid-2col, .grid-3col, .grid-4col {
     grid-template-columns: 1fr;
     gap: var(--space-12);
   }
 
-  /* Show Bottom Navigation Bar on Mobile */
   .bottom-nav {
     display: flex;
   }
