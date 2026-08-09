@@ -1,7 +1,6 @@
 /**
  * Emirates Official Website Engine & Router (emirates.com)
- * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth & Restricted /admin
- * LocalStorage Persistence for Users & Roles
+ * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth, Admin OCC & Logout
  * Design Guide Version: 7 August 2026
  */
 
@@ -131,7 +130,20 @@ function switchRoute(route) {
 }
 
 /* ==========================================================================
-   3. Official Emirates.com Landing Page & Flight Search Hero
+   3. Admin Logout Handler
+   ========================================================================== */
+function handleAdminLogout() {
+  currentUser = {
+    name: 'Guest User',
+    email: '',
+    role: 'guest'
+  };
+  alert('Admin session ended. You have been logged out.');
+  switchRoute('admin'); // Immediately re-evaluates role -> renders renderAdminLoginForm()!
+}
+
+/* ==========================================================================
+   4. Official Emirates.com Landing Page & Flight Search Hero
    ========================================================================== */
 function renderLandingView() {
   const contentArea = document.getElementById('main-content');
@@ -340,7 +352,7 @@ function handleBuyTicket() {
 }
 
 /* ==========================================================================
-   4. Passenger Sign In & Sign Up Views
+   5. Passenger Sign In & Sign Up Views
    ========================================================================== */
 function renderSignInView() {
   const contentArea = document.getElementById('main-content');
@@ -445,15 +457,15 @@ function handlePassengerSignUp() {
 
   const newUser = { name, email, password, role: 'user', date: '4 Aug 2026' };
   USERS_DB.push(newUser);
-  saveUserDatabase(); // Save to LocalStorage permanently!
+  saveUserDatabase();
   currentUser = newUser;
 
-  alert(`Account created successfully! Signed in as ${name} (Role: USER). User saved to LocalStorage.`);
+  alert(`Account created successfully! Signed in as ${name} (Role: USER).`);
   switchRoute('landing');
 }
 
 /* ==========================================================================
-   5. Restricted Admin Login Form (Shown when accessing #admin without Admin Role)
+   6. Restricted Admin Login Form (Shown when accessing #admin without Admin Role)
    ========================================================================== */
 function renderAdminLoginForm() {
   const contentArea = document.getElementById('main-content');
@@ -515,7 +527,7 @@ function handleAdminLogin() {
 }
 
 /* ==========================================================================
-   6. /admin Operations Control Platform & User Management Module
+   7. /admin Operations Control Platform & User Management Module
    ========================================================================== */
 function initModuleStrip() {
   const chips = document.querySelectorAll('.module-chip');
@@ -681,9 +693,9 @@ function handleAddNewUserByAdmin() {
 
   const newUser = { name, email, password, role, date: '4 Aug 2026' };
   USERS_DB.push(newUser);
-  saveUserDatabase(); // Persist permanently in browser LocalStorage!
+  saveUserDatabase();
 
-  alert(`New Account '${name}' created successfully with role '${role.toUpperCase()}'! User stored in LocalStorage.`);
+  alert(`New Account '${name}' created successfully with role '${role.toUpperCase()}'! User saved to LocalStorage.`);
   renderUserManagementModule();
 }
 

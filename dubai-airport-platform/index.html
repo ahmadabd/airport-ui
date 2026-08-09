@@ -15,7 +15,7 @@
   <!-- Responsive App Viewport Wrapper -->
   <div id="app-viewport">
       
-    <!-- Top Utility Bar (Official Emirates.com Header Utility Bar) -->
+    <!-- Top Utility Bar -->
     <div class="emirates-top-strip">
       <div style="display: flex; gap: 16px; align-items: center;">
         <span class="emirates-top-link">
@@ -55,7 +55,7 @@
       </div>
 
       <!-- Right Action Buttons -->
-      <div class="emirates-user-actions">
+      <div class="emirates-user-actions" id="user-actions-container">
         <button class="btn-header-signin" id="btn-nav-signin" onclick="switchRoute('signin')">
           Sign In
         </button>
@@ -65,15 +65,23 @@
       </div>
     </header>
 
-    <!-- Admin OCC Module Selector Bar (Shown ONLY inside /admin for authorized admin role) -->
-    <nav class="module-selector-strip" id="admin-module-strip" style="display: none;">
-      <button class="module-chip active" data-module="dashboard">Dashboard</button>
-      <button class="module-chip" data-module="crew-flow">CrewFlow</button>
-      <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
-      <button class="module-chip" data-module="user-management">User Management</button>
-      <button class="module-chip" data-module="gate-management">Gates</button>
-      <button class="module-chip" data-module="tower-control">Tower</button>
-      <button class="module-chip" data-module="passenger-journey">Passengers</button>
+    <!-- Admin OCC Module Selector & Logout Bar (Shown ONLY inside /admin for authorized admin) -->
+    <nav class="module-selector-strip" id="admin-module-strip" style="display: none; justify-content: space-between; align-items: center;">
+      <div style="display: flex; gap: 12px; overflow-x: auto;">
+        <button class="module-chip active" data-module="dashboard">Dashboard</button>
+        <button class="module-chip" data-module="crew-flow">CrewFlow</button>
+        <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
+        <button class="module-chip" data-module="user-management">User Management</button>
+        <button class="module-chip" data-module="gate-management">Gates</button>
+        <button class="module-chip" data-module="tower-control">Tower</button>
+        <button class="module-chip" data-module="passenger-journey">Passengers</button>
+      </div>
+
+      <!-- Admin Logout Button -->
+      <button class="module-chip" style="background-color: var(--color-primary); color: #FFFFFF; border-color: var(--color-primary); font-weight: 700; flex-shrink: 0;" onclick="handleAdminLogout()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Admin Logout
+      </button>
     </nav>
 
     <!-- Main Screen Content Area -->
@@ -92,7 +100,7 @@
 
       <a href="#" class="bottom-nav-item" data-nav="signin">
         <span class="bottom-nav-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 4-4H9a4 4 0 0 4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </span>
         <span>Account</span>
       </a>
