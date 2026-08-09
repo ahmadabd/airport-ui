@@ -1,6 +1,6 @@
 /**
- * Emirates–DXB Prototype Engine
- * Mobile-First Design Implementation (390 x 844 px)
+ * Emirates–DXB Responsive Prototype Engine
+ * Supports Fluid Desktop OCC Layout (>768px) and Mobile Viewport (<=768px)
  * Design Guide Version: 7 August 2026
  */
 
@@ -24,7 +24,7 @@ const SHARED_SCENARIO = {
 };
 
 /* ==========================================================================
-   2. Module Navigation Strip Interactivity
+   2. Module Navigation Strip & Bottom Nav Interactivity
    ========================================================================== */
 function initModuleStrip() {
   const chips = document.querySelectorAll('.module-chip');
@@ -91,10 +91,10 @@ async function loadModuleView(moduleId) {
       }
     }
   } catch (err) {
-    console.info(`[Emirates-DXB] Using built-in mobile layout for '${moduleId}'.`);
+    console.info(`[Emirates-DXB] Using built-in responsive template for '${moduleId}'.`);
   }
 
-  // 2. Fallback to built-in mobile templates
+  // 2. Fallback to built-in templates
   if (moduleId === 'dashboard') {
     renderDashboard();
   } else {
@@ -103,57 +103,79 @@ async function loadModuleView(moduleId) {
 }
 
 /* ==========================================================================
-   4. Mobile Dashboard Renderer (Emirates - DXB OCC Style)
+   4. Responsive Dashboard Renderer (Desktop Grid + Mobile Support)
    ========================================================================== */
 function renderDashboard() {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
 
   contentArea.innerHTML = `
-    <!-- Operational Context Card -->
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <span class="caption-text">Active Flight Context</span>
-          <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
-        </div>
-        <span class="chip chip-completed">
-          <span class="chip-icon">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    <!-- Top Context & Quick Metrics Grid -->
+    <div class="grid-2col" style="margin-bottom: var(--space-16);">
+      
+      <!-- Operational Context Card -->
+      <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+          <div>
+            <span class="caption-text">Active Flight Context</span>
+            <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
+          </div>
+          <span class="chip chip-completed">
+            <span class="chip-icon">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            Scheduled
           </span>
-          Scheduled
-        </span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--space-8); background: var(--bg-secondary); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
+          <div>
+            <span class="caption-text">Route</span>
+            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.route}</p>
+          </div>
+          <div>
+            <span class="caption-text">Boarding Time</span>
+            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.boarding}</p>
+          </div>
+          <div>
+            <span class="caption-text">Terminal</span>
+            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.terminal}</p>
+          </div>
+          <div>
+            <span class="caption-text">Date</span>
+            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.date}</p>
+          </div>
+        </div>
+
+        <button class="btn-primary" onclick="document.querySelector('[data-module=\\'crew-flow\\']').click()">
+          View Flight Operations
+        </button>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); background: var(--bg-secondary); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
-        <div>
-          <span class="caption-text">Route</span>
-          <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.route}</p>
+      <!-- Required Task Alert Card -->
+      <div class="card" style="background-color: var(--bg-secondary); border-color: var(--border-color); margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; gap: 12px; align-items: flex-start;">
+          <span class="chip chip-action-required" style="padding: 6px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          <div>
+            <h3 class="card-title" style="font-size: 16px;">One required task is incomplete</h3>
+            <p class="supporting-text" style="margin-top: 4px;">Complete ground crew clearance to finalize departure dispatch for EK 001.</p>
+          </div>
         </div>
-        <div>
-          <span class="caption-text">Boarding Time</span>
-          <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.boarding}</p>
-        </div>
-        <div>
-          <span class="caption-text">Terminal</span>
-          <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.terminal}</p>
-        </div>
-        <div>
-          <span class="caption-text">Date</span>
-          <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.date}</p>
+
+        <div style="margin-top: 16px;">
+          <span class="chip chip-action-required">Action required</span>
         </div>
       </div>
 
-      <button class="btn-primary" onclick="document.querySelector('[data-module=\\'crew-flow\\']').click()">
-        View Flight Operations
-      </button>
     </div>
 
     <!-- Active Flight Status List -->
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Live Operational Status</h3>
-        <span class="supporting-text">${SHARED_SCENARIO.date}</span>
+        <h3 class="card-title">Live Operational Telemetry</h3>
+        <span class="supporting-text">${SHARED_SCENARIO.date} • ${SHARED_SCENARIO.airport}</span>
       </div>
 
       <div style="display: flex; flex-direction: column; gap: var(--space-12);">
@@ -194,19 +216,6 @@ function renderDashboard() {
             </span>
             In progress
           </span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Quick Action / Alert Card -->
-    <div class="card" style="background-color: var(--bg-secondary); border-color: var(--border-color);">
-      <div style="display: flex; gap: 12px; align-items: flex-start;">
-        <span class="chip chip-action-required" style="padding: 6px;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        </span>
-        <div>
-          <h3 class="card-title" style="font-size: 16px;">One required task is incomplete</h3>
-          <p class="supporting-text" style="margin-top: 2px;">Complete ground crew clearance to finalize departure dispatch.</p>
         </div>
       </div>
     </div>

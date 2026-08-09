@@ -1,60 +1,46 @@
 /* ==========================================================================
-   Emirates–DXB Prototype - Layout & Mobile Frame Structure
-   Main Frame: 390 × 844 px (Mobile-first Viewport)
+   Emirates–DXB Prototype - Responsive Layout System
+   Desktop View (> 768px): Full OCC Dashboard Layout
+   Mobile View (<= 768px): Mobile-First Viewport & Bottom Navigation
    ========================================================================== */
 
-/* Outer Desktop Frame Container */
-#viewport-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 20px 10px;
-  background-color: #EAE6DF;
-}
-
-/* Mobile Frame 390 x 844 px */
-.mobile-frame {
-  width: var(--frame-width);
-  height: var(--frame-height);
-  background-color: var(--bg-app);
-  border-radius: 40px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 10px #1D1B1A;
+/* App Wrapper Container */
+#app-viewport {
   display: flex;
   flex-direction: column;
-  position: relative;
-  overflow: hidden;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-app);
 }
 
-/* Mobile Notch / Status Bar */
+/* Mobile Top Status Bar & Notch (Hidden on Desktop) */
 .mobile-status-bar {
-  height: 44px;
+  display: none;
+  height: 38px;
   background-color: var(--bg-app);
-  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 16px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(222, 216, 209, 0.4);
 }
 
 .mobile-notch {
-  width: 120px;
-  height: 24px;
+  width: 110px;
+  height: 20px;
   background-color: #1D1B1A;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
-  margin-top: -10px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
-/* App Header */
+/* App Header (Responsive Header across all screen sizes) */
 .app-header {
   background-color: var(--bg-surface);
   border-bottom: var(--border-standard);
-  padding: 12px var(--page-padding);
+  padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -64,12 +50,12 @@
 .header-brand {
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: 12px;
 }
 
 .emirates-badge-icon {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   background-color: var(--color-primary);
   color: #FFFFFF;
   border-radius: 6px;
@@ -77,7 +63,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 14px;
   letter-spacing: 0.05em;
 }
 
@@ -87,26 +73,26 @@
 }
 
 .header-title-main {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
   line-height: 1.2;
 }
 
 .header-title-sub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-gold);
   font-weight: 600;
   letter-spacing: 0.04em;
 }
 
-/* Module Selector Strip */
+/* Module Selector Navigation Bar (Desktop & Mobile) */
 .module-selector-strip {
   background-color: var(--bg-secondary);
   border-bottom: var(--border-standard);
-  padding: 8px var(--page-padding);
+  padding: 10px 24px;
   display: flex;
-  gap: var(--space-8);
+  gap: 12px;
   overflow-x: auto;
   flex-shrink: 0;
   scrollbar-width: none;
@@ -117,9 +103,9 @@
 }
 
 .module-chip {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border-radius: var(--radius-chip);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
   background-color: var(--bg-surface);
@@ -129,6 +115,11 @@
   transition: all 0.15s ease;
 }
 
+.module-chip:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
+}
+
 .module-chip.active {
   background-color: var(--color-primary);
   color: #FFFFFF;
@@ -136,23 +127,47 @@
   font-weight: 600;
 }
 
-/* Scrollable Screen Content Area */
+/* Main Content Area */
 .content-area {
   flex: 1;
-  overflow-y: auto;
-  padding: var(--page-padding);
+  padding: 24px;
   background-color: var(--bg-app);
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
 }
 
-/* Bottom Navigation Bar (Home, Schedule, Notifications, Profile) */
+/* Responsive Desktop Grid Systems */
+.grid-2col {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-16);
+}
+
+.grid-3col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-16);
+}
+
+.grid-4col {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-16);
+}
+
+/* Bottom Navigation Bar (Shown on Mobile, Hidden on Desktop) */
 .bottom-nav {
+  display: none;
   height: 64px;
   background-color: var(--bg-surface);
   border-top: var(--border-standard);
-  display: flex;
   justify-content: space-around;
   align-items: center;
   flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
 }
 
 .bottom-nav-item {
@@ -180,15 +195,48 @@
   justify-content: center;
 }
 
-/* Responsive adjustment for small screens */
-@media (max-width: 420px) {
-  #viewport-container {
-    padding: 0;
+/* ==========================================================================
+   Responsive Breakpoints (Mobile Adaptations <= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .mobile-status-bar {
+    display: flex;
   }
-  .mobile-frame {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    box-shadow: none;
+
+  .app-header {
+    padding: 10px 16px;
+  }
+
+  .header-title-main {
+    font-size: 15px;
+  }
+
+  .header-title-sub {
+    font-size: 11px;
+  }
+
+  .module-selector-strip {
+    padding: 8px 16px;
+    gap: 8px;
+  }
+
+  .module-chip {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+
+  .content-area {
+    padding: 16px;
+  }
+
+  /* Single Column Stacking on Mobile */
+  .grid-2col, .grid-3col, .grid-4col {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+  }
+
+  /* Show Bottom Navigation Bar on Mobile */
+  .bottom-nav {
+    display: flex;
   }
 }

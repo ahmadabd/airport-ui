@@ -4,95 +4,90 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Emirates–DXB Operations Prototype</title>
-  <meta name="description" content="Emirates–DXB Mobile-First Airport Operations Prototype">
+  <meta name="description" content="Emirates–DXB Responsive Airport Operations Prototype">
 
-  <!-- Vazirmatn Font & Design System Stylesheets -->
+  <!-- Vazirmatn Font & Responsive Design System Stylesheets -->
   <link rel="stylesheet" href="css/design-system.css">
   <link rel="stylesheet" href="css/layout.css">
 </head>
 <body>
 
-  <!-- Outer Viewport Container (Centers 390x844 px Mobile Frame) -->
-  <div id="viewport-container">
-
-    <!-- Mobile Frame (390 x 844 px) -->
-    <div class="mobile-frame">
+  <!-- Responsive App Viewport Wrapper (Desktop & Mobile) -->
+  <div id="app-viewport">
       
-      <!-- Top Status Bar -->
-      <div class="mobile-status-bar">
-        <span>08:30</span>
-        <div class="mobile-notch"></div>
-        <div style="display: flex; gap: 4px; align-items: center;">
-          <span style="font-size: 10px; color: var(--color-gold);">DXB</span>
-          <span>100%</span>
+    <!-- Mobile Top Status Bar & Notch (Shown on Mobile screens <=768px) -->
+    <div class="mobile-status-bar">
+      <span>08:30</span>
+      <div class="mobile-notch"></div>
+      <div style="display: flex; gap: 4px; align-items: center;">
+        <span style="font-size: 10px; color: var(--color-gold);">DXB</span>
+        <span>100%</span>
+      </div>
+    </div>
+
+    <!-- App Header Bar -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="emirates-badge-icon">EK</div>
+        <div class="header-title-text">
+          <span class="header-title-main">Emirates – DXB Operations</span>
+          <span class="header-title-sub">Dubai International Airport • Control Center</span>
         </div>
       </div>
 
-      <!-- App Header Bar -->
-      <header class="app-header">
-        <div class="header-brand">
-          <div class="emirates-badge-icon">EK</div>
-          <div class="header-title-text">
-            <span class="header-title-main">Emirates – DXB Ops</span>
-            <span class="header-title-sub">Dubai International Airport</span>
-          </div>
-        </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="chip chip-completed" style="font-size: 12px; padding: 4px 10px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Flight EK 001
+        </span>
+      </div>
+    </header>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span class="chip chip-completed" style="font-size: 11px; padding: 2px 8px;">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            EK 001
-          </span>
-        </div>
-      </header>
+    <!-- Horizontal Module Selector Navigation -->
+    <nav class="module-selector-strip" id="module-strip">
+      <button class="module-chip active" data-module="dashboard">Dashboard</button>
+      <button class="module-chip" data-module="crew-flow">CrewFlow</button>
+      <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
+      <button class="module-chip" data-module="gate-management">Gates</button>
+      <button class="module-chip" data-module="tower-control">Tower</button>
+      <button class="module-chip" data-module="passenger-journey">Passengers</button>
+    </nav>
 
-      <!-- Horizontal Module Selector Strip -->
-      <nav class="module-selector-strip" id="module-strip">
-        <button class="module-chip active" data-module="dashboard">Dashboard</button>
-        <button class="module-chip" data-module="crew-flow">CrewFlow</button>
-        <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
-        <button class="module-chip" data-module="gate-management">Gates</button>
-        <button class="module-chip" data-module="tower-control">Tower</button>
-        <button class="module-chip" data-module="passenger-journey">Passengers</button>
-      </nav>
+    <!-- Main Responsive Screen Content Area -->
+    <main id="main-content" class="content-area">
+      <!-- Dynamically rendered by js/app.js -->
+    </main>
 
-      <!-- Scrollable Main Screen Content Area -->
-      <main id="main-content" class="content-area">
-        <!-- Dynamically rendered by js/app.js -->
-      </main>
+    <!-- Bottom Navigation Bar (Shown on Mobile screens <=768px) -->
+    <nav class="bottom-nav">
+      <a href="#" class="bottom-nav-item active" data-nav="home">
+        <span class="bottom-nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span>Home</span>
+      </a>
 
-      <!-- Bottom Navigation (Home, Schedule, Notifications, Profile) -->
-      <nav class="bottom-nav">
-        <a href="#" class="bottom-nav-item active" data-nav="home">
-          <span class="bottom-nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          </span>
-          <span>Home</span>
-        </a>
+      <a href="#" class="bottom-nav-item" data-nav="schedule">
+        <span class="bottom-nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </span>
+        <span>Schedule</span>
+      </a>
 
-        <a href="#" class="bottom-nav-item" data-nav="schedule">
-          <span class="bottom-nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          </span>
-          <span>Schedule</span>
-        </a>
+      <a href="#" class="bottom-nav-item" data-nav="notifications">
+        <span class="bottom-nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </span>
+        <span>Alerts</span>
+      </a>
 
-        <a href="#" class="bottom-nav-item" data-nav="notifications">
-          <span class="bottom-nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-          </span>
-          <span>Alerts</span>
-        </a>
-
-        <a href="#" class="bottom-nav-item" data-nav="profile">
-          <span class="bottom-nav-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </span>
-          <span>Profile</span>
-        </a>
-      </nav>
-
-    </div>
+      <a href="#" class="bottom-nav-item" data-nav="profile">
+        <span class="bottom-nav-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <span>Profile</span>
+      </a>
+    </nav>
 
   </div>
 
