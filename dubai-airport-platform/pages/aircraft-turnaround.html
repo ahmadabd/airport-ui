@@ -1,3 +1,116 @@
-<!-- Aircraft Turnaround Module.
-     Responsible for monitoring aircraft arrival, cabin cleaning, catering service, refueling,
-     routine & line maintenance, baggage handling, boarding preparation, and pushback readiness. -->
+<!-- Aircraft Turnaround Module — Emirates–DXB Prototype -->
+
+<!-- Header Card -->
+<div class="card">
+  <div class="card-header">
+    <div>
+      <span class="caption-text">Apron Control • Terminal 3</span>
+      <h1 class="page-title">Aircraft Turnaround</h1>
+    </div>
+    <span class="chip chip-in-progress">
+      <span class="chip-icon">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </span>
+      In progress
+    </span>
+  </div>
+
+  <p class="supporting-text" style="margin-bottom: 12px;">
+    Ground handling turnaround services for flight EK 001 at Gate A14.
+  </p>
+
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-secondary); padding: 12px; border-radius: 12px;">
+    <div>
+      <span class="caption-text">Flight</span>
+      <p class="body-text" style="font-weight: 600;">EK 001</p>
+    </div>
+    <div>
+      <span class="caption-text">Aircraft</span>
+      <p class="body-text" style="font-weight: 600;">A380-800</p>
+    </div>
+    <div>
+      <span class="caption-text">Gate</span>
+      <p class="body-text" style="font-weight: 600;">Gate A14</p>
+    </div>
+    <div>
+      <span class="caption-text">Target Pushback</span>
+      <p class="body-text" style="font-weight: 600;">08:30</p>
+    </div>
+  </div>
+</div>
+
+<!-- Turnaround Progress Items -->
+<div class="card">
+  <div class="card-header">
+    <h2 class="card-title">Services Checklist</h2>
+    <span class="supporting-text">3 of 4 Complete</span>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <!-- Service 1 -->
+    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <p class="body-text" style="font-weight: 600; font-size: 15px;">Refueling</p>
+        <span class="supporting-text">48,000 Liters loaded</span>
+      </div>
+      <span class="chip chip-completed">
+        <span class="chip-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        Completed
+      </span>
+    </div>
+
+    <!-- Service 2 -->
+    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <p class="body-text" style="font-weight: 600; font-size: 15px;">Cabin Cleaning</p>
+        <span class="supporting-text">Main deck & upper deck sanitized</span>
+      </div>
+      <span class="chip chip-completed">
+        <span class="chip-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        Completed
+      </span>
+    </div>
+
+    <!-- Service 3 -->
+    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <p class="body-text" style="font-weight: 600; font-size: 15px;">Catering Loading</p>
+        <span class="supporting-text">Galley carts secured</span>
+      </div>
+      <span class="chip chip-completed">
+        <span class="chip-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+        Completed
+      </span>
+    </div>
+
+    <!-- Service 4 -->
+    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <p class="body-text" style="font-weight: 600; font-size: 15px;">Baggage Loading</p>
+        <span class="supporting-text">Container loading at 85%</span>
+      </div>
+      <span class="chip chip-in-progress">
+        <span class="chip-icon">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        In progress
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Primary Action Card (Single Primary CTA per screen rule) -->
+<div class="card">
+  <p class="supporting-text" style="margin-bottom: 12px;">
+    Baggage loading in progress. Confirm apron completion to grant pushback readiness.
+  </p>
+  <button class="btn-primary" onclick="alert('Apron turnaround completed for EK 001')">
+    Confirm Pushback Readiness
+  </button>
+</div>

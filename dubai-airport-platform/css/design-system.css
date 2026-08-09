@@ -1,76 +1,68 @@
 /* ==========================================================================
-   Dubai Airport Operating Platform - Design System
-   Operational Control Center (OCC) Dark Theme & Components
+   Emirates–DXB Prototype - Design System
+   Mobile-first, Premium, Clear & Operational Design Token System
+   Version: Lightweight Design Guide — 7 August 2026
    ========================================================================== */
 
+@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap');
+
 :root {
-  /* Color Palette - Core Operational Theme */
-  --bg-app: #090d16;
-  --bg-surface-1: #111827;
-  --bg-surface-2: #1f293d;
-  --bg-surface-3: #2a364f;
-  --bg-glass: rgba(17, 24, 39, 0.85);
+  /* Core Color Palette */
+  --color-primary: #C8102E;         /* Emirates Red */
+  --color-primary-pressed: #A60F2D;
+  --color-gold: #C6A15B;            /* Accent details only */
+  
+  --bg-app: #FAF8F5;                /* Page background */
+  --bg-surface: #FFFFFF;            /* Card background */
+  --bg-secondary: #F3EFE9;          /* Secondary surface */
+  
+  --text-main: #1D1B1A;             /* Main text */
+  --text-secondary: #716C66;        /* Secondary text */
+  --border-color: #DED8D1;          /* Standard border */
 
-  /* Primary Accent & Flight Control Blues */
-  --color-primary: #00d2ff;
-  --color-primary-hover: #33dcff;
-  --color-primary-glow: rgba(0, 210, 255, 0.15);
-  --color-accent: #3b82f6;
+  /* Status Colors (Icon + Label + Color) */
+  --color-info: #175CD3;
+  --bg-info: #EFF8FF;
+  --border-info: #B2DDFF;
 
-  /* Text & Typography Colors */
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
-  --text-dim: #6b7280;
-  --text-inverse: #0b0f19;
+  --color-success: #067647;
+  --bg-success: #ECFDF3;
+  --border-success: #ABEFC6;
 
-  /* Status Colors */
-  --status-active-bg: rgba(16, 185, 129, 0.15);
-  --status-active-border: rgba(16, 185, 129, 0.4);
-  --status-active-text: #10b981;
+  --color-warning: #B54708;
+  --bg-warning: #FFFAEB;
+  --border-warning: #FEDF89;
 
-  --status-warning-bg: rgba(245, 158, 11, 0.15);
-  --status-warning-border: rgba(245, 158, 11, 0.4);
-  --status-warning-text: #f59e0b;
+  --color-error: #B42318;
+  --bg-error: #FEF3F2;
+  --border-error: #FECDCA;
 
-  --status-danger-bg: rgba(239, 68, 68, 0.15);
-  --status-danger-border: rgba(239, 68, 68, 0.4);
-  --status-danger-text: #ef4444;
+  /* Typography */
+  --font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  --status-info-bg: rgba(59, 130, 246, 0.15);
-  --status-info-border: rgba(59, 130, 246, 0.4);
-  --status-info-text: #60a5fa;
+  /* Mobile Frame Geometry (390 x 844 px) */
+  --frame-width: 390px;
+  --frame-height: 844px;
 
-  --status-purple-bg: rgba(168, 85, 247, 0.15);
-  --status-purple-border: rgba(168, 85, 247, 0.4);
-  --status-purple-text: #c084fc;
+  /* Spacing Scale (Multiples of 4px) */
+  --page-padding: 16px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
 
-  /* Borders & Dividers */
-  --border-subtle: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.15);
-  --border-accent: rgba(0, 210, 255, 0.3);
+  /* Geometry & Radii */
+  --radius-button: 12px;
+  --radius-input: 12px;
+  --radius-card: 16px;
+  --radius-chip: 999px;
 
-  /* Geometry & Spacing */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
-  --radius-full: 9999px;
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.37);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.24);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 15px rgba(0, 210, 255, 0.2);
-
-  /* Typography Fonts */
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, Monaco, monospace;
-
-  /* Spacing Scale */
-  --space-xs: 4px;
-  --space-sm: 8px;
-  --space-md: 16px;
-  --space-lg: 24px;
-  --space-xl: 32px;
+  /* Elevation / Border */
+  --border-standard: 1px solid var(--border-color);
+  --shadow-subtle: 0 2px 4px rgba(29, 27, 26, 0.04);
 }
 
 /* Base Reset */
@@ -82,267 +74,212 @@
 
 html, body {
   height: 100%;
-  background-color: var(--bg-app);
+  background-color: #EAE6DF; /* Outer canvas background for desktop preview */
   color: var(--text-main);
   font-family: var(--font-family);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
 }
 
-/* Typography Helpers */
-h1, h2, h3, h4, h5, h6 {
+/* Typography Hierarchy */
+h1, .page-title {
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 700;
   color: var(--text-main);
-  font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.mono {
-  font-family: var(--font-mono);
+h2, .section-title {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
-/* Cards & Containers */
+h3, .card-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+p, .body-text {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  color: var(--text-main);
+}
+
+.supporting-text {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.caption-text {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Cards */
 .card {
-  background-color: var(--bg-surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: var(--space-lg);
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card:hover {
-  border-color: var(--border-strong);
+  background-color: var(--bg-surface);
+  border: var(--border-standard);
+  border-radius: var(--radius-card);
+  padding: var(--space-16);
+  margin-bottom: var(--space-12);
+  box-shadow: var(--shadow-subtle);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-md);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-12);
 }
 
-.card-title {
-  font-size: 1rem;
-  font-weight: 600;
+/* Primary Button (Only 1 per screen) */
+.btn-primary {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-}
-
-/* Status Badges */
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  border: 1px solid transparent;
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: currentColor;
-}
-
-.badge-active, .badge-operational, .badge-ready {
-  background-color: var(--status-active-bg);
-  border-color: var(--status-active-border);
-  color: var(--status-active-text);
-}
-
-.badge-warning, .badge-delayed {
-  background-color: var(--status-warning-bg);
-  border-color: var(--status-warning-border);
-  color: var(--status-warning-text);
-}
-
-.badge-danger, .badge-maintenance, .badge-critical {
-  background-color: var(--status-danger-bg);
-  border-color: var(--status-danger-border);
-  color: var(--status-danger-text);
-}
-
-.badge-info, .badge-boarding, .badge-taxiing {
-  background-color: var(--status-info-bg);
-  border-color: var(--status-info-border);
-  color: var(--status-info-text);
-}
-
-.badge-purple {
-  background-color: var(--status-purple-bg);
-  border-color: var(--status-purple-border);
-  color: var(--status-purple-text);
-}
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: 8px 16px;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  font-weight: 500;
+  gap: var(--space-8);
+  width: 100%;
+  height: 48px;
+  background-color: var(--color-primary);
+  color: #FFFFFF;
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-button);
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease;
   text-decoration: none;
 }
 
-.btn-primary {
-  background-color: var(--color-primary);
-  color: var(--text-inverse);
-  font-weight: 600;
+.btn-primary:active, .btn-primary:hover {
+  background-color: var(--color-primary-pressed);
 }
 
-.btn-primary:hover {
-  background-color: var(--color-primary-hover);
-  box-shadow: var(--shadow-glow);
-}
-
+/* Secondary Button */
 .btn-secondary {
-  background-color: var(--bg-surface-2);
-  color: var(--text-main);
-  border-color: var(--border-subtle);
-}
-
-.btn-secondary:hover {
-  background-color: var(--bg-surface-3);
-  border-color: var(--border-strong);
-}
-
-/* Data Tables */
-.table-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
   width: 100%;
-  overflow-x: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
-}
-
-.data-table th {
-  background-color: var(--bg-surface-2);
-  color: var(--text-muted);
-  font-size: 0.75rem;
+  height: 48px;
+  background-color: var(--bg-surface);
+  color: var(--color-primary);
+  font-family: var(--font-family);
+  font-size: 16px;
+  line-height: 20px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-button);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
 }
 
-.data-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--text-main);
-  font-size: 0.9rem;
+.btn-secondary:active, .btn-secondary:hover {
+  background-color: var(--bg-secondary);
 }
 
-.data-table tr:last-child td {
-  border-bottom: none;
-}
-
-.data-table tr:hover td {
-  background-color: rgba(255, 255, 255, 0.02);
-}
-
-/* Operational Alert Items */
-.alert-list {
+/* Inputs */
+.input-group {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-4);
+  margin-bottom: var(--space-16);
 }
 
-.alert-item {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-md);
-  padding: 12px 16px;
-  background-color: var(--bg-surface-2);
-  border-left: 3px solid var(--color-primary);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-size: 0.875rem;
+.input-label {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-main);
 }
 
-.alert-item.alert-warning {
-  border-left-color: var(--status-warning-text);
+.input-field {
+  width: 100%;
+  height: 48px;
+  padding: 0 var(--space-16);
+  background-color: var(--bg-surface);
+  border: var(--border-standard);
+  border-radius: var(--radius-input);
+  font-family: var(--font-family);
+  font-size: 16px;
+  color: var(--text-main);
+  outline: none;
 }
 
-.alert-item.alert-danger {
-  border-left-color: var(--status-danger-text);
+.input-field:focus {
+  border-color: var(--color-primary);
 }
 
-.alert-item.alert-info {
-  border-left-color: var(--status-info-text);
+.input-error-text {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-error);
+  margin-top: 2px;
 }
 
-.alert-time {
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
+/* Status Chips (Icon + Label + Color) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-chip);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  border: 1px solid transparent;
   white-space: nowrap;
 }
 
-.alert-content {
-  flex: 1;
+.chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Stat Widgets */
-.stat-widget {
-  background-color: var(--bg-surface-1);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  position: relative;
-  overflow: hidden;
+/* Status variants */
+.chip-pending, .chip-in-progress, .chip-info {
+  background-color: var(--bg-info);
+  color: var(--color-info);
+  border-color: var(--border-info);
 }
 
-.stat-widget::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--color-primary), transparent);
+.chip-completed, .chip-success {
+  background-color: var(--bg-success);
+  color: var(--color-success);
+  border-color: var(--border-success);
 }
 
-.stat-label {
-  color: var(--text-muted);
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+.chip-action-required, .chip-warning {
+  background-color: var(--bg-warning);
+  color: var(--color-warning);
+  border-color: var(--border-warning);
 }
 
-.stat-value {
-  font-size: 1.85rem;
-  font-weight: 700;
-  color: var(--text-main);
-  font-family: var(--font-mono);
+.chip-blocked, .chip-error {
+  background-color: var(--bg-error);
+  color: var(--color-error);
+  border-color: var(--border-error);
 }
 
-.stat-subtext {
-  font-size: 0.75rem;
-  color: var(--text-dim);
+/* Common Flight Info Component Formatting */
+.flight-badge-gold {
+  color: var(--color-gold);
+  font-weight: 600;
 }
