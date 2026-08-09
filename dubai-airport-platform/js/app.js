@@ -1,6 +1,6 @@
 /**
  * Emirates Official Website Engine & Router (emirates.com)
- * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth, Admin OCC & Logout
+ * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth, Admin OCC & Clean Header
  * Design Guide Version: 7 August 2026
  */
 
@@ -84,9 +84,11 @@ function handleHashRoute() {
 function switchRoute(route) {
   currentRoute = route;
 
+  const topStrip = document.querySelector('.emirates-top-strip');
+  const mainNav = document.getElementById('public-main-nav');
+  const userActions = document.getElementById('user-actions-container');
   const adminNav = document.getElementById('admin-module-strip');
   const userStatusDisplay = document.getElementById('user-status-display');
-  const publicNav = document.getElementById('public-main-nav');
 
   // Update Status Display
   if (userStatusDisplay) {
@@ -95,29 +97,14 @@ function switchRoute(route) {
       : 'Guest';
   }
 
-  // Active Menu Item Styling
-  if (publicNav) {
-    const items = publicNav.querySelectorAll('.emirates-nav-item');
-    items.forEach(i => i.classList.remove('active'));
-    if (route === 'landing' && items[0]) items[0].classList.add('active');
-    if (route === 'signin' && items[1]) items[1].classList.add('active');
-  }
-
-  if (route === 'landing') {
-    window.location.hash = 'landing';
-    if (adminNav) adminNav.style.display = 'none';
-    renderLandingView();
-  } else if (route === 'signin') {
-    window.location.hash = 'signin';
-    if (adminNav) adminNav.style.display = 'none';
-    renderSignInView();
-  } else if (route === 'signup') {
-    window.location.hash = 'signup';
-    if (adminNav) adminNav.style.display = 'none';
-    renderSignUpView();
-  } else if (route === 'admin') {
+  if (route === 'admin') {
     window.location.hash = 'admin';
     
+    // Hide top landing page headers/navs in /admin mode — ONLY keep logo!
+    if (topStrip) topStrip.style.display = 'none';
+    if (mainNav) mainNav.style.display = 'none';
+    if (userActions) userActions.style.display = 'none';
+
     // Check Authorization: Only ADMIN role can access /admin
     if (currentUser.role !== 'admin') {
       if (adminNav) adminNav.style.display = 'none';
@@ -125,6 +112,30 @@ function switchRoute(route) {
     } else {
       if (adminNav) adminNav.style.display = 'flex';
       renderAdminDashboard();
+    }
+  } else {
+    // Restore public landing top bars when on public routes
+    if (topStrip) topStrip.style.display = 'flex';
+    if (mainNav) mainNav.style.display = 'flex';
+    if (userActions) userActions.style.display = 'flex';
+    if (adminNav) adminNav.style.display = 'none';
+
+    if (mainNav) {
+      const items = mainNav.querySelectorAll('.emirates-nav-item');
+      items.forEach(i => i.classList.remove('active'));
+      if (route === 'landing' && items[0]) items[0].classList.add('active');
+      if (route === 'signin' && items[1]) items[1].classList.add('active');
+    }
+
+    if (route === 'landing') {
+      window.location.hash = 'landing';
+      renderLandingView();
+    } else if (route === 'signin') {
+      window.location.hash = 'signin';
+      renderSignInView();
+    } else if (route === 'signup') {
+      window.location.hash = 'signup';
+      renderSignUpView();
     }
   }
 }
@@ -139,7 +150,7 @@ function handleAdminLogout() {
     role: 'guest'
   };
   alert('Admin session ended. You have been logged out.');
-  switchRoute('admin'); // Immediately re-evaluates role -> renders renderAdminLoginForm()!
+  switchRoute('admin');
 }
 
 /* ==========================================================================
@@ -225,10 +236,8 @@ function renderLandingView() {
 
     </div>
 
-    <!-- Booking Confirmation Results Container -->
     <div id="booking-result-container"></div>
 
-    <!-- Featured Emirates Experience Section -->
     <div class="grid-3col">
       <div class="card">
         <span class="caption-text" style="color: var(--color-gold); font-weight: 700;">A380 EXPERIENCE</span>
