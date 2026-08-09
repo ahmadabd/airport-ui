@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emirates – Fly Better & DXB Airport Operations</title>
-  <meta name="description" content="Emirates Public Passenger Portal, Ticket Booking, User Authentication & DXB OCC Admin Operations Platform">
+  <title>Emirates – Fly Better & DXB Airport</title>
+  <meta name="description" content="Emirates Public Passenger Portal, Ticket Booking, User Authentication & DXB OCC Operations Platform">
 
   <!-- Vazirmatn Font & Responsive Design System Stylesheets -->
   <link rel="stylesheet" href="css/design-system.css">
@@ -25,7 +25,7 @@
       </div>
     </div>
 
-    <!-- Main App Header Bar -->
+    <!-- Main Public Header Bar (No Admin Button Shown!) -->
     <header class="app-header">
       <div class="header-brand" id="brand-logo" onclick="switchRoute('landing')">
         <div class="emirates-badge-icon">EK</div>
@@ -35,35 +35,36 @@
         </div>
       </div>
 
-      <!-- Route Switcher & Auth Trigger Buttons -->
-      <div class="mode-switcher-bar">
-        <button class="mode-btn active" id="nav-btn-landing" onclick="switchRoute('landing')">
+      <!-- Public Header Navigation Actions -->
+      <div class="header-actions" id="header-actions">
+        <button class="header-nav-btn active" id="btn-nav-tickets" onclick="switchRoute('landing')">
           ✈ Buy Tickets
         </button>
-        <button class="mode-btn" id="nav-btn-auth" onclick="switchRoute('auth')">
+        <button class="header-nav-btn" id="btn-nav-signin" onclick="switchRoute('signin')">
           Sign In
         </button>
-        <button class="mode-btn admin-badge" id="nav-btn-admin" onclick="switchRoute('admin')">
-          ⚙ /admin OCC
+        <button class="header-nav-btn primary-nav" id="btn-nav-signup" onclick="switchRoute('signup')">
+          Sign Up
         </button>
       </div>
     </header>
 
-    <!-- Public Landing Secondary Sub-Header Bar (Shown in Public Landing Mode) -->
+    <!-- Public Landing Secondary Sub-Header Bar -->
     <nav class="public-nav-strip" id="public-nav-strip">
       <div class="public-nav-links">
         <a class="public-nav-link active" onclick="switchRoute('landing')">Book a Flight</a>
-        <a class="public-nav-link" onclick="switchRoute('auth')">My Bookings</a>
-        <a class="public-nav-link" onclick="switchRoute('admin')">OCC Admin Operations</a>
+        <a class="public-nav-link" onclick="switchRoute('signin')">My Bookings</a>
+        <a class="public-nav-link" onclick="switchRoute('signup')">Create Account</a>
       </div>
-      <span class="caption-text" style="color: var(--color-gold); font-weight: 600;">DXB Terminal 3 Hub</span>
+      <span class="caption-text" style="color: var(--color-gold); font-weight: 600;" id="user-status-display">Guest Mode</span>
     </nav>
 
-    <!-- Admin OCC Module Selector Bar (Shown in /admin Mode) -->
+    <!-- Admin OCC Module Selector Bar (Shown ONLY inside /admin for authorized admin role) -->
     <nav class="module-selector-strip" id="admin-module-strip" style="display: none;">
       <button class="module-chip active" data-module="dashboard">Dashboard</button>
       <button class="module-chip" data-module="crew-flow">CrewFlow</button>
       <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
+      <button class="module-chip" data-module="user-management">User Management</button>
       <button class="module-chip" data-module="gate-management">Gates</button>
       <button class="module-chip" data-module="tower-control">Tower</button>
       <button class="module-chip" data-module="passenger-journey">Passengers</button>
@@ -83,18 +84,11 @@
         <span>Book</span>
       </a>
 
-      <a href="#" class="bottom-nav-item" data-nav="auth">
+      <a href="#" class="bottom-nav-item" data-nav="signin">
         <span class="bottom-nav-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </span>
         <span>Account</span>
-      </a>
-
-      <a href="#" class="bottom-nav-item" data-nav="admin">
-        <span class="bottom-nav-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        </span>
-        <span>/admin</span>
       </a>
     </nav>
 

@@ -1,6 +1,7 @@
 /* ==========================================================================
-   Emirates–DXB Prototype - Responsive Layout System & Router Styling
-   Supports Public Landing, Buy Ticket, Auth, and /admin OCC Platform
+   Emirates–DXB Prototype - Responsive Layout System & Auth/Admin Router
+   Public Landing Page, Ticket Booking, User Auth & Restricted /admin Route
+   Version: Lightweight Design Guide — 7 August 2026
    ========================================================================== */
 
 #app-viewport {
@@ -34,7 +35,7 @@
   border-bottom-right-radius: 10px;
 }
 
-/* App Header (Header across both Landing & /admin modes) */
+/* App Header (Public Header - NO Admin button shown) */
 .app-header {
   background-color: var(--bg-surface);
   border-bottom: var(--border-standard);
@@ -85,14 +86,14 @@
   letter-spacing: 0.04em;
 }
 
-/* Route & Mode Switcher Bar */
-.mode-switcher-bar {
+/* Public Header Nav Actions (Sign In / Sign Up / My Bookings) */
+.header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 }
 
-.mode-btn {
+.header-nav-btn {
   padding: 6px 14px;
   border-radius: var(--radius-chip);
   font-size: 13px;
@@ -101,22 +102,21 @@
   border: var(--border-standard);
   background-color: var(--bg-secondary);
   color: var(--text-main);
+  text-decoration: none;
   transition: all 0.15s ease;
 }
 
-.mode-btn.active {
+.header-nav-btn:hover {
+  background-color: var(--border-color);
+}
+
+.header-nav-btn.primary-nav {
   background-color: var(--color-primary);
   color: #FFFFFF;
   border-color: var(--color-primary);
 }
 
-.admin-badge {
-  background-color: #1D1B1A;
-  color: var(--color-gold);
-  border-color: var(--color-gold);
-}
-
-/* Module Selector Navigation Bar (Admin OCC Mode) */
+/* Module Selector Navigation Bar (Admin OCC Mode only) */
 .module-selector-strip {
   background-color: var(--bg-secondary);
   border-bottom: var(--border-standard);
