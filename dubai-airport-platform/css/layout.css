@@ -1,7 +1,6 @@
 /* ==========================================================================
-   Emirates–DXB Prototype - Responsive Layout System & Auth/Admin Router
-   Public Landing Page, Ticket Booking, User Auth & Restricted /admin Route
-   Version: Lightweight Design Guide — 7 August 2026
+   Emirates Official Website Layout (emirates.com)
+   Signature Emirates Red Logo (#D71A21), Header & Navigation Layout
    ========================================================================== */
 
 #app-viewport {
@@ -12,115 +11,204 @@
   background-color: var(--bg-app);
 }
 
-/* Mobile Notch (Shown on mobile screens <=768px) */
-.mobile-status-bar {
-  display: none;
-  height: 38px;
-  background-color: var(--bg-app);
+/* Top Emirates Utility Strip (Language, Currency, Skywards Login) */
+.emirates-top-strip {
+  background-color: #1E1E1E;
+  color: #CCCCCC;
+  font-size: 12px;
+  height: 36px;
+  padding: 0 32px;
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-main);
-  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
-.mobile-notch {
-  width: 110px;
-  height: 20px;
-  background-color: #1D1B1A;
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-
-/* App Header (Public Header - NO Admin button shown) */
-.app-header {
-  background-color: var(--bg-surface);
-  border-bottom: var(--border-standard);
-  padding: 12px 24px;
+.emirates-top-links {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
+  gap: 20px;
 }
 
-.header-brand {
+.emirates-top-link {
+  color: #DED8D1;
+  text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   cursor: pointer;
 }
 
-.emirates-badge-icon {
-  width: 32px;
-  height: 32px;
+.emirates-top-link:hover {
+  color: #FFFFFF;
+}
+
+/* Main Emirates Header */
+.emirates-main-header {
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E0E0E0;
+  height: 76px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.emirates-brand-group {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+/* Iconic Emirates Red Box Logo */
+.emirates-red-logo {
+  height: 52px;
   background-color: var(--color-primary);
   color: #FFFFFF;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-  letter-spacing: 0.05em;
-}
-
-.header-title-text {
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(215, 26, 33, 0.3);
+  cursor: pointer;
 }
 
-.header-title-main {
+.emirates-logo-text {
   font-size: 18px;
-  font-weight: 700;
-  color: var(--text-main);
-  line-height: 1.2;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  font-family: serif, var(--font-family);
+  text-transform: uppercase;
 }
 
-.header-title-sub {
-  font-size: 12px;
-  color: var(--color-gold);
+.emirates-logo-sub {
+  font-size: 8px;
+  letter-spacing: 0.15em;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  margin-top: 2px;
+  opacity: 0.9;
 }
 
-/* Public Header Nav Actions (Sign In / Sign Up / My Bookings) */
-.header-actions {
+/* Emirates Navigation Menu (BOOK, MANAGE, EXPERIENCE, WHERE WE FLY, SKYWARDS) */
+.emirates-nav-menu {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 28px;
 }
 
-.header-nav-btn {
-  padding: 6px 14px;
-  border-radius: var(--radius-chip);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  border: var(--border-standard);
-  background-color: var(--bg-secondary);
+.emirates-nav-item {
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   text-decoration: none;
+  padding: 26px 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.header-nav-btn:hover {
-  background-color: var(--border-color);
+.emirates-nav-item:hover, .emirates-nav-item.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
-.header-nav-btn.primary-nav {
+/* User Account Actions in Header */
+.emirates-user-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-header-signin {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+}
+
+.btn-header-signin:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn-header-signup {
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
   background-color: var(--color-primary);
   color: #FFFFFF;
-  border-color: var(--color-primary);
+  border: none;
+  cursor: pointer;
 }
 
-/* Module Selector Navigation Bar (Admin OCC Mode only) */
+.btn-header-signup:hover {
+  background-color: var(--color-primary-pressed);
+}
+
+/* Hero Flight Search Widget Container */
+.hero-search-wrapper {
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--bg-app) 100%);
+  padding: 32px var(--page-padding);
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.hero-search-card {
+  max-width: 1100px;
+  margin: 0 auto;
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  box-shadow: var(--shadow-emirates);
+  border: 1px solid #E0E0E0;
+  overflow: hidden;
+}
+
+.search-tabs-header {
+  display: flex;
+  background-color: #F8F9FA;
+  border-bottom: 1px solid #E0E0E0;
+}
+
+.search-tab-btn {
+  padding: 16px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-tab-btn.active {
+  color: var(--color-primary);
+  background-color: #FFFFFF;
+  border-bottom-color: var(--color-primary);
+}
+
+.search-form-body {
+  padding: 24px;
+}
+
+/* Admin Module Selector Strip (Shown inside /admin) */
 .module-selector-strip {
-  background-color: var(--bg-secondary);
-  border-bottom: var(--border-standard);
-  padding: 10px 24px;
+  background-color: #1E1E1E;
+  border-bottom: 1px solid #333;
+  padding: 10px 32px;
   display: flex;
   gap: 12px;
   overflow-x: auto;
@@ -137,55 +225,27 @@
   border-radius: var(--radius-chip);
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-secondary);
-  background-color: var(--bg-surface);
-  border: var(--border-standard);
+  color: #CCCCCC;
+  background-color: #2D2D2D;
+  border: 1px solid #444;
   white-space: nowrap;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .module-chip:hover {
-  background-color: var(--bg-secondary);
-  color: var(--text-main);
+  background-color: #3D3D3D;
+  color: #FFFFFF;
 }
 
 .module-chip.active {
   background-color: var(--color-primary);
   color: #FFFFFF;
   border-color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Public Landing Header Navigation Strip */
-.public-nav-strip {
-  background-color: var(--bg-surface);
-  border-bottom: var(--border-standard);
-  padding: 10px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.public-nav-links {
-  display: flex;
-  gap: 16px;
-}
-
-.public-nav-link {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.public-nav-link:hover, .public-nav-link.active {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-/* Main Content Container */
+/* Main Content Area */
 .content-area {
   flex: 1;
   padding: 24px;
@@ -195,31 +255,31 @@
   margin: 0 auto;
 }
 
-/* Responsive Grid Systems */
+/* Grid Layouts */
 .grid-2col {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: var(--space-16);
+  gap: var(--space-20);
 }
 
 .grid-3col {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-16);
+  gap: var(--space-20);
 }
 
 .grid-4col {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-16);
+  gap: var(--space-20);
 }
 
-/* Bottom Navigation Bar (Shown on Mobile) */
+/* Mobile Bottom Navigation */
 .bottom-nav {
   display: none;
   height: 64px;
-  background-color: var(--bg-surface);
-  border-top: var(--border-standard);
+  background-color: #FFFFFF;
+  border-top: 1px solid #E0E0E0;
   justify-content: space-around;
   align-items: center;
   flex-shrink: 0;
@@ -242,38 +302,35 @@
 
 .bottom-nav-item.active {
   color: var(--color-primary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.bottom-nav-icon {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Responsive Mobile Adaptations */
+/* Responsive Mobile Adaptations (<= 768px) */
 @media (max-width: 768px) {
-  .mobile-status-bar {
-    display: flex;
+  .emirates-top-strip {
+    display: none;
   }
 
-  .app-header {
-    padding: 10px 16px;
+  .emirates-main-header {
+    height: 64px;
+    padding: 0 16px;
   }
 
-  .header-title-main {
+  .emirates-red-logo {
+    height: 44px;
+    padding: 0 12px;
+  }
+
+  .emirates-logo-text {
     font-size: 15px;
   }
 
-  .header-title-sub {
-    font-size: 11px;
+  .emirates-nav-menu {
+    display: none;
   }
 
-  .module-selector-strip, .public-nav-strip {
-    padding: 8px 16px;
-    gap: 8px;
+  .hero-search-wrapper {
+    padding: 16px;
   }
 
   .content-area {

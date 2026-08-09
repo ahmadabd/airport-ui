@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emirates – Fly Better & DXB Airport</title>
-  <meta name="description" content="Emirates Public Passenger Portal, Ticket Booking, User Authentication & DXB OCC Operations Platform">
+  <title>Emirates | Fly Better • Dubai International Airport</title>
+  <meta name="description" content="Book flights, search fares, manage bookings and access Dubai Airport Operations Control Center">
 
-  <!-- Vazirmatn Font & Responsive Design System Stylesheets -->
+  <!-- Vazirmatn Font & Official Emirates Design System Stylesheets -->
   <link rel="stylesheet" href="css/design-system.css">
   <link rel="stylesheet" href="css/layout.css">
 </head>
@@ -15,49 +15,55 @@
   <!-- Responsive App Viewport Wrapper -->
   <div id="app-viewport">
       
-    <!-- Mobile Top Status Bar & Notch (Shown on mobile screens <=768px) -->
-    <div class="mobile-status-bar">
-      <span>08:30</span>
-      <div class="mobile-notch"></div>
-      <div style="display: flex; gap: 4px; align-items: center;">
-        <span style="font-size: 10px; color: var(--color-gold);">DXB</span>
-        <span>100%</span>
+    <!-- Top Utility Bar (Official Emirates.com Header Utility Bar) -->
+    <div class="emirates-top-strip">
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <span class="emirates-top-link">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          United Kingdom (English)
+        </span>
+        <span class="emirates-top-link">GBP (£)</span>
+      </div>
+
+      <div class="emirates-top-links">
+        <span class="emirates-top-link" onclick="switchRoute('signin')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          Emirates Skywards Login
+        </span>
+        <span class="emirates-top-link">Help & Contact</span>
+        <span class="caption-text" style="color: var(--color-gold-bright); font-weight: 600;" id="user-status-display">Guest</span>
       </div>
     </div>
 
-    <!-- Main Public Header Bar (No Admin Button Shown!) -->
-    <header class="app-header">
-      <div class="header-brand" id="brand-logo" onclick="switchRoute('landing')">
-        <div class="emirates-badge-icon">EK</div>
-        <div class="header-title-text">
-          <span class="header-title-main">Emirates – DXB</span>
-          <span class="header-title-sub" id="header-subtitle">Fly Better • Dubai International Airport</span>
+    <!-- Main Official Emirates Header -->
+    <header class="emirates-main-header">
+      <div class="emirates-brand-group">
+        <!-- Iconic Emirates Red Box Logo -->
+        <div class="emirates-red-logo" onclick="switchRoute('landing')">
+          <span class="emirates-logo-text">Emirates</span>
+          <span class="emirates-logo-sub">FLY BETTER</span>
         </div>
+
+        <!-- Emirates Navigation Menu -->
+        <nav class="emirates-nav-menu" id="public-main-nav">
+          <a class="emirates-nav-item active" onclick="switchRoute('landing')">BOOK</a>
+          <a class="emirates-nav-item" onclick="switchRoute('signin')">MANAGE</a>
+          <a class="emirates-nav-item" onclick="switchRoute('landing')">EXPERIENCE</a>
+          <a class="emirates-nav-item" onclick="switchRoute('landing')">WHERE WE FLY</a>
+          <a class="emirates-nav-item" onclick="switchRoute('signin')" style="color: var(--color-gold);">SKYWARDS</a>
+        </nav>
       </div>
 
-      <!-- Public Header Navigation Actions -->
-      <div class="header-actions" id="header-actions">
-        <button class="header-nav-btn active" id="btn-nav-tickets" onclick="switchRoute('landing')">
-          ✈ Buy Tickets
-        </button>
-        <button class="header-nav-btn" id="btn-nav-signin" onclick="switchRoute('signin')">
+      <!-- Right Action Buttons -->
+      <div class="emirates-user-actions">
+        <button class="btn-header-signin" id="btn-nav-signin" onclick="switchRoute('signin')">
           Sign In
         </button>
-        <button class="header-nav-btn primary-nav" id="btn-nav-signup" onclick="switchRoute('signup')">
+        <button class="btn-header-signup" id="btn-nav-signup" onclick="switchRoute('signup')">
           Sign Up
         </button>
       </div>
     </header>
-
-    <!-- Public Landing Secondary Sub-Header Bar -->
-    <nav class="public-nav-strip" id="public-nav-strip">
-      <div class="public-nav-links">
-        <a class="public-nav-link active" onclick="switchRoute('landing')">Book a Flight</a>
-        <a class="public-nav-link" onclick="switchRoute('signin')">My Bookings</a>
-        <a class="public-nav-link" onclick="switchRoute('signup')">Create Account</a>
-      </div>
-      <span class="caption-text" style="color: var(--color-gold); font-weight: 600;" id="user-status-display">Guest Mode</span>
-    </nav>
 
     <!-- Admin OCC Module Selector Bar (Shown ONLY inside /admin for authorized admin role) -->
     <nav class="module-selector-strip" id="admin-module-strip" style="display: none;">
@@ -75,7 +81,7 @@
       <!-- Dynamically rendered by js/app.js -->
     </main>
 
-    <!-- Bottom Navigation Bar (Shown on Mobile screens <=768px) -->
+    <!-- Mobile Bottom Navigation Bar (Shown on Mobile screens <=768px) -->
     <nav class="bottom-nav">
       <a href="#" class="bottom-nav-item active" data-nav="home">
         <span class="bottom-nav-icon">

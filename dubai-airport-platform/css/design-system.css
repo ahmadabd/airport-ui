@@ -1,24 +1,27 @@
 /* ==========================================================================
-   Emirates–DXB Prototype - Design System
-   Mobile-first & Desktop Responsive Theme with Landing, Auth & Admin Routing
-   Version: Lightweight Design Guide — 7 August 2026
+   Emirates Official Website Design System (emirates.com)
+   Signature Emirates Red (#D71A21), Pure White (#FFFFFF), Luxury Gold (#D4AF37)
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Core Color Palette */
-  --color-primary: #C8102E;         /* Emirates Red */
-  --color-primary-pressed: #A60F2D;
-  --color-gold: #C6A15B;            /* Accent details only */
+  /* Official Emirates Brand Palette */
+  --color-primary: #D71A21;         /* Iconic Emirates Red */
+  --color-primary-pressed: #B51218;
+  --color-gold: #C6A15B;            /* Luxury Skywards Gold Accent */
+  --color-gold-bright: #D4AF37;
   
-  --bg-app: #FAF8F5;                /* Page background */
-  --bg-surface: #FFFFFF;            /* Card background */
-  --bg-secondary: #F3EFE9;          /* Secondary surface */
+  --bg-app: #F8F9FA;                /* Clean warm light gray background */
+  --bg-surface: #FFFFFF;            /* Pure white card surface */
+  --bg-secondary: #F2F4F7;          /* Secondary input & tab surface */
+  --bg-header-dark: #1E1E1E;        /* Deep luxury header bar */
   
-  --text-main: #1D1B1A;             /* Main text */
-  --text-secondary: #716C66;        /* Secondary text */
-  --border-color: #DED8D1;          /* Standard border */
+  --text-main: #222222;             /* High contrast dark text */
+  --text-secondary: #555555;        /* Subdued text */
+  --text-dim: #767676;
+  --border-color: #E0E0E0;          /* Clean crisp border */
+  --border-subtle: #EEEEEE;
 
   /* Status Colors (Icon + Label + Color) */
   --color-info: #175CD3;
@@ -40,8 +43,8 @@
   /* Typography */
   --font-family: 'Vazirmatn', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Spacing Scale (Multiples of 4px) */
-  --page-padding: 16px;
+  /* Spacing Scale */
+  --page-padding: 20px;
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;
@@ -51,14 +54,15 @@
   --space-32: 32px;
 
   /* Geometry & Radii */
-  --radius-button: 12px;
-  --radius-input: 12px;
-  --radius-card: 16px;
+  --radius-button: 8px;
+  --radius-input: 8px;
+  --radius-card: 12px;
   --radius-chip: 999px;
 
-  /* Elevation / Border */
+  /* Elevation */
   --border-standard: 1px solid var(--border-color);
-  --shadow-subtle: 0 2px 6px rgba(29, 27, 26, 0.05);
+  --shadow-emirates: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Base Reset */
@@ -81,16 +85,16 @@ html, body {
 
 /* Typography Hierarchy */
 h1, .page-title {
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 26px;
+  line-height: 32px;
   font-weight: 700;
   color: var(--text-main);
   letter-spacing: -0.01em;
 }
 
 h2, .section-title {
-  font-size: 20px;
-  line-height: 26px;
+  font-size: 22px;
+  line-height: 28px;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -123,13 +127,13 @@ p, .body-text {
   color: var(--text-secondary);
 }
 
-/* Cards */
+/* Cards (Emirates.com Clean White Card Style) */
 .card {
   background-color: var(--bg-surface);
   border: var(--border-standard);
   border-radius: var(--radius-card);
-  padding: var(--space-16);
-  margin-bottom: var(--space-16);
+  padding: var(--space-20);
+  margin-bottom: var(--space-20);
   box-shadow: var(--shadow-subtle);
 }
 
@@ -137,12 +141,12 @@ p, .body-text {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-12);
+  margin-bottom: var(--space-16);
 }
 
-/* Primary Button (Max 1 per screen) */
+/* Primary Button (Emirates Signature Red #D71A21) */
 .btn-primary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-8);
@@ -153,12 +157,13 @@ p, .body-text {
   font-family: var(--font-family);
   font-size: 16px;
   line-height: 20px;
-  font-weight: 600;
+  font-weight: 700;
   border: none;
   border-radius: var(--radius-button);
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, transform 0.1s ease;
   text-decoration: none;
+  box-shadow: 0 2px 6px rgba(215, 26, 33, 0.2);
 }
 
 .btn-primary:active, .btn-primary:hover {
@@ -167,7 +172,7 @@ p, .body-text {
 
 /* Secondary Button */
 .btn-secondary {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-8);
@@ -190,7 +195,7 @@ p, .body-text {
   background-color: var(--bg-secondary);
 }
 
-/* Inputs */
+/* Inputs (Clean Emirates Form Inputs) */
 .input-group {
   display: flex;
   flex-direction: column;
@@ -201,7 +206,7 @@ p, .body-text {
 .input-label {
   font-size: 14px;
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-main);
 }
 
@@ -216,13 +221,15 @@ p, .body-text {
   font-size: 16px;
   color: var(--text-main);
   outline: none;
+  transition: border-color 0.15s ease;
 }
 
 .input-field:focus {
   border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(215, 26, 33, 0.1);
 }
 
-/* Status Chips (Icon + Label + Color) */
+/* Status Chips */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -242,7 +249,6 @@ p, .body-text {
   justify-content: center;
 }
 
-/* Status variants */
 .chip-pending, .chip-in-progress, .chip-info {
   background-color: var(--bg-info);
   color: var(--color-info);
