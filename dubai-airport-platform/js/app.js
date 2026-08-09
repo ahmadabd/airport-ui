@@ -1,18 +1,53 @@
 /**
  * Emirates Official Website Engine & Router (emirates.com)
  * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth & Restricted /admin
+ * LocalStorage Persistence for Users & Roles
  * Design Guide Version: 7 August 2026
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+  initUserDatabase();
   initModuleStrip();
   initBottomNav();
   initHashRouter();
 });
 
 /* ==========================================================================
-   1. Shared Scenario Data & App State
+   1. LocalStorage User Database Persistence
    ========================================================================== */
+const DEFAULT_USERS = [
+  { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '4 Aug 2026' },
+  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' }
+];
+
+let USERS_DB = [];
+
+function initUserDatabase() {
+  const stored = localStorage.getItem('EMIRATES_DXB_USERS');
+  if (stored) {
+    try {
+      USERS_DB = JSON.parse(stored);
+    } catch (e) {
+      USERS_DB = [...DEFAULT_USERS];
+      saveUserDatabase();
+    }
+  } else {
+    USERS_DB = [...DEFAULT_USERS];
+    saveUserDatabase();
+  }
+}
+
+function saveUserDatabase() {
+  localStorage.setItem('EMIRATES_DXB_USERS', JSON.stringify(USERS_DB));
+}
+
+// Current Session User
+let currentUser = {
+  name: 'Guest User',
+  email: '',
+  role: 'guest'
+};
+
 const SHARED_SCENARIO = {
   flight: 'EK 001',
   route: 'DXB → LHR',
@@ -21,19 +56,6 @@ const SHARED_SCENARIO = {
   date: 'Tue, 4 Aug',
   boarding: '08:30',
   aircraft: 'A380-800'
-};
-
-// Initial User Database
-const USERS_DB = [
-  { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '4 Aug 2026' },
-  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' }
-];
-
-// Current Session User
-let currentUser = {
-  name: 'Guest User',
-  email: '',
-  role: 'guest'
 };
 
 let currentRoute = 'landing';
@@ -66,15 +88,12 @@ function switchRoute(route) {
   const adminNav = document.getElementById('admin-module-strip');
   const userStatusDisplay = document.getElementById('user-status-display');
   const publicNav = document.getElementById('public-main-nav');
-  
-  const btnSignin = document.getElementById('btn-nav-signin');
-  const btnSignup = document.getElementById('btn-nav-signup');
 
   // Update Status Display
   if (userStatusDisplay) {
     userStatusDisplay.textContent = currentUser.role !== 'guest'
       ? `${currentUser.name} (${currentUser.role.toUpperCase()})`
-      : 'Guest Mode';
+      : 'Guest';
   }
 
   // Active Menu Item Styling
@@ -119,10 +138,9 @@ function renderLandingView() {
   if (!contentArea) return;
 
   contentArea.innerHTML = `
-    <!-- Official Emirates Hero Flight Search Card (emirates.com Style) -->
+    <!-- Official Emirates Hero Flight Search Card -->
     <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
       
-      <!-- Hero Search Tabs Header -->
       <div style="display: flex; background-color: #F8F9FA; border-bottom: 1px solid #E0E0E0; overflow-x: auto;">
         <button class="search-tab-btn active" id="tab-search-flights" onclick="switchSearchTab('flights')">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
@@ -138,11 +156,8 @@ function renderLandingView() {
         </button>
       </div>
 
-      <!-- Search Form Body -->
       <div class="search-form-body" id="search-tab-content">
         <form id="booking-form" onsubmit="event.preventDefault(); handleBuyTicket();">
-          
-          <!-- Trip Type Radios -->
           <div style="display: flex; gap: 24px; margin-bottom: 16px; font-size: 14px; font-weight: 600;">
             <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
               <input type="radio" name="trip" value="return" checked style="accent-color: var(--color-primary);"> Return
@@ -152,7 +167,6 @@ function renderLandingView() {
             </label>
           </div>
 
-          <!-- Airport Selectors -->
           <div class="grid-2col" style="gap: 16px; margin-bottom: 0;">
             <div class="input-group">
               <label class="input-label">Departure airport</label>
@@ -174,7 +188,6 @@ function renderLandingView() {
             </div>
           </div>
 
-          <!-- Dates & Class Selectors -->
           <div class="grid-2col" style="gap: 16px; margin-bottom: 0;">
             <div class="input-group">
               <label class="input-label">Departure & Return dates</label>
@@ -192,7 +205,6 @@ function renderLandingView() {
             </div>
           </div>
 
-          <!-- Signature Emirates Red CTA -->
           <button type="submit" class="btn-primary" style="height: 52px; font-size: 17px; margin-top: 8px;">
             Search flights →
           </button>
@@ -433,9 +445,10 @@ function handlePassengerSignUp() {
 
   const newUser = { name, email, password, role: 'user', date: '4 Aug 2026' };
   USERS_DB.push(newUser);
+  saveUserDatabase(); // Save to LocalStorage permanently!
   currentUser = newUser;
 
-  alert(`Account created successfully! Signed in as ${name} (Role: USER).`);
+  alert(`Account created successfully! Signed in as ${name} (Role: USER). User saved to LocalStorage.`);
   switchRoute('landing');
 }
 
@@ -607,12 +620,12 @@ function renderUserManagementModule() {
         <form onsubmit="event.preventDefault(); handleAddNewUserByAdmin();">
           <div class="input-group">
             <label class="input-label">Full Name</label>
-            <input type="text" id="newuser-name" class="input-field" placeholder="e.g. Captain Tariq" required>
+            <input type="text" id="newuser-name" class="input-field" placeholder="e.g. Captain John" required>
           </div>
 
           <div class="input-group">
             <label class="input-label">Email Address</label>
-            <input type="email" id="newuser-email" class="input-field" placeholder="user@emirates.com" required>
+            <input type="email" id="newuser-email" class="input-field" placeholder="john@dxb.gov.ae" required>
           </div>
 
           <div class="input-group">
@@ -666,9 +679,11 @@ function handleAddNewUserByAdmin() {
   const password = document.getElementById('newuser-password').value.trim();
   const role = document.getElementById('newuser-role').value;
 
-  USERS_DB.push({ name, email, password, role, date: '4 Aug 2026' });
+  const newUser = { name, email, password, role, date: '4 Aug 2026' };
+  USERS_DB.push(newUser);
+  saveUserDatabase(); // Persist permanently in browser LocalStorage!
 
-  alert(`New Account '${name}' created successfully with role '${role.toUpperCase()}'!`);
+  alert(`New Account '${name}' created successfully with role '${role.toUpperCase()}'! User stored in LocalStorage.`);
   renderUserManagementModule();
 }
 
