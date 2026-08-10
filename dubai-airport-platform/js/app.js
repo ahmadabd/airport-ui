@@ -596,6 +596,14 @@ async function loadAdminModule(moduleId) {
       
       if (cleanedContent.length > 0) {
         contentArea.innerHTML = htmlText;
+        // Re-execute inline scripts in loaded page
+        const scripts = contentArea.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
         return;
       }
     }

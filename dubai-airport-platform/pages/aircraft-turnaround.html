@@ -1,116 +1,1123 @@
-<!-- Aircraft Turnaround Module — Emirates–DXB Prototype -->
+<!-- Aircraft Turnaround Module — Emirates–DXB Operations Control Platform -->
 
-<!-- Header Card -->
-<div class="card">
-  <div class="card-header">
-    <div>
-      <span class="caption-text">Apron Control • Terminal 3</span>
-      <h1 class="page-title">Aircraft Turnaround</h1>
+<div id="turnaround-module-wrapper">
+  
+  <!-- RBAC Role Selector Banner (Allows interactive testing of all specified roles) -->
+  <div class="card" style="background-color: var(--bg-secondary); border-color: var(--border-color); padding: 12px 16px; margin-bottom: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="chip chip-completed" style="font-weight: 700;">RBAC Test Mode</span>
+        <span class="caption-text" style="font-weight: 600;">Active Role:</span>
+        <select id="rbac-role-select" class="input-field" style="height: 36px; padding: 0 12px; font-size: 13px; width: auto;" onchange="updateRBACRole(this.value)">
+          <option value="Airport Operations Manager" selected>Airport Operations Manager (Full Control)</option>
+          <option value="Ground Operations Manager">Ground Operations Manager (Task Manager)</option>
+          <option value="Ground Crew">Ground Crew (Assigned Tasks Only)</option>
+          <option value="Airline Operations Manager">Airline Operations Manager (Emirates Only)</option>
+          <option value="Maintenance Operator">Maintenance Operator (Tech Tasks Only)</option>
+          <option value="Gate Manager">Gate Manager (Read Only)</option>
+          <option value="Tower Controller">Tower Controller (Read Only)</option>
+          <option value="Passenger">Passenger (Access Blocked)</option>
+        </select>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-secondary);" id="rbac-permission-hint">
+        Full permission: Assign, Reassign, Escalate, and Change Priorities across all flights.
+      </div>
     </div>
-    <span class="chip chip-in-progress">
-      <span class="chip-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+  </div>
+
+  <!-- Passenger Access Blocked View (Hidden by default, shown if role is Passenger) -->
+  <div id="passenger-blocked-container" style="display: none;">
+    <div class="card" style="border-color: var(--border-error); background-color: var(--bg-error); padding: 32px; text-align: center;">
+      <span class="chip chip-blocked" style="font-size: 14px; padding: 6px 16px; margin-bottom: 16px;">
+        <span class="chip-icon">⚠</span> Access Restricted
       </span>
-      In progress
-    </span>
-  </div>
-
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    Ground handling turnaround services for flight EK 001 at Gate A14.
-  </p>
-
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-secondary); padding: 12px; border-radius: 12px;">
-    <div>
-      <span class="caption-text">Flight</span>
-      <p class="body-text" style="font-weight: 600;">EK 001</p>
-    </div>
-    <div>
-      <span class="caption-text">Aircraft</span>
-      <p class="body-text" style="font-weight: 600;">A380-800</p>
-    </div>
-    <div>
-      <span class="caption-text">Gate</span>
-      <p class="body-text" style="font-weight: 600;">Gate A14</p>
-    </div>
-    <div>
-      <span class="caption-text">Target Pushback</span>
-      <p class="body-text" style="font-weight: 600;">08:30</p>
+      <h2 class="section-title" style="color: var(--color-error); margin-bottom: 8px;">Access Denied</h2>
+      <p class="body-text" style="max-width: 600px; margin: 0 auto 20px;">
+        Passengers do not have access to the Aircraft Turnaround Operations Center. Please use the Public Passenger Portal to search flights or manage bookings.
+      </p>
+      <button class="btn-primary" style="width: auto; margin: 0 auto; padding: 0 24px;" onclick="switchRoute('landing')">
+        Return to Public Passenger Site →
+      </button>
     </div>
   </div>
+
+  <!-- Main Turnaround Operations Center View -->
+  <div id="turnaround-main-view">
+
+    <!-- Page Header & Title -->
+    <div class="card-header" style="margin-bottom: 16px;">
+      <div>
+        <span class="caption-text">Dubai International Airport (DXB) • Operations Control Center</span>
+        <h1 class="page-title">Aircraft Turnaround Operations Center</h1>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <span class="chip chip-completed">
+          <span class="chip-icon">●</span> Live Apron Telemetry
+        </span>
+        <span class="chip chip-info" id="live-turnaround-clock">Tue, 4 Aug • 10:15</span>
+      </div>
+    </div>
+
+    <!-- 2. KPI Summary Cards Top Row -->
+    <div class="grid-4col" style="margin-bottom: 16px;" id="kpi-cards-grid">
+      <div class="card" style="margin-bottom: 0; padding: 16px;">
+        <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Aircraft in Turnaround</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+          <span style="font-size: 32px; font-weight: 800; color: var(--text-main);" id="kpi-total">12</span>
+          <span class="chip chip-info">Active Apron</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-success);">
+        <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-success);">On Time</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+          <span style="font-size: 32px; font-weight: 800; color: var(--color-success);" id="kpi-ontime">7</span>
+          <span class="chip chip-completed">58% of Total</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-warning);">
+        <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-warning);">At Risk</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+          <span style="font-size: 32px; font-weight: 800; color: var(--color-warning);" id="kpi-atrisk">2</span>
+          <span class="chip chip-warning">Monitoring</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-error);">
+        <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-error);">Delayed</span>
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+          <span style="font-size: 32px; font-weight: 800; color: var(--color-error);" id="kpi-delayed">2</span>
+          <span class="chip chip-error">Escalated</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 14. Filters & Search Section -->
+    <div class="card" style="margin-bottom: 16px; padding: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 class="card-title" style="font-size: 16px;">Operational Filters & Search</h3>
+        <button class="btn-secondary" style="height: 32px; width: auto; padding: 0 12px; font-size: 12px;" onclick="resetTurnaroundFilters()">
+          Reset Filters
+        </button>
+      </div>
+
+      <div class="grid-4col" style="gap: 10px; margin-bottom: 0;">
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">Search Flight / Aircraft / Gate</label>
+          <input type="text" id="filter-search" class="input-field" style="height: 38px; font-size: 13px;" placeholder="e.g. EK202 or A14" oninput="applyTurnaroundFilters()">
+        </div>
+
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">Airline</label>
+          <select id="filter-airline" class="input-field" style="height: 38px; font-size: 13px;" onchange="applyTurnaroundFilters()">
+            <option value="All" selected>All Airlines</option>
+            <option value="Emirates">Emirates</option>
+            <option value="flydubai">flydubai</option>
+            <option value="British Airways">British Airways</option>
+            <option value="Lufthansa">Lufthansa</option>
+            <option value="Qatar Airways">Qatar Airways</option>
+          </select>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">Status</label>
+          <select id="filter-status" class="input-field" style="height: 38px; font-size: 13px;" onchange="applyTurnaroundFilters()">
+            <option value="All" selected>All Statuses</option>
+            <option value="On Time">On Time</option>
+            <option value="At Risk">At Risk</option>
+            <option value="Delayed">Delayed</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">Sort By</label>
+          <select id="filter-sort" class="input-field" style="height: 38px; font-size: 13px;" onchange="applyTurnaroundFilters()">
+            <option value="departure" selected>Next Departure</option>
+            <option value="progress">Turnaround Progress</option>
+            <option value="readiness">Departure Readiness</option>
+            <option value="delay">Delay Severity</option>
+            <option value="gate">Gate Number</option>
+            <option value="flight">Flight Number</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Active Turnarounds Table -->
+    <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 class="section-title" style="font-size: 18px;">Active Aircraft Turnarounds</h2>
+          <span class="supporting-text">Click any flight row to inspect turnaround timeline, tasks & ground operations</span>
+        </div>
+        <span class="caption-text" id="table-count-badge">Showing 6 Flights</span>
+      </div>
+
+      <div style="overflow-x: auto;">
+        <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
+              <th style="padding: 12px 16px;">Flight</th>
+              <th style="padding: 12px 16px;">Aircraft</th>
+              <th style="padding: 12px 16px;">Gate</th>
+              <th style="padding: 12px 16px;">Arrival</th>
+              <th style="padding: 12px 16px;">Next Departure</th>
+              <th style="padding: 12px 16px; min-width: 130px;">Progress</th>
+              <th style="padding: 12px 16px; min-width: 130px;">Readiness</th>
+              <th style="padding: 12px 16px;">Status</th>
+            </tr>
+          </thead>
+          <tbody id="turnaround-table-body">
+            <!-- Rows injected by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========================================================================== -->
+    <!-- 4. TURNAROUND DETAIL VIEW FOR SELECTED AIRCRAFT -->
+    <!-- ========================================================================== -->
+    <div id="detail-view-wrapper" style="scroll-margin-top: 20px;">
+      
+      <!-- Selected Flight Summary Banner & Readiness Card -->
+      <div class="card" style="border-top: 4px solid var(--color-primary); padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;" id="detail-header-container">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
+      <!-- 12. Aircraft Turnaround Workflow Stage Diagram -->
+      <div class="card" style="margin-bottom: 20px; padding: 20px;">
+        <h3 class="card-title" style="font-size: 16px; margin-bottom: 12px;">Turnaround Workflow Stage Sequence</h3>
+        
+        <div style="display: flex; overflow-x: auto; gap: 6px; padding-bottom: 8px; scrollbar-width: thin;" id="workflow-sequence-container">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
+      <!-- 8 & 9. Delay Risk Panel + Readiness Breakdown Grid -->
+      <div class="grid-2col" style="margin-bottom: 20px;">
+        
+        <!-- Delay & Risk Panel (Section 8) -->
+        <div class="card" id="delay-risk-card" style="margin-bottom: 0;">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- 10 & 11. Aircraft Information & Related Operations (Section 10 & 11) -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          
+          <!-- Aircraft Information Card -->
+          <div class="card" style="margin-bottom: 0;" id="aircraft-info-card">
+            <!-- Injected by JS -->
+          </div>
+
+          <!-- Related Operations Modules Card -->
+          <div class="card" style="margin-bottom: 0;" id="related-ops-card">
+            <h3 class="card-title" style="font-size: 16px; margin-bottom: 12px;">Related Operations Modules</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                <span class="caption-text">Gate Management</span>
+                <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-gate-text">Gate A14 • Boarding</p>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('gate-management');">Open Gate Ops</button>
+              </div>
+
+              <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                <span class="caption-text">CrewFlow</span>
+                <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-crew-text">24/24 Crew Verified</p>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('crew-flow');">Open CrewFlow</button>
+              </div>
+
+              <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                <span class="caption-text">Tower Control</span>
+                <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-tower-text">Pushback Pending</p>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('tower-control');">Open Tower Control</button>
+              </div>
+
+              <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
+                <span class="caption-text">Line Maintenance</span>
+                <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-maint-text">Clearance Passed</p>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="alert('Viewing Line Maintenance Inspection Log')">View Maintenance</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- 5. Visual Turnaround Timeline Section -->
+      <div class="card" style="margin-bottom: 20px; padding: 20px;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Turnaround Milestones Timeline</h3>
+            <span class="supporting-text">Chronological sequence from Touchdown to Pushback</span>
+          </div>
+          <span class="chip chip-info" id="timeline-flight-badge">EK202 Timeline</span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 12px;" id="timeline-steps-container">
+          <!-- Timeline steps injected by JS -->
+        </div>
+      </div>
+
+      <!-- 6. Ground Services Section -->
+      <div class="card" style="margin-bottom: 20px; padding: 20px;">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title">Ground Operations Services</h3>
+            <span class="supporting-text">Live telemetry across ground handling teams</span>
+          </div>
+          <span class="chip chip-completed">8 Teams Active</span>
+        </div>
+
+        <div class="grid-2col" style="gap: 12px;" id="ground-services-container">
+          <!-- Ground service cards injected by JS -->
+        </div>
+      </div>
+
+      <!-- 7. Task Management Table Section -->
+      <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 20px;">
+        <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <h3 class="card-title" style="font-size: 16px;">Turnaround Task Dispatch</h3>
+            <span class="supporting-text">Interactive task management with RBAC permission enforcement</span>
+          </div>
+          <button class="btn-primary" style="width: auto; height: 36px; padding: 0 16px; font-size: 13px;" id="btn-create-task" onclick="handleCreateTaskPrompt()">+ Create New Task</button>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <thead>
+              <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
+                <th style="padding: 12px 16px;">Task</th>
+                <th style="padding: 12px 16px;">Team</th>
+                <th style="padding: 12px 16px;">Status</th>
+                <th style="padding: 12px 16px;">Priority</th>
+                <th style="padding: 12px 16px;">Start</th>
+                <th style="padding: 12px 16px;">ETA</th>
+                <th style="padding: 12px 16px; text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="task-table-body">
+              <!-- Task rows injected by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
 </div>
 
-<!-- Turnaround Progress Items -->
-<div class="card">
-  <div class="card-header">
-    <h2 class="card-title">Services Checklist</h2>
-    <span class="supporting-text">3 of 4 Complete</span>
-  </div>
+<!-- Interactive Engine for Aircraft Turnaround Module -->
+<script>
+  // Complete Mock Data Database for 6 Aircraft Turnarounds
+  const TURNAROUND_FLIGHTS_DATA = [
+    {
+      flight: 'EK202',
+      airline: 'Emirates',
+      aircraft: 'Airbus A380',
+      reg: 'A6-EOD',
+      gate: 'A14',
+      terminal: 'Terminal 3',
+      arrival: '08:20',
+      departure: '10:45',
+      estDeparture: '10:45',
+      progress: 82,
+      readiness: 92,
+      status: 'On Time',
+      nextFlight: 'EK203',
+      destination: 'London Heathrow',
+      passengers: 487,
+      crew: 24,
+      delayMin: 0,
+      workflowStageIndex: 8, // BOARDING stage
+      delayBreakdown: { baggage: 0, fueling: 0, catering: 0, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '08:20', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '08:28', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '12m', team: 'Gate Operations' },
+        { time: '08:35', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '20m', team: 'dnata Baggage' },
+        { time: '08:45', step: 'Cleaning', status: 'COMPLETED', duration: '20m', team: 'Cabin Cleaning' },
+        { time: '09:05', step: 'Catering', status: 'COMPLETED', duration: '15m', team: 'Emirates Catering' },
+        { time: '09:20', step: 'Fueling', status: 'COMPLETED', duration: '25m', team: 'Fuel Operations' },
+        { time: '09:40', step: 'Baggage Loading', status: 'COMPLETED', duration: '25m', team: 'dnata Baggage' },
+        { time: '10:00', step: 'Cabin Preparation', status: 'COMPLETED', duration: '15m', team: 'Cabin Services' },
+        { time: '10:15', step: 'Boarding', status: 'IN PROGRESS', duration: '25m', team: 'Gate Operations' },
+        { time: '10:35', step: 'Doors Closed', status: 'PENDING', duration: '5m', team: 'Flight Crew' },
+        { time: '10:40', step: 'Pushback', status: 'PENDING', duration: '5m', team: 'Apron Tug Crew' },
+        { time: '10:45', step: 'Ready for Departure', status: 'PENDING', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Fueling', team: 'Fuel Operations', status: 'Completed', progress: 100, start: '09:20', eta: '09:45' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '08:45', eta: '09:05' },
+        { service: 'Catering', team: 'Emirates Flight Catering', status: 'Completed', progress: 100, start: '09:05', eta: '09:20' },
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'Completed', progress: 100, start: '09:40', eta: '10:05' },
+        { service: 'Water Service', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '08:40', eta: '08:55' },
+        { service: 'Waste Removal', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '08:40', eta: '08:55' },
+        { service: 'Cabin Preparation', team: 'Cabin Service Team', status: 'Completed', progress: 100, start: '10:00', eta: '10:15' },
+        { service: 'Maintenance Inspection', team: 'Line Maintenance', status: 'Completed', progress: 100, start: '08:30', eta: '08:50' }
+      ],
+      tasks: [
+        { id: 'T101', task: 'Boarding Gate Validation', team: 'Gate Team', status: 'In Progress', priority: 'High', start: '10:15', eta: '10:35' },
+        { id: 'T102', task: 'Baggage Container Hold Loading', team: 'Baggage Team', status: 'Completed', priority: 'High', start: '09:40', eta: '10:05' },
+        { id: 'T103', task: 'Fuel Hydrant Pipeline Disconnect', team: 'Fuel Team', status: 'Completed', priority: 'High', start: '09:20', eta: '09:45' },
+        { id: 'T104', task: 'Cabin Deep Cleaning & Sanitization', team: 'Cleaning Team', status: 'Completed', priority: 'Normal', start: '08:45', eta: '09:05' }
+      ]
+    },
+    {
+      flight: 'EK501',
+      airline: 'Emirates',
+      aircraft: 'Boeing 777',
+      reg: 'A6-EBF',
+      gate: 'B22',
+      terminal: 'Terminal 3',
+      arrival: '09:05',
+      departure: '11:20',
+      estDeparture: '11:29',
+      progress: 61,
+      readiness: 68,
+      status: 'At Risk',
+      nextFlight: 'EK502',
+      destination: 'Paris CDG',
+      passengers: 354,
+      crew: 16,
+      delayMin: 9,
+      workflowStageIndex: 6, // BAGGAGE LOADING stage
+      delayBreakdown: { baggage: 8, fueling: 3, catering: 0, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '09:05', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '09:12', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '13m', team: 'Gate Operations' },
+        { time: '09:25', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '09:35', step: 'Cleaning', status: 'COMPLETED', duration: '15m', team: 'Cabin Cleaning' },
+        { time: '09:50', step: 'Catering', status: 'COMPLETED', duration: '20m', team: 'Emirates Catering' },
+        { time: '10:10', step: 'Fueling', status: 'IN PROGRESS', duration: '20m', team: 'Fuel Operations' },
+        { time: '10:20', step: 'Baggage Loading', status: 'DELAYED', duration: '25m (+8m)', team: 'dnata Baggage' },
+        { time: '10:45', step: 'Cabin Preparation', status: 'PENDING', duration: '10m', team: 'Cabin Services' },
+        { time: '10:55', step: 'Boarding', status: 'PENDING', duration: '20m', team: 'Gate Operations' },
+        { time: '11:15', step: 'Doors Closed', status: 'PENDING', duration: '5m', team: 'Flight Crew' },
+        { time: '11:24', step: 'Pushback', status: 'PENDING', duration: '5m', team: 'Apron Tug Crew' },
+        { time: '11:29', step: 'Ready for Departure', status: 'PENDING', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'Delayed (+8m)', progress: 45, start: '10:20', eta: '10:48' },
+        { service: 'Fueling', team: 'Fuel Operations', status: 'In Progress (+3m)', progress: 70, start: '10:10', eta: '10:33' },
+        { service: 'Catering', team: 'Emirates Flight Catering', status: 'Completed', progress: 100, start: '09:50', eta: '10:10' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '09:35', eta: '09:50' },
+        { service: 'Water Service', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '09:20', eta: '09:35' },
+        { service: 'Waste Removal', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '09:20', eta: '09:35' },
+        { service: 'Cabin Preparation', team: 'Cabin Service Team', status: 'Pending', progress: 0, start: '10:45', eta: '10:55' },
+        { service: 'Maintenance Inspection', team: 'Line Maintenance', status: 'Completed', progress: 100, start: '09:15', eta: '09:30' }
+      ],
+      tasks: [
+        { id: 'T201', task: 'Baggage Loading Hold Container 2', team: 'Baggage Team', status: 'Delayed', priority: 'High', start: '10:20', eta: '10:48' },
+        { id: 'T202', task: 'Wing Fuel Hose Connection', team: 'Fuel Team', status: 'In Progress', priority: 'High', start: '10:10', eta: '10:33' },
+        { id: 'T203', task: 'Cabin Catering Carts Verification', team: 'Catering Team', status: 'Completed', priority: 'Normal', start: '09:50', eta: '10:10' },
+        { id: 'T204', task: 'Cabin Deering & Sanitation', team: 'Cleaning Team', status: 'Completed', priority: 'Normal', start: '09:35', eta: '09:50' }
+      ]
+    },
+    {
+      flight: 'EK303',
+      airline: 'Emirates',
+      aircraft: 'Airbus A350',
+      reg: 'A6-XAA',
+      gate: 'B07',
+      terminal: 'Terminal 3',
+      arrival: '09:30',
+      departure: '11:35',
+      estDeparture: '11:50',
+      progress: 45,
+      readiness: 52,
+      status: 'Delayed',
+      nextFlight: 'EK304',
+      destination: 'Frankfurt Airport',
+      passengers: 298,
+      crew: 14,
+      delayMin: 15,
+      workflowStageIndex: 5, // FUELING stage
+      delayBreakdown: { baggage: 5, fueling: 7, catering: 3, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '09:30', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '09:38', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '12m', team: 'Gate Operations' },
+        { time: '09:50', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '10:05', step: 'Cleaning', status: 'COMPLETED', duration: '15m', team: 'Cabin Cleaning' },
+        { time: '10:20', step: 'Catering', status: 'DELAYED', duration: '20m (+3m)', team: 'Emirates Catering' },
+        { time: '10:40', step: 'Fueling', status: 'DELAYED', duration: '25m (+7m)', team: 'Fuel Operations' },
+        { time: '11:05', step: 'Baggage Loading', status: 'PENDING', duration: '20m', team: 'dnata Baggage' },
+        { time: '11:25', step: 'Cabin Preparation', status: 'PENDING', duration: '10m', team: 'Cabin Services' },
+        { time: '11:35', step: 'Boarding', status: 'PENDING', duration: '15m', team: 'Gate Operations' },
+        { time: '11:45', step: 'Doors Closed', status: 'PENDING', duration: '5m', team: 'Flight Crew' },
+        { time: '11:48', step: 'Pushback', status: 'PENDING', duration: '2m', team: 'Apron Tug Crew' },
+        { time: '11:50', step: 'Ready for Departure', status: 'PENDING', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Fueling', team: 'Fuel Operations', status: 'Delayed (+7m)', progress: 30, start: '10:40', eta: '11:12' },
+        { service: 'Catering', team: 'Emirates Flight Catering', status: 'Delayed (+3m)', progress: 90, start: '10:20', eta: '10:43' },
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'Pending', progress: 0, start: '11:05', eta: '11:30' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '10:05', eta: '10:20' },
+        { service: 'Water Service', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '09:45', eta: '10:00' },
+        { service: 'Waste Removal', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '09:45', eta: '10:00' },
+        { service: 'Cabin Preparation', team: 'Cabin Service Team', status: 'Pending', progress: 0, start: '11:25', eta: '11:35' },
+        { service: 'Maintenance Inspection', team: 'Line Maintenance', status: 'Completed', progress: 100, start: '09:40', eta: '09:55' }
+      ],
+      tasks: [
+        { id: 'T301', task: 'Hydrant Refueling Pipe Pressure Check', team: 'Fuel Team', status: 'Delayed', priority: 'High', start: '10:40', eta: '11:12' },
+        { id: 'T302', task: 'Upper Deck Catering Cart Loading', team: 'Catering Team', status: 'Delayed', priority: 'Normal', start: '10:20', eta: '10:43' }
+      ]
+    },
+    {
+      flight: 'FZ812',
+      airline: 'flydubai',
+      aircraft: 'Boeing 737',
+      reg: 'A6-FDB',
+      gate: 'C12',
+      terminal: 'Terminal 2',
+      arrival: '10:00',
+      departure: '12:00',
+      estDeparture: '12:00',
+      progress: 74,
+      readiness: 85,
+      status: 'On Time',
+      nextFlight: 'FZ813',
+      destination: 'Riyadh King Khalid',
+      passengers: 174,
+      crew: 8,
+      delayMin: 0,
+      workflowStageIndex: 6, // CATERING stage
+      delayBreakdown: { baggage: 0, fueling: 0, catering: 0, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '10:00', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '10:07', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '10m', team: 'Gate Operations' },
+        { time: '10:17', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '10:32', step: 'Cleaning', status: 'COMPLETED', duration: '15m', team: 'Cabin Cleaning' },
+        { time: '10:47', step: 'Catering', status: 'IN PROGRESS', duration: '15m', team: 'dnata Catering' },
+        { time: '11:02', step: 'Fueling', status: 'PENDING', duration: '20m', team: 'Fuel Operations' },
+        { time: '11:22', step: 'Baggage Loading', status: 'PENDING', duration: '15m', team: 'dnata Baggage' },
+        { time: '11:37', step: 'Boarding', status: 'PENDING', duration: '15m', team: 'Gate Operations' },
+        { time: '11:52', step: 'Doors Closed', status: 'PENDING', duration: '3m', team: 'Flight Crew' },
+        { time: '11:55', step: 'Pushback', status: 'PENDING', duration: '5m', team: 'Apron Tug Crew' },
+        { time: '12:00', step: 'Ready for Departure', status: 'PENDING', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Catering', team: 'dnata Catering', status: 'In Progress', progress: 75, start: '10:47', eta: '11:02' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '10:32', eta: '10:47' },
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'In Progress', progress: 50, start: '10:17', eta: '11:35' },
+        { service: 'Fueling', team: 'Fuel Operations', status: 'Pending', progress: 0, start: '11:02', eta: '11:22' },
+        { service: 'Water Service', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '10:10', eta: '10:25' },
+        { service: 'Waste Removal', team: 'Apron Utilities', status: 'Completed', progress: 100, start: '10:10', eta: '10:25' },
+        { service: 'Cabin Preparation', team: 'Cabin Service Team', status: 'Pending', progress: 0, start: '11:30', eta: '11:40' },
+        { service: 'Maintenance Inspection', team: 'Line Maintenance', status: 'Completed', progress: 100, start: '10:05', eta: '10:20' }
+      ],
+      tasks: [
+        { id: 'T401', task: 'Economy Galley Cart Loading', team: 'Catering Team', status: 'In Progress', priority: 'Normal', start: '10:47', eta: '11:02' },
+        { id: 'T402', task: 'Main Hold Baggage Offload', team: 'Baggage Team', status: 'Completed', priority: 'Normal', start: '10:17', eta: '10:32' }
+      ]
+    },
+    {
+      flight: 'BA107',
+      airline: 'British Airways',
+      aircraft: 'Boeing 787',
+      reg: 'G-ZBJA',
+      gate: 'D04',
+      terminal: 'Terminal 1',
+      arrival: '07:45',
+      departure: '09:30',
+      estDeparture: '09:30',
+      progress: 100,
+      readiness: 100,
+      status: 'Completed',
+      nextFlight: 'BA108',
+      destination: 'London Heathrow',
+      passengers: 214,
+      crew: 10,
+      delayMin: 0,
+      workflowStageIndex: 12, // DEPARTURE stage
+      delayBreakdown: { baggage: 0, fueling: 0, catering: 0, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '07:45', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '07:52', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '12m', team: 'Gate Operations' },
+        { time: '08:05', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '08:20', step: 'Cleaning', status: 'COMPLETED', duration: '15m', team: 'Cabin Cleaning' },
+        { time: '08:35', step: 'Catering', status: 'COMPLETED', duration: '15m', team: 'dnata Catering' },
+        { time: '08:50', step: 'Fueling', status: 'COMPLETED', duration: '15m', team: 'Fuel Operations' },
+        { time: '09:05', step: 'Baggage Loading', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '09:15', step: 'Boarding', status: 'COMPLETED', duration: '10m', team: 'Gate Operations' },
+        { time: '09:25', step: 'Doors Closed', status: 'COMPLETED', duration: '2m', team: 'Flight Crew' },
+        { time: '09:28', step: 'Pushback', status: 'COMPLETED', duration: '2m', team: 'Apron Tug Crew' },
+        { time: '09:30', step: 'Ready for Departure', status: 'COMPLETED', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Fueling', team: 'Fuel Operations', status: 'Completed', progress: 100, start: '08:50', eta: '09:05' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '08:20', eta: '08:35' },
+        { service: 'Catering', team: 'dnata Catering', status: 'Completed', progress: 100, start: '08:35', eta: '08:50' },
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'Completed', progress: 100, start: '09:05', eta: '09:20' }
+      ],
+      tasks: [
+        { id: 'T501', task: 'Pushback Tug Clearance', team: 'Apron Tug Team', status: 'Completed', priority: 'Normal', start: '09:25', eta: '09:28' }
+      ]
+    },
+    {
+      flight: 'LH630',
+      airline: 'Lufthansa',
+      aircraft: 'Airbus A350',
+      reg: 'D-AIXA',
+      gate: 'D12',
+      terminal: 'Terminal 1',
+      arrival: '08:50',
+      departure: '11:10',
+      estDeparture: '11:10',
+      progress: 90,
+      readiness: 95,
+      status: 'On Time',
+      nextFlight: 'LH631',
+      destination: 'Munich Airport',
+      passengers: 288,
+      crew: 12,
+      delayMin: 0,
+      workflowStageIndex: 8, // BOARDING stage
+      delayBreakdown: { baggage: 0, fueling: 0, catering: 0, cleaning: 0, maintenance: 0, crew: 0 },
+      timeline: [
+        { time: '08:50', step: 'Aircraft Arrived', status: 'COMPLETED', duration: '5m', team: 'Apron Operations' },
+        { time: '08:58', step: 'Passengers Disembarked', status: 'COMPLETED', duration: '12m', team: 'Gate Operations' },
+        { time: '09:12', step: 'Baggage Unloaded', status: 'COMPLETED', duration: '15m', team: 'dnata Baggage' },
+        { time: '09:27', step: 'Cleaning', status: 'COMPLETED', duration: '15m', team: 'Cabin Cleaning' },
+        { time: '09:42', step: 'Catering', status: 'COMPLETED', duration: '15m', team: 'dnata Catering' },
+        { time: '09:57', step: 'Fueling', status: 'COMPLETED', duration: '20m', team: 'Fuel Operations' },
+        { time: '10:17', step: 'Baggage Loading', status: 'COMPLETED', duration: '20m', team: 'dnata Baggage' },
+        { time: '10:45', step: 'Boarding', status: 'IN PROGRESS', duration: '20m', team: 'Gate Operations' },
+        { time: '11:05', step: 'Doors Closed', status: 'PENDING', duration: '3m', team: 'Flight Crew' },
+        { time: '11:08', step: 'Pushback', status: 'PENDING', duration: '2m', team: 'Apron Tug Crew' },
+        { time: '11:10', step: 'Ready for Departure', status: 'PENDING', duration: '0m', team: 'Tower Control' }
+      ],
+      services: [
+        { service: 'Baggage', team: 'dnata Baggage Ops', status: 'Completed', progress: 100, start: '10:17', eta: '10:37' },
+        { service: 'Fueling', team: 'Fuel Operations', status: 'Completed', progress: 100, start: '09:57', eta: '10:17' },
+        { service: 'Catering', team: 'dnata Catering', status: 'Completed', progress: 100, start: '09:42', eta: '09:57' },
+        { service: 'Cleaning', team: 'Cleaning Crew', status: 'Completed', progress: 100, start: '09:27', eta: '09:42' }
+      ],
+      tasks: [
+        { id: 'T601', task: 'Passenger Boarding Gate Scan', team: 'Gate Team', status: 'In Progress', priority: 'High', start: '10:45', eta: '11:05' }
+      ]
+    }
+  ];
 
-  <div style="display: flex; flex-direction: column; gap: 12px;">
-    <!-- Service 1 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Refueling</p>
-        <span class="supporting-text">48,000 Liters loaded</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
+  // Standard 14 Turnaround Workflow Stages
+  const WORKFLOW_STAGES = [
+    'ARRIVAL', 'PARKING', 'DISEMBARKATION', 'BAGGAGE UNLOADING', 
+    'CLEANING', 'CATERING', 'FUELING', 'MAINTENANCE', 
+    'BAGGAGE LOADING', 'CABIN READY', 'BOARDING', 'DOORS CLOSED', 
+    'PUSHBACK', 'DEPARTURE'
+  ];
 
-    <!-- Service 2 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Cabin Cleaning</p>
-        <span class="supporting-text">Main deck & upper deck sanitized</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
+  // State Variables
+  let currentRBACRole = 'Airport Operations Manager';
+  let selectedFlightCode = 'EK202';
+  let activeTurnaroundList = [...TURNAROUND_FLIGHTS_DATA];
 
-    <!-- Service 3 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Catering Loading</p>
-        <span class="supporting-text">Galley carts secured</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
+  // Initialize Module on Load
+  document.addEventListener('DOMContentLoaded', () => {
+    initTurnaroundModule();
+  });
 
-    <!-- Service 4 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Baggage Loading</p>
-        <span class="supporting-text">Container loading at 85%</span>
-      </div>
-      <span class="chip chip-in-progress">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </span>
-        In progress
-      </span>
-    </div>
-  </div>
-</div>
+  // Call initialization immediately if loaded via SPA fetcher
+  setTimeout(() => {
+    initTurnaroundModule();
+  }, 50);
 
-<!-- Primary Action Card (Single Primary CTA per screen rule) -->
-<div class="card">
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    Baggage loading in progress. Confirm apron completion to grant pushback readiness.
-  </p>
-  <button class="btn-primary" onclick="alert('Apron turnaround completed for EK 001')">
-    Confirm Pushback Readiness
-  </button>
-</div>
+  function initTurnaroundModule() {
+    applyTurnaroundFilters();
+    selectTurnaroundFlight(selectedFlightCode);
+  }
+
+  // 13. RBAC Permission System Implementation
+  function updateRBACRole(newRole) {
+    currentRBACRole = newRole;
+    const hint = document.getElementById('rbac-permission-hint');
+    const passengerBlocked = document.getElementById('passenger-blocked-container');
+    const mainView = document.getElementById('turnaround-main-view');
+
+    if (newRole === 'Passenger') {
+      passengerBlocked.style.display = 'block';
+      mainView.style.display = 'none';
+      return;
+    } else {
+      passengerBlocked.style.display = 'none';
+      mainView.style.display = 'block';
+    }
+
+    const hints = {
+      'Airport Operations Manager': 'Full permission: Assign, Reassign, Escalate, and Change Priorities across all flights.',
+      'Ground Operations Manager': 'Task Management permission: Create, Assign, Reassign, Escalate, and Complete tasks.',
+      'Ground Crew': 'Restricted permission: Can ONLY view assigned tasks, Start, Complete, or Report Issues.',
+      'Airline Operations Manager': 'Airline filter locked to Emirates flights only.',
+      'Maintenance Operator': 'Maintenance permission: Can view and update maintenance-related tasks.',
+      'Gate Manager': 'Gate View permission: Read-only access to turnaround timelines.',
+      'Tower Controller': 'Tower View permission: Read-only access to readiness and pushback statuses.'
+    };
+
+    if (hint) hint.textContent = hints[newRole] || 'Active role permissions applied.';
+
+    applyTurnaroundFilters();
+    renderSelectedDetailView();
+  }
+
+  // 14 & 15. Filtering & Sorting Logic
+  function applyTurnaroundFilters() {
+    const searchText = (document.getElementById('filter-search')?.value || '').toUpperCase();
+    const airlineFilter = document.getElementById('filter-airline')?.value || 'All';
+    const statusFilter = document.getElementById('filter-status')?.value || 'All';
+    const sortBy = document.getElementById('filter-sort')?.value || 'departure';
+
+    activeTurnaroundList = TURNAROUND_FLIGHTS_DATA.filter(item => {
+      // Role enforcement for Airline Operations Manager (Emirates Only)
+      if (currentRBACRole === 'Airline Operations Manager' && item.airline !== 'Emirates') {
+        return false;
+      }
+
+      // Search match
+      const matchSearch = !searchText || 
+        item.flight.toUpperCase().includes(searchText) || 
+        item.aircraft.toUpperCase().includes(searchText) || 
+        item.gate.toUpperCase().includes(searchText);
+
+      // Airline match
+      const matchAirline = (airlineFilter === 'All') || (item.airline === airlineFilter);
+
+      // Status match
+      const matchStatus = (statusFilter === 'All') || (item.status === statusFilter);
+
+      return matchSearch && matchAirline && matchStatus;
+    });
+
+    // Sorting Logic
+    activeTurnaroundList.sort((a, b) => {
+      if (sortBy === 'departure') return a.departure.localeCompare(b.departure);
+      if (sortBy === 'progress') return b.progress - a.progress;
+      if (sortBy === 'readiness') return b.readiness - a.readiness;
+      if (sortBy === 'delay') return b.delayMin - a.delayMin;
+      if (sortBy === 'gate') return a.gate.localeCompare(b.gate);
+      if (sortBy === 'flight') return a.flight.localeCompare(b.flight);
+      return 0;
+    });
+
+    renderTurnaroundTable();
+    updateKPICards();
+  }
+
+  function resetTurnaroundFilters() {
+    if (document.getElementById('filter-search')) document.getElementById('filter-search').value = '';
+    if (document.getElementById('filter-airline')) document.getElementById('filter-airline').value = 'All';
+    if (document.getElementById('filter-status')) document.getElementById('filter-status').value = 'All';
+    if (document.getElementById('filter-sort')) document.getElementById('filter-sort').value = 'departure';
+    applyTurnaroundFilters();
+  }
+
+  // Render Top KPI Cards
+  function updateKPICards() {
+    const total = activeTurnaroundList.length;
+    const ontime = activeTurnaroundList.filter(f => f.status === 'On Time').length;
+    const atrisk = activeTurnaroundList.filter(f => f.status === 'At Risk').length;
+    const delayed = activeTurnaroundList.filter(f => f.status === 'Delayed').length;
+
+    if (document.getElementById('kpi-total')) document.getElementById('kpi-total').textContent = total;
+    if (document.getElementById('kpi-ontime')) document.getElementById('kpi-ontime').textContent = ontime;
+    if (document.getElementById('kpi-atrisk')) document.getElementById('kpi-atrisk').textContent = atrisk;
+    if (document.getElementById('kpi-delayed')) document.getElementById('kpi-delayed').textContent = delayed;
+    if (document.getElementById('table-count-badge')) document.getElementById('table-count-badge').textContent = `Showing ${total} Flights`;
+  }
+
+  // 3. Render Active Turnarounds Table
+  function renderTurnaroundTable() {
+    const tbody = document.getElementById('turnaround-table-body');
+    if (!tbody) return;
+
+    if (activeTurnaroundList.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="8" style="padding: 24px; text-align: center; color: var(--text-secondary);">
+            No turnaround flights found matching the current search criteria.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    tbody.innerHTML = activeTurnaroundList.map(item => {
+      const isSelected = item.flight === selectedFlightCode;
+      
+      let statusChipClass = 'chip-completed';
+      if (item.status === 'At Risk') statusChipClass = 'chip-warning';
+      if (item.status === 'Delayed') statusChipClass = 'chip-error';
+      if (item.status === 'Completed') statusChipClass = 'chip-success';
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border-color); cursor: pointer; background-color: ${isSelected ? 'var(--bg-secondary)' : 'transparent'}; transition: background-color 0.15s ease;" onclick="selectTurnaroundFlight('${item.flight}')">
+          <td style="padding: 12px 16px;">
+            <div style="font-weight: 700; color: var(--color-primary); font-size: 15px;">${item.flight}</div>
+            <div class="caption-text">${item.airline}</div>
+          </td>
+          <td style="padding: 12px 16px;">
+            <div style="font-weight: 600;">${item.aircraft}</div>
+            <div class="caption-text">${item.reg}</div>
+          </td>
+          <td style="padding: 12px 16px;">
+            <span class="chip chip-info" style="font-weight: 700;">${item.gate}</span>
+          </td>
+          <td style="padding: 12px 16px; font-weight: 600;">${item.arrival}</td>
+          <td style="padding: 12px 16px;">
+            <div style="font-weight: 700; color: ${item.delayMin > 0 ? 'var(--color-error)' : 'var(--text-main)'};">${item.estDeparture}</div>
+            ${item.delayMin > 0 ? `<div class="caption-text" style="color: var(--color-error);">+${item.delayMin}m delay</div>` : `<div class="caption-text">Sched: ${item.departure}</div>`}
+          </td>
+          <td style="padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 3px;">
+              <span>Progress</span>
+              <span>${item.progress}%</span>
+            </div>
+            <div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${item.progress}%; background: var(--color-primary); height: 100%;"></div>
+            </div>
+          </td>
+          <td style="padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 3px;">
+              <span>Readiness</span>
+              <span style="color: ${item.readiness < 70 ? 'var(--color-warning)' : 'var(--color-success)'};">${item.readiness}%</span>
+            </div>
+            <div style="width: 100%; background: var(--border-color); height: 6px; border-radius: 3px; overflow: hidden;">
+              <div style="width: ${item.readiness}%; background: ${item.readiness < 70 ? 'var(--color-warning)' : 'var(--color-success)'}; height: 100%;"></div>
+            </div>
+          </td>
+          <td style="padding: 12px 16px;">
+            <span class="chip ${statusChipClass}">
+              <span class="chip-icon">●</span> ${item.status}
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Select Flight & Scroll to Detail View
+  function selectTurnaroundFlight(flightCode) {
+    selectedFlightCode = flightCode;
+    renderTurnaroundTable();
+    renderSelectedDetailView();
+  }
+
+  // 4, 8, 9, 10, 11, 12. Render Master Detail View
+  function renderSelectedDetailView() {
+    const flight = TURNAROUND_FLIGHTS_DATA.find(f => f.flight === selectedFlightCode) || TURNAROUND_FLIGHTS_DATA[0];
+
+    // Header Container
+    const headerContainer = document.getElementById('detail-header-container');
+    if (headerContainer) {
+      let statusChipClass = 'chip-completed';
+      if (flight.status === 'At Risk') statusChipClass = 'chip-warning';
+      if (flight.status === 'Delayed') statusChipClass = 'chip-error';
+
+      headerContainer.innerHTML = `
+        <div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <h2 class="page-title" style="color: var(--color-primary); font-size: 28px;">${flight.flight}</h2>
+            <span class="chip ${statusChipClass}" style="font-size: 14px; padding: 4px 14px; font-weight: 700;">
+              ${flight.status.toUpperCase()}
+            </span>
+            <span class="chip chip-info">${flight.airline} • ${flight.aircraft}</span>
+          </div>
+          <p class="supporting-text" style="margin-top: 4px;">
+            Registration: <strong>${flight.reg}</strong> • Gate: <strong>${flight.gate} (${flight.terminal})</strong> • Destination: <strong>${flight.destination}</strong>
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 20px; background-color: var(--bg-secondary); padding: 12px 20px; border-radius: 12px; border: var(--border-standard);">
+          <div>
+            <span class="caption-text">Arrival</span>
+            <div style="font-size: 16px; font-weight: 700;">${flight.arrival}</div>
+          </div>
+          <div style="width: 1px; height: 30px; background: var(--border-color);"></div>
+          <div>
+            <span class="caption-text">Sched. Departure</span>
+            <div style="font-size: 16px; font-weight: 700;">${flight.departure}</div>
+          </div>
+          <div style="width: 1px; height: 30px; background: var(--border-color);"></div>
+          <div>
+            <span class="caption-text">Est. Departure</span>
+            <div style="font-size: 16px; font-weight: 700; color: ${flight.delayMin > 0 ? 'var(--color-error)' : 'var(--color-success)'};">
+              ${flight.estDeparture} ${flight.delayMin > 0 ? `(+${flight.delayMin}m)` : ''}
+            </div>
+          </div>
+          <div style="width: 1px; height: 30px; background: var(--border-color);"></div>
+          <div style="text-align: center;">
+            <span class="caption-text">Readiness</span>
+            <div style="font-size: 22px; font-weight: 800; color: ${flight.readiness < 70 ? 'var(--color-warning)' : 'var(--color-success)'};">${flight.readiness}%</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 12. Workflow Stage Sequence Diagram
+    const workflowContainer = document.getElementById('workflow-sequence-container');
+    if (workflowContainer) {
+      workflowContainer.innerHTML = WORKFLOW_STAGES.map((stage, idx) => {
+        const isCurrent = idx === flight.workflowStageIndex;
+        const isPassed = idx < flight.workflowStageIndex;
+
+        let bg = 'var(--bg-secondary)';
+        let color = 'var(--text-secondary)';
+        let border = 'var(--border-color)';
+
+        if (isPassed) {
+          bg = 'var(--bg-success)';
+          color = 'var(--color-success)';
+          border = 'var(--border-success)';
+        } else if (isCurrent) {
+          bg = 'var(--color-primary)';
+          color = '#FFFFFF';
+          border = 'var(--color-primary)';
+        }
+
+        return `
+          <div style="padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; white-space: nowrap; background: ${bg}; color: ${color}; border: 1px solid ${border}; display: flex; align-items: center; gap: 4px;">
+            ${isPassed ? '✓ ' : ''}${stage}
+          </div>
+        `;
+      }).join('<span style="color: var(--text-dim); font-size: 12px; align-self: center;">➔</span>');
+    }
+
+    // 8 & 9. Delay Risk Panel & Departure Readiness Card
+    const delayRiskCard = document.getElementById('delay-risk-card');
+    if (delayRiskCard) {
+      if (flight.status === 'On Time' || flight.status === 'Completed') {
+        delayRiskCard.innerHTML = `
+          <div class="card-header">
+            <div>
+              <span class="caption-text" style="color: var(--color-success); font-weight: 700;">Departure Readiness</span>
+              <h3 class="card-title" style="color: var(--color-success);">ON TIME — 92% Ready</h3>
+            </div>
+            <span class="chip chip-completed">No Delays Detected</span>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; font-weight: 600;">
+              <span>Readiness Gauge</span>
+              <span>${flight.readiness}%</span>
+            </div>
+            <div style="width: 100%; background: var(--border-color); height: 10px; border-radius: 5px; overflow: hidden;">
+              <div style="width: ${flight.readiness}%; background: var(--color-success); height: 100%;"></div>
+            </div>
+          </div>
+
+          <div style="background-color: var(--bg-secondary); padding: 12px; border-radius: 8px; font-size: 13px;">
+            <p><strong>Status:</strong> Flight ${flight.flight} turnaround is proceeding according to the master schedule. All ground support teams have cleared primary milestones.</p>
+          </div>
+        `;
+      } else {
+        // At Risk / Delayed Flight
+        delayRiskCard.style.borderColor = 'var(--border-warning)';
+        delayRiskCard.style.backgroundColor = 'var(--bg-warning)';
+        
+        delayRiskCard.innerHTML = `
+          <div class="card-header">
+            <div>
+              <span class="caption-text" style="color: var(--color-warning); font-weight: 700;">⚠ Turnaround Risk Telemetry</span>
+              <h3 class="card-title" style="color: var(--color-warning);">Flight ${flight.flight} — ${flight.status.toUpperCase()}</h3>
+            </div>
+            <span class="chip chip-action-required">+${flight.delayMin} min Potential Delay</span>
+          </div>
+
+          <div style="background-color: var(--bg-surface); padding: 16px; border-radius: 10px; border: var(--border-standard); margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; margin-bottom: 12px;">
+              <div><strong>Primary Delay Source:</strong> <span style="color: var(--color-error); font-weight: 700;">Baggage Loading</span></div>
+              <div><strong>Scheduled Departure:</strong> ${flight.departure}</div>
+              <div><strong>Current Estimate:</strong> <span style="color: var(--color-error); font-weight: 700;">${flight.estDeparture}</span></div>
+              <div><strong>Departure Delay:</strong> +${flight.delayMin} min</div>
+            </div>
+
+            <div style="font-size: 13px; font-weight: 700; margin-bottom: 6px;">Delay Contribution Breakdown:</div>
+            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Baggage Loading (Primary)</span>
+                <span class="chip chip-error" style="padding: 1px 8px; font-size: 11px;">+8 min</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span>Fueling Operations</span>
+                <span class="chip chip-warning" style="padding: 1px 8px; font-size: 11px;">+3 min</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-dim);">
+                <span>Catering / Cleaning / Maintenance</span>
+                <span>0 min</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions based on RBAC -->
+          <div style="display: flex; gap: 8px;">
+            <button class="btn-primary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Escalate', '${flight.flight}')">Escalate Delay</button>
+            <button class="btn-secondary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Reassign', '${flight.flight}')">Reassign Baggage Team</button>
+          </div>
+        `;
+      }
+    }
+
+    // 10. Aircraft Information Card
+    const aircraftCard = document.getElementById('aircraft-info-card');
+    if (aircraftCard) {
+      aircraftCard.innerHTML = `
+        <h3 class="card-title" style="font-size: 16px; margin-bottom: 12px;">Aircraft Information</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+          <div><span class="caption-text">Registration:</span> <strong>${flight.reg}</strong></div>
+          <div><span class="caption-text">Aircraft Type:</span> <strong>${flight.aircraft}</strong></div>
+          <div><span class="caption-text">Current Gate:</span> <strong>${flight.gate}</strong></div>
+          <div><span class="caption-text">Current Flight:</span> <strong>${flight.flight}</strong></div>
+          <div><span class="caption-text">Next Flight:</span> <strong>${flight.nextFlight}</strong></div>
+          <div><span class="caption-text">Destination:</span> <strong>${flight.destination}</strong></div>
+          <div><span class="caption-text">Passengers:</span> <strong>${flight.passengers}</strong></div>
+          <div><span class="caption-text">Flight Crew:</span> <strong>${flight.crew}</strong></div>
+        </div>
+      `;
+    }
+
+    // Related ops info update
+    if (document.getElementById('rel-gate-text')) document.getElementById('rel-gate-text').textContent = `Gate ${flight.gate} • Boarding`;
+    if (document.getElementById('rel-crew-text')) document.getElementById('rel-crew-text').textContent = `${flight.crew} / ${flight.crew} Verified`;
+
+    // 5. Timeline Steps Rendering
+    const timelineContainer = document.getElementById('timeline-steps-container');
+    if (document.getElementById('timeline-flight-badge')) document.getElementById('timeline-flight-badge').textContent = `${flight.flight} Timeline`;
+
+    if (timelineContainer) {
+      timelineContainer.innerHTML = flight.timeline.map(step => {
+        let chipClass = 'chip-completed';
+        let icon = '✓';
+        if (step.status === 'IN PROGRESS') { chipClass = 'chip-in-progress'; icon = '●'; }
+        if (step.status === 'PENDING') { chipClass = 'chip-info'; icon = '○'; }
+        if (step.status === 'DELAYED') { chipClass = 'chip-error'; icon = '⚠'; }
+
+        return `
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; background: var(--bg-secondary); border-radius: 8px; font-size: 13px;">
+            <div style="display: flex; align-items: center; gap: 14px;">
+              <span class="mono" style="font-weight: 700; width: 45px; color: var(--text-secondary);">${step.time}</span>
+              <div>
+                <strong style="font-size: 14px;">${step.step}</strong>
+                <div class="caption-text">Team: ${step.team} • Duration: ${step.duration}</div>
+              </div>
+            </div>
+            <span class="chip ${chipClass}">
+              <span class="chip-icon">${icon}</span> ${step.status}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 6. Ground Services Cards Rendering
+    const servicesContainer = document.getElementById('ground-services-container');
+    if (servicesContainer) {
+      servicesContainer.innerHTML = flight.services.map(svc => `
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; border: var(--border-standard);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="font-size: 14px;">${svc.service}</strong>
+            <span class="chip ${svc.status.includes('Completed') ? 'chip-completed' : (svc.status.includes('Delayed') ? 'chip-error' : 'chip-in-progress')}" style="font-size: 11px; padding: 2px 8px;">
+              ${svc.status}
+            </span>
+          </div>
+          <div class="caption-text" style="margin-bottom: 6px;">Team: ${svc.team} • Start: ${svc.start} • ETA: ${svc.eta}</div>
+          <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; margin-bottom: 3px;">
+            <span>Progress</span>
+            <span>${svc.progress}%</span>
+          </div>
+          <div style="width: 100%; background: var(--border-color); height: 5px; border-radius: 3px; overflow: hidden;">
+            <div style="width: ${svc.progress}%; background: ${svc.status.includes('Delayed') ? 'var(--color-error)' : 'var(--color-primary)'}; height: 100%;"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // 7. Tasks Table Rendering with RBAC Action Restrictions
+    renderTaskTable(flight);
+  }
+
+  // 7 & 13. Task Table Rendering with RBAC Action Gating
+  function renderTaskTable(flight) {
+    const taskTbody = document.getElementById('task-table-body');
+    const btnCreate = document.getElementById('btn-create-task');
+
+    // Create Task button RBAC check
+    if (btnCreate) {
+      if (currentRBACRole === 'Ground Crew' || currentRBACRole === 'Gate Manager' || currentRBACRole === 'Tower Controller') {
+        btnCreate.style.display = 'none';
+      } else {
+        btnCreate.style.display = 'inline-flex';
+      }
+    }
+
+    if (!taskTbody) return;
+
+    taskTbody.innerHTML = flight.tasks.map(t => {
+      let statusChipClass = 'chip-completed';
+      if (t.status === 'In Progress') statusChipClass = 'chip-in-progress';
+      if (t.status === 'Delayed') statusChipClass = 'chip-error';
+
+      // RBAC Actions Generation
+      let actionButtonsHTML = '';
+
+      if (currentRBACRole === 'Airport Operations Manager' || currentRBACRole === 'Ground Operations Manager') {
+        actionButtonsHTML = `
+          <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; display: inline-flex;" onclick="handleTaskAction('Reassign', '${t.id}')">Reassign</button>
+          <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; display: inline-flex; color: var(--color-error); border-color: var(--color-error);" onclick="handleTaskAction('Escalate', '${t.id}')">Escalate</button>
+        `;
+      } else if (currentRBACRole === 'Ground Crew') {
+        actionButtonsHTML = `
+          <button class="btn-primary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; display: inline-flex;" onclick="handleTaskAction('Complete', '${t.id}')">Complete</button>
+          <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; display: inline-flex;" onclick="handleTaskAction('Report Issue', '${t.id}')">Report Issue</button>
+        `;
+      } else if (currentRBACRole === 'Maintenance Operator') {
+        actionButtonsHTML = `
+          <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; display: inline-flex;" onclick="handleTaskAction('Update Tech Note', '${t.id}')">Update</button>
+        `;
+      } else {
+        actionButtonsHTML = `<span class="caption-text">View Only</span>`;
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 12px 16px; font-weight: 600;">${t.task}</td>
+          <td style="padding: 12px 16px;">${t.team}</td>
+          <td style="padding: 12px 16px;">
+            <span class="chip ${statusChipClass}" style="font-size: 11px;">${t.status}</span>
+          </td>
+          <td style="padding: 12px 16px;">
+            <span class="chip ${t.priority === 'High' ? 'chip-error' : 'chip-info'}" style="font-size: 11px;">${t.priority}</span>
+          </td>
+          <td style="padding: 12px 16px;" class="mono">${t.start}</td>
+          <td style="padding: 12px 16px;" class="mono">${t.eta}</td>
+          <td style="padding: 12px 16px; text-align: right;">
+            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+              ${actionButtonsHTML}
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // Interactive Task Actions
+  function handleTaskAction(action, taskId) {
+    alert(`[RBAC Role: ${currentRBACRole}] Action '${action}' performed on Task ID: ${taskId}`);
+  }
+
+  function handleDelayAction(action, flightCode) {
+    alert(`[RBAC Role: ${currentRBACRole}] Executed '${action}' action for delay mitigation on Flight ${flightCode}.`);
+  }
+
+  function handleCreateTaskPrompt() {
+    const taskName = prompt('Enter new ground turnaround task name:', 'Water Hydrant Inspection');
+    if (taskName) {
+      alert(`New Task '${taskName}' created and assigned by ${currentRBACRole}.`);
+    }
+  }
+</script>
