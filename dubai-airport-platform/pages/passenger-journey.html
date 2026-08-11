@@ -1,3 +1,499 @@
-<!-- Passenger Journey Module.
+<!-- Passenger Journey Module — Emirates–DXB Operations Control Platform
      Responsible for flight search, passenger booking, check-in services, seat selection,
      digital boarding pass generation, gate information dispatch, and boarding status tracking. -->
+
+<div id="pj-module-wrapper">
+
+  <!-- Page Header & Title -->
+  <div class="card-header" style="margin-bottom: 16px;">
+    <div>
+      <span class="caption-text">Dubai International Airport (DXB) • Operations Control Center</span>
+      <h1 class="page-title">Passenger Journey</h1>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span class="chip chip-completed">
+        <span class="chip-icon">●</span> Live Check-In Feed
+      </span>
+      <span class="chip chip-info" id="pj-live-clock">Tue, 4 Aug • 10:15</span>
+    </div>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="grid-4col" style="margin-bottom: 16px;">
+    <div class="card" style="margin-bottom: 0; padding: 16px;">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Checked-In Today</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--text-main);">1,284</span>
+        <span class="chip chip-info">Terminal 3</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-success);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-success);">Online Check-In Rate</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--color-success);">76%</span>
+        <span class="chip chip-completed">Above Target</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-info);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-info);">Boarding Passes Issued</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--color-info);" id="pj-passes-issued">3</span>
+        <span class="chip chip-info">Digital</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-warning);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-warning);">Active Gate Alerts</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--color-warning);" id="pj-alert-count">1</span>
+        <span class="chip chip-warning">Monitoring</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters & Search -->
+  <div class="card" style="margin-bottom: 16px; padding: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 class="card-title" style="font-size: 16px;">Passenger Check-In Queue Filters</h3>
+      <button class="btn-secondary" style="height: 32px; width: auto; padding: 0 12px; font-size: 12px;" onclick="pjResetFilters()">
+        Reset Filters
+      </button>
+    </div>
+
+    <div class="grid-4col" style="gap: 10px; margin-bottom: 0;">
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Search Passenger / Flight / PNR</label>
+        <input type="text" id="pj-filter-search" class="input-field" style="height: 38px; font-size: 13px;" placeholder="e.g. Al-Mansoor or EK 001" oninput="pjApplyFilters()">
+      </div>
+
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Terminal</label>
+        <select id="pj-filter-terminal" class="input-field" style="height: 38px; font-size: 13px;" onchange="pjApplyFilters()">
+          <option value="All" selected>All Terminals</option>
+          <option value="Terminal 1">Terminal 1</option>
+          <option value="Terminal 2">Terminal 2</option>
+          <option value="Terminal 3">Terminal 3</option>
+        </select>
+      </div>
+
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Check-In Status</label>
+        <select id="pj-filter-status" class="input-field" style="height: 38px; font-size: 13px;" onchange="pjApplyFilters()">
+          <option value="All" selected>All Statuses</option>
+          <option value="Not Checked-In">Not Checked-In</option>
+          <option value="Online Check-In">Online Check-In</option>
+          <option value="Boarding Pass Issued">Boarding Pass Issued</option>
+          <option value="Boarded">Boarded</option>
+        </select>
+      </div>
+
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Sort By</label>
+        <select id="pj-filter-sort" class="input-field" style="height: 38px; font-size: 13px;" onchange="pjApplyFilters()">
+          <option value="boarding" selected>Boarding Time</option>
+          <option value="name">Passenger Name</option>
+          <option value="flight">Flight Number</option>
+          <option value="status">Check-In Status</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passenger Check-In Queue Table -->
+  <div class="card" style="margin-bottom: 24px; padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 class="section-title" style="font-size: 18px;">Passenger Check-In Queue</h2>
+        <span class="supporting-text">Click any passenger row to open seat selection & issue a digital boarding pass</span>
+      </div>
+      <span class="caption-text" id="pj-table-count-badge">Showing 6 Passengers</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
+            <th style="padding: 12px 16px;">Passenger</th>
+            <th style="padding: 12px 16px;">Flight</th>
+            <th style="padding: 12px 16px;">Route</th>
+            <th style="padding: 12px 16px;">Terminal</th>
+            <th style="padding: 12px 16px;">Boarding</th>
+            <th style="padding: 12px 16px;">Seat</th>
+            <th style="padding: 12px 16px;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="pj-table-body">
+          <!-- Rows injected by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Passenger Detail: Seat Selection, Boarding Pass & Gate Alerts -->
+  <div id="pj-detail-wrapper" style="scroll-margin-top: 20px;">
+    <div class="card" style="padding: 32px; text-align: center; border-style: dashed;" id="pj-detail-empty">
+      <p class="supporting-text">Select a passenger from the queue above to view seat map, issue a digital boarding pass, or dispatch a gate alert.</p>
+    </div>
+
+    <div id="pj-detail-content" style="display: none;">
+
+      <!-- Selected Passenger Summary -->
+      <div class="card" style="border-top: 4px solid var(--color-primary); padding: 20px; margin-bottom: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;" id="pj-detail-header">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+
+      <div class="grid-2col" style="margin-bottom: 20px;">
+
+        <!-- Seat Selection Panel -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <h3 class="card-title" style="font-size: 16px;">Seat Selection — Cabin Map</h3>
+            <span class="chip chip-info" id="pj-selected-seat-chip">No Seat Selected</span>
+          </div>
+          <p class="supporting-text" style="margin-bottom: 12px;">Row 12 • Economy Class — tap an available seat to assign it to this passenger.</p>
+
+          <div id="pj-seat-map" style="display: grid; grid-template-columns: repeat(3, 1fr) 24px repeat(3, 1fr); gap: 8px; max-width: 360px; margin: 0 auto;">
+            <!-- Injected by JS -->
+          </div>
+
+          <div style="display: flex; gap: 16px; justify-content: center; margin-top: 16px; font-size: 12px;">
+            <span><span style="display:inline-block; width:10px; height:10px; border-radius:3px; background: var(--bg-secondary); border:1px solid var(--border-color); margin-right:4px;"></span>Available</span>
+            <span><span style="display:inline-block; width:10px; height:10px; border-radius:3px; background: var(--color-primary); margin-right:4px;"></span>Selected</span>
+            <span><span style="display:inline-block; width:10px; height:10px; border-radius:3px; background: var(--text-dim); margin-right:4px;"></span>Occupied</span>
+          </div>
+        </div>
+
+        <!-- Online Check-In & Boarding Pass Panel -->
+        <div class="card" style="margin-bottom: 0;">
+          <div class="card-header">
+            <h3 class="card-title" style="font-size: 16px;">Online Check-In & Digital Boarding Pass</h3>
+          </div>
+
+          <div id="pj-checkin-form-container">
+            <!-- Injected by JS: check-in button or issued boarding pass -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Gate Information & Alerts Panel -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h3 class="card-title" style="font-size: 16px;">Gate Information & Passenger Alerts</h3>
+            <span class="supporting-text">Dispatch real-time gate or delay notifications to this passenger's mobile device</span>
+          </div>
+          <span class="chip chip-completed" id="pj-gate-chip">Gate A14 • On Time</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn-secondary" style="width: auto; padding: 0 16px;" onclick="pjDispatchAlert('Gate Change', 'Your departure gate has changed to A21.')">
+            Send Gate Change Alert
+          </button>
+          <button class="btn-secondary" style="width: auto; padding: 0 16px;" onclick="pjDispatchAlert('Boarding Call', 'Boarding for your flight has started. Please proceed to the gate.')">
+            Send Boarding Call
+          </button>
+          <button class="btn-secondary" style="width: auto; padding: 0 16px;" onclick="pjDispatchAlert('Delay Notice', 'Your flight departure has been delayed by 20 minutes.')">
+            Send Delay Notice
+          </button>
+        </div>
+
+        <div id="pj-alert-log" style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px;">
+          <!-- Dispatched alerts injected by JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  (function () {
+    const PJ_PASSENGERS = [
+      { id: 'p1', name: 'Sara Al-Mansoor', flight: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', boarding: '08:30', gate: 'A14', pnr: 'EK-98214', status: 'Online Check-In', seat: '—' },
+      { id: 'p2', name: 'Omar Haddad', flight: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', boarding: '08:30', gate: 'A14', pnr: 'EK-77310', status: 'Not Checked-In', seat: '—' },
+      { id: 'p3', name: 'Priya Nair', flight: 'EK 202', route: 'DXB → CDG', terminal: 'Terminal 3', boarding: '09:15', gate: 'B08', pnr: 'EK-44127', status: 'Boarding Pass Issued', seat: '14A' },
+      { id: 'p4', name: 'James Whitfield', flight: 'FZ 018', route: 'DXB → RUH', terminal: 'Terminal 2', boarding: '11:40', gate: 'C03', pnr: 'FZ-10983', status: 'Not Checked-In', seat: '—' },
+      { id: 'p5', name: 'Layla Farouk', flight: 'EK 202', route: 'DXB → CDG', terminal: 'Terminal 3', boarding: '09:15', gate: 'B08', pnr: 'EK-55892', status: 'Boarded', seat: '9C' },
+      { id: 'p6', name: 'Ahmed Rashid', flight: 'EK 355', route: 'DXB → JFK', terminal: 'Terminal 3', boarding: '13:05', gate: 'A22', pnr: 'EK-30871', status: 'Online Check-In', seat: '—' }
+    ];
+
+    const PJ_OCCUPIED_SEATS = ['12A', '12F'];
+
+    let pjSelectedPassengerId = null;
+    let pjPendingSeat = null;
+    let pjAlertsDispatched = 0;
+
+    function pjInit() {
+      pjApplyFilters();
+      pjTickClock();
+      setInterval(pjTickClock, 1000);
+    }
+
+    function pjTickClock() {
+      const el = document.getElementById('pj-live-clock');
+      if (!el) return;
+      const now = new Date();
+      el.textContent = 'Tue, 4 Aug • ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    function pjResetFilters() {
+      document.getElementById('pj-filter-search').value = '';
+      document.getElementById('pj-filter-terminal').value = 'All';
+      document.getElementById('pj-filter-status').value = 'All';
+      document.getElementById('pj-filter-sort').value = 'boarding';
+      pjApplyFilters();
+    }
+
+    function pjApplyFilters() {
+      const search = document.getElementById('pj-filter-search').value.trim().toLowerCase();
+      const terminal = document.getElementById('pj-filter-terminal').value;
+      const status = document.getElementById('pj-filter-status').value;
+      const sort = document.getElementById('pj-filter-sort').value;
+
+      let results = PJ_PASSENGERS.filter(p => {
+        const matchesSearch = !search ||
+          p.name.toLowerCase().includes(search) ||
+          p.flight.toLowerCase().includes(search) ||
+          p.pnr.toLowerCase().includes(search);
+        const matchesTerminal = terminal === 'All' || p.terminal === terminal;
+        const matchesStatus = status === 'All' || p.status === status;
+        return matchesSearch && matchesTerminal && matchesStatus;
+      });
+
+      results.sort((a, b) => {
+        if (sort === 'name') return a.name.localeCompare(b.name);
+        if (sort === 'flight') return a.flight.localeCompare(b.flight);
+        if (sort === 'status') return a.status.localeCompare(b.status);
+        return a.boarding.localeCompare(b.boarding);
+      });
+
+      pjRenderTable(results);
+    }
+
+    function pjStatusChip(status) {
+      const map = {
+        'Not Checked-In': 'chip-warning',
+        'Online Check-In': 'chip-info',
+        'Boarding Pass Issued': 'chip-completed',
+        'Boarded': 'chip-completed'
+      };
+      return `<span class="chip ${map[status] || 'chip-info'}">${status}</span>`;
+    }
+
+    function pjRenderTable(list) {
+      const body = document.getElementById('pj-table-body');
+      const badge = document.getElementById('pj-table-count-badge');
+      badge.textContent = `Showing ${list.length} Passenger${list.length === 1 ? '' : 's'}`;
+
+      if (list.length === 0) {
+        body.innerHTML = `<tr><td colspan="7" style="padding: 24px; text-align: center;" class="supporting-text">No passengers match the current filters.</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = list.map(p => `
+        <tr style="border-bottom: 1px solid var(--border-color); cursor: pointer;" onclick="pjSelectPassenger('${p.id}')">
+          <td style="padding: 12px 16px; font-weight: 600;">${p.name}</td>
+          <td style="padding: 12px 16px;">${p.flight}</td>
+          <td style="padding: 12px 16px;">${p.route}</td>
+          <td style="padding: 12px 16px;">${p.terminal}</td>
+          <td style="padding: 12px 16px;">${p.boarding}</td>
+          <td style="padding: 12px 16px;">${p.seat}</td>
+          <td style="padding: 12px 16px;">${pjStatusChip(p.status)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function pjSelectPassenger(id) {
+      pjSelectedPassengerId = id;
+      pjPendingSeat = null;
+      document.getElementById('pj-detail-empty').style.display = 'none';
+      document.getElementById('pj-detail-content').style.display = 'block';
+      pjRenderDetail();
+      document.getElementById('pj-detail-wrapper').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function pjGetSelectedPassenger() {
+      return PJ_PASSENGERS.find(p => p.id === pjSelectedPassengerId);
+    }
+
+    function pjRenderDetail() {
+      const p = pjGetSelectedPassenger();
+      if (!p) return;
+
+      document.getElementById('pj-detail-header').innerHTML = `
+        <div>
+          <span class="caption-text">Passenger Record • PNR ${p.pnr}</span>
+          <h2 class="card-title" style="font-size: 20px; color: var(--color-primary); margin-top: 4px;">${p.name}</h2>
+          <p class="supporting-text" style="margin-top: 4px;">${p.flight} • ${p.route} • Boarding ${p.boarding} • ${p.terminal}</p>
+        </div>
+        <div style="text-align: right;">
+          ${pjStatusChip(p.status)}
+        </div>
+      `;
+
+      document.getElementById('pj-gate-chip').textContent = `Gate ${p.gate} • On Time`;
+
+      pjRenderSeatMap(p);
+      pjRenderCheckinPanel(p);
+    }
+
+    function pjRenderSeatMap(p) {
+      const map = document.getElementById('pj-seat-map');
+      const rows = [11, 12, 13];
+      const cols = ['A', 'B', 'C', 'D', 'E', 'F'];
+      let html = '';
+
+      rows.forEach(row => {
+        cols.forEach((col, idx) => {
+          const seatId = `${row}${col}`;
+          const isAisle = idx === 2;
+          const isOccupied = PJ_OCCUPIED_SEATS.includes(seatId);
+          const isAssigned = p.seat === seatId;
+          const isPending = pjPendingSeat === seatId;
+
+          let bg = 'var(--bg-secondary)';
+          let color = 'var(--text-main)';
+          let border = '1px solid var(--border-color)';
+          if (isOccupied) { bg = 'var(--text-dim)'; color = '#FFFFFF'; }
+          if (isAssigned || isPending) { bg = 'var(--color-primary)'; color = '#FFFFFF'; border = '1px solid var(--color-primary)'; }
+
+          html += `<button type="button" ${isOccupied ? 'disabled' : ''}
+            onclick="pjSelectSeat('${seatId}')"
+            style="height: 32px; border-radius: 6px; font-size: 11px; font-weight: 700; background:${bg}; color:${color}; border:${border}; cursor:${isOccupied ? 'not-allowed' : 'pointer'};">
+            ${seatId}
+          </button>`;
+
+          if (isAisle) html += `<div></div>`;
+        });
+      });
+
+      map.innerHTML = html;
+
+      const seatChip = document.getElementById('pj-selected-seat-chip');
+      const activeSeat = pjPendingSeat || (p.seat !== '—' ? p.seat : null);
+      seatChip.textContent = activeSeat ? `Seat ${activeSeat} Selected` : 'No Seat Selected';
+      seatChip.className = activeSeat ? 'chip chip-completed' : 'chip chip-info';
+    }
+
+    function pjSelectSeat(seatId) {
+      pjPendingSeat = seatId;
+      const p = pjGetSelectedPassenger();
+      pjRenderSeatMap(p);
+    }
+
+    function pjRenderCheckinPanel(p) {
+      const container = document.getElementById('pj-checkin-form-container');
+
+      if (p.status === 'Boarding Pass Issued' || p.status === 'Boarded') {
+        container.innerHTML = pjBoardingPassMarkup(p);
+        return;
+      }
+
+      container.innerHTML = `
+        <div style="background-color: var(--bg-secondary); padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+          <p class="supporting-text">Confirm the assigned seat on the left, then complete online check-in to generate a scannable digital boarding pass with QR code.</p>
+        </div>
+        <button class="btn-primary" onclick="pjIssueBoardingPass()">
+          Complete Online Check-In & Issue Boarding Pass →
+        </button>
+      `;
+    }
+
+    function pjIssueBoardingPass() {
+      const p = pjGetSelectedPassenger();
+      const seat = pjPendingSeat || (p.seat !== '—' ? p.seat : null);
+
+      if (!seat) {
+        alert('Please select a seat from the cabin map before issuing a boarding pass.');
+        return;
+      }
+
+      p.seat = seat;
+      p.status = 'Boarding Pass Issued';
+      pjPendingSeat = null;
+
+      const counter = document.getElementById('pj-passes-issued');
+      counter.textContent = parseInt(counter.textContent, 10) + 1;
+
+      pjApplyFilters();
+      pjRenderDetail();
+    }
+
+    function pjBoardingPassMarkup(p) {
+      const qrData = encodeURIComponent(`DXB-${p.pnr}-${p.flight}-${p.seat}`);
+      return `
+        <div style="border: 2px dashed var(--border-color); border-radius: 12px; padding: 16px; background: var(--bg-surface);">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span class="chip chip-completed"><span class="chip-icon">✓</span> ${p.status}</span>
+            <span class="caption-text">${p.pnr}</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+            <div>
+              <span class="caption-text">Passenger</span>
+              <p class="body-text" style="font-weight: 700;">${p.name}</p>
+            </div>
+            <div style="text-align: right;">
+              <span class="caption-text">Flight</span>
+              <p class="body-text" style="font-weight: 700; color: var(--color-primary);">${p.flight}</p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 1px dashed var(--border-color); margin-bottom: 12px;">
+            <div>
+              <span class="caption-text">Gate</span>
+              <p style="font-weight: 800; font-size: 22px; color: var(--color-primary);">${p.gate}</p>
+            </div>
+            <div style="text-align: center;">
+              <span class="caption-text">Boarding</span>
+              <p style="font-weight: 800; font-size: 22px;">${p.boarding}</p>
+            </div>
+            <div style="text-align: right;">
+              <span class="caption-text">Seat</span>
+              <p style="font-weight: 800; font-size: 22px; color: var(--color-gold);">${p.seat}</p>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${qrData}" alt="Boarding pass QR code" width="130" height="130">
+            <span class="caption-text">Scan at Smart Gate ${p.gate}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function pjDispatchAlert(type, message) {
+      const p = pjGetSelectedPassenger();
+      if (!p) return;
+
+      pjAlertsDispatched += 1;
+      const alertCountEl = document.getElementById('pj-alert-count');
+      alertCountEl.textContent = pjAlertsDispatched + 1;
+
+      const log = document.getElementById('pj-alert-log');
+      const now = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      const entry = document.createElement('div');
+      entry.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg-info); border:1px solid var(--border-info); border-radius:8px; font-size:13px;';
+      entry.innerHTML = `
+        <span><strong>${type}</strong> sent to ${p.name} — "${message}"</span>
+        <span class="caption-text">${now}</span>
+      `;
+      log.prepend(entry);
+    }
+
+    // Expose handlers used by inline onclick/onchange attributes
+    window.pjResetFilters = pjResetFilters;
+    window.pjApplyFilters = pjApplyFilters;
+    window.pjSelectPassenger = pjSelectPassenger;
+    window.pjSelectSeat = pjSelectSeat;
+    window.pjIssueBoardingPass = pjIssueBoardingPass;
+    window.pjDispatchAlert = pjDispatchAlert;
+
+    pjInit();
+  })();
+</script>
