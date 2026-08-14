@@ -1,0 +1,403 @@
+<!-- Passenger Portal (Public) — Emirates–DXB Passenger Journey Module
+     Passenger-facing self-service flow: flight search, booking, One-ID auto check-in,
+     seat preference, and digital boarding pass.
+     Every completed booking / check-in is persisted to localStorage so the Passenger
+     Journey admin module can display it in the OCC queue. -->
+
+<div id="pp-wrapper" style="max-width: 640px; margin: 0 auto;">
+
+  <!-- VIEW 1: HOME / FLIGHT SEARCH -->
+  <section id="pp-view-home">
+    <div style="margin-bottom: 24px;">
+      <h1 class="page-title">Welcome back, <span id="pp-greeting-name">Guest</span>!</h1>
+      <p class="supporting-text" style="margin-top: 6px;">Your One-ID biometric profile is verified. Where are you flying next?</p>
+    </div>
+
+    <div class="card">
+      <div class="grid-3col" style="margin-bottom: 0;">
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">From</label>
+          <select class="input-field" id="pp-from" style="height: 44px; font-size: 14px;">
+            <option value="DXB">Dubai (DXB)</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">To</label>
+          <select class="input-field" id="pp-to" style="height: 44px; font-size: 14px;">
+            <option value="LHR">London (LHR)</option>
+            <option value="CDG">Paris (CDG)</option>
+            <option value="JFK">New York (JFK)</option>
+            <option value="RUH">Riyadh (RUH)</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom: 0;">
+          <label class="input-label" style="font-size: 12px;">Date</label>
+          <input type="text" class="input-field" id="pp-date" value="Tue, 4 Aug" style="height: 44px; font-size: 14px;">
+        </div>
+      </div>
+
+      <button class="btn-primary" style="margin-top: 20px;" onclick="ppSwitchView('pp-view-booking')">
+        Search Flights →
+      </button>
+    </div>
+
+    <!-- My Bookings shortcut -->
+    <div class="card" id="pp-my-bookings-card" style="display: none;">
+      <div class="card-header">
+        <h3 class="card-title" style="font-size: 16px;">My Bookings</h3>
+        <span class="chip chip-info" id="pp-my-bookings-count">0</span>
+      </div>
+      <div id="pp-my-bookings-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+    </div>
+  </section>
+
+  <!-- VIEW 2: FLIGHT SELECTION & AUTO CHECK-IN PREFERENCES -->
+  <section id="pp-view-booking" style="display: none;">
+    <button class="btn-secondary" style="width: auto; height: 36px; padding: 0 14px; font-size: 13px; margin-bottom: 16px;" onclick="ppSwitchView('pp-view-home')">
+      ← Back to search
+    </button>
+
+    <h2 class="section-title" style="margin-bottom: 16px;">Select Flight & Preferences</h2>
+
+    <!-- Selected Flight Card -->
+    <div class="card" style="border-color: var(--color-gold); position: relative;">
+      <span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;">Fastest</span>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates <span id="pp-flight-no">EK 001</span></span>
+        <span class="body-text" style="font-weight: 700; font-size: 18px;" id="pp-price">$450</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="text-align: center;">
+          <div style="font-size: 22px; font-weight: 800;">08:30</div>
+          <div class="caption-text" id="pp-leg-from">DXB</div>
+        </div>
+        <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px;">
+          <span class="caption-text" id="pp-duration">7h 20m</span>
+          <div style="width: 100%; height: 1px; background: var(--border-color); margin: 8px 0; position: relative;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--bg-surface)" stroke="var(--color-gold)" stroke-width="2" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          </div>
+          <span class="caption-text">Direct</span>
+        </div>
+        <div style="text-align: center;">
+          <div style="font-size: 22px; font-weight: 800;" id="pp-arrive-time">12:50</div>
+          <div class="caption-text" id="pp-leg-to">LHR</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cabin Class -->
+    <div class="card">
+      <label class="input-label" style="display: block; margin-bottom: 10px;">Cabin class</label>
+      <select class="input-field" id="pp-class" onchange="ppUpdateFarePreview()">
+        <option value="Economy">Economy Class</option>
+        <option value="Premium Economy">Premium Economy</option>
+        <option value="Business">Business Class</option>
+        <option value="First">First Class</option>
+      </select>
+    </div>
+
+    <!-- Auto Check-in Preferences -->
+    <div class="card">
+      <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;">
+        <div style="background: var(--bg-success); color: var(--color-success); width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
+        </div>
+        <div>
+          <h3 class="card-title" style="color: var(--color-gold); font-size: 16px;">Smart Auto Check-in Setup</h3>
+          <p class="supporting-text" style="margin-top: 4px;">Because you are a One-ID verified user, we will automatically check you in 24 hours before departure. No forms required.</p>
+        </div>
+      </div>
+
+      <label class="input-label" style="display: block; margin-bottom: 10px;">Select your seat preference for auto-assignment:</label>
+      <div class="grid-2col" style="margin-bottom: 0;">
+        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+          <input type="radio" name="pp-seat-pref" value="Window" checked style="accent-color: var(--color-primary); width: 16px; height: 16px;">
+          <span class="body-text" style="font-size: 14px;">Window Seat</span>
+        </label>
+        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+          <input type="radio" name="pp-seat-pref" value="Aisle" style="accent-color: var(--color-primary); width: 16px; height: 16px;">
+          <span class="body-text" style="font-size: 14px;">Aisle Seat</span>
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-primary" style="height: 52px; font-size: 16px;" onclick="ppConfirmBooking()">
+      Book Flight & Set Auto Check-in →
+    </button>
+  </section>
+
+  <!-- VIEW 3: BOOKING CONFIRMED / WAITING FOR AUTO CHECK-IN -->
+  <section id="pp-view-success" style="display: none; text-align: center; padding: 40px 0;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+
+    <h2 class="section-title" style="margin-bottom: 12px;">Booking Confirmed!</h2>
+    <p class="body-text" style="max-width: 440px; margin: 0 auto 8px; color: var(--text-secondary);" id="pp-success-summary">
+      Your flight has been successfully booked using your One-ID profile.
+    </p>
+    <p class="caption-text" style="margin-bottom: 20px;">Booking reference <strong id="pp-success-ref">—</strong></p>
+
+    <div class="chip chip-info" style="display: inline-flex; padding: 12px 18px; font-size: 14px; white-space: normal; text-align: left; max-width: 440px;">
+      We will automatically check you in and issue your boarding pass exactly 24 hours before departure. Relax!
+    </div>
+
+    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+      <p class="caption-text" style="margin-bottom: 12px;">(Demo Action: Simulate time passing to T-24 hours)</p>
+      <button class="btn-secondary" id="pp-sim-btn" style="width: auto; padding: 0 22px;" onclick="ppSimulateCheckIn()">
+        Fast Forward 24h →
+      </button>
+      <div id="pp-loading" style="display: none; margin-top: 16px;">
+        <p class="supporting-text" style="color: var(--color-gold);">Processing biometric auto check-in…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIEW 4: DIGITAL BOARDING PASS -->
+  <section id="pp-view-boarding-pass" style="display: none;">
+    <div style="text-align: center; margin-bottom: 24px;">
+      <span class="chip chip-completed" style="margin-bottom: 12px;">Auto Check-in Complete</span>
+      <h2 class="section-title">Your Digital Boarding Pass is Ready</h2>
+    </div>
+
+    <div class="card" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
+      <!-- Injected by JS -->
+    </div>
+
+    <div style="max-width: 420px; margin: 20px auto 0; display: flex; flex-direction: column; gap: 10px;">
+      <button class="btn-secondary" onclick="alert('Digital boarding pass saved to Wallet!')">
+        Add to Wallet
+      </button>
+      <button class="btn-secondary" onclick="ppSwitchView('pp-view-home')">
+        Back to Home
+      </button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    const PP_STORE_KEY = 'DXB_PASSENGER_BOOKINGS';
+
+    const PP_ROUTES = {
+      LHR: { city: 'London', flight: 'EK 001', arrive: '12:50', duration: '7h 20m', gate: 'A12', boarding: '07:45' },
+      CDG: { city: 'Paris', flight: 'EK 073', arrive: '12:10', duration: '6h 40m', gate: 'B08', boarding: '08:15' },
+      JFK: { city: 'New York', flight: 'EK 201', arrive: '14:25', duration: '14h 05m', gate: 'A22', boarding: '09:30' },
+      RUH: { city: 'Riyadh', flight: 'EK 817', arrive: '10:05', duration: '2h 15m', gate: 'C03', boarding: '11:10' }
+    };
+
+    const PP_FARES = {
+      'Economy': 450,
+      'Premium Economy': 780,
+      'Business': 1850,
+      'First': 3900
+    };
+
+    let ppActiveBookingRef = null;
+
+    /* ---------- Shared storage (read by the admin Passenger Journey module) ---------- */
+    function ppLoadBookings() {
+      try {
+        return JSON.parse(localStorage.getItem(PP_STORE_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function ppSaveBookings(list) {
+      localStorage.setItem(PP_STORE_KEY, JSON.stringify(list));
+    }
+
+    function ppPassengerName() {
+      if (typeof currentUser !== 'undefined' && currentUser && currentUser.role !== 'guest') {
+        return currentUser.name;
+      }
+      return 'Guest Passenger';
+    }
+
+    /* ---------- View router ---------- */
+    function ppSwitchView(viewId) {
+      ['pp-view-home', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+      const target = document.getElementById(viewId);
+      if (target) target.style.display = 'block';
+
+      if (viewId === 'pp-view-home') ppRenderMyBookings();
+      if (viewId === 'pp-view-booking') ppUpdateFlightPreview();
+
+      window.scrollTo(0, 0);
+    }
+
+    function ppUpdateFlightPreview() {
+      const to = document.getElementById('pp-to').value;
+      const route = PP_ROUTES[to];
+      document.getElementById('pp-flight-no').textContent = route.flight;
+      document.getElementById('pp-leg-from').textContent = document.getElementById('pp-from').value;
+      document.getElementById('pp-leg-to').textContent = to;
+      document.getElementById('pp-arrive-time').textContent = route.arrive;
+      document.getElementById('pp-duration').textContent = route.duration;
+      ppUpdateFarePreview();
+    }
+
+    function ppUpdateFarePreview() {
+      const cls = document.getElementById('pp-class').value;
+      document.getElementById('pp-price').textContent = '$' + PP_FARES[cls].toLocaleString('en-US');
+    }
+
+    /* ---------- Booking ---------- */
+    function ppConfirmBooking() {
+      const to = document.getElementById('pp-to').value;
+      const route = PP_ROUTES[to];
+      const cls = document.getElementById('pp-class').value;
+      const seatPref = document.querySelector('input[name="pp-seat-pref"]:checked').value;
+      const date = document.getElementById('pp-date').value;
+
+      const ref = 'EK-' + Math.floor(10000 + Math.random() * 89999);
+
+      const booking = {
+        ref: ref,
+        name: ppPassengerName(),
+        flight: route.flight,
+        from: 'DXB',
+        to: to,
+        route: 'DXB → ' + to,
+        destination: route.city,
+        date: date,
+        cabinClass: cls,
+        fare: PP_FARES[cls],
+        seatPreference: seatPref,
+        seat: '—',
+        gate: route.gate,
+        boarding: route.boarding,
+        terminal: 'Terminal 3',
+        status: 'Booked — Auto Check-in Pending',
+        bookedAt: new Date().toISOString()
+      };
+
+      const list = ppLoadBookings();
+      list.unshift(booking);
+      ppSaveBookings(list);
+      ppActiveBookingRef = ref;
+
+      document.getElementById('pp-success-summary').textContent =
+        `Your flight to ${route.city} has been successfully booked using your One-ID profile.`;
+      document.getElementById('pp-success-ref').textContent = ref;
+
+      // Reset the simulate control in case the passenger books more than once per session
+      document.getElementById('pp-sim-btn').style.display = 'inline-flex';
+      document.getElementById('pp-loading').style.display = 'none';
+
+      ppSwitchView('pp-view-success');
+    }
+
+    /* ---------- Auto check-in simulation ---------- */
+    function ppSimulateCheckIn() {
+      document.getElementById('pp-sim-btn').style.display = 'none';
+      document.getElementById('pp-loading').style.display = 'block';
+
+      setTimeout(() => {
+        const list = ppLoadBookings();
+        const booking = list.find(b => b.ref === ppActiveBookingRef);
+        if (booking) {
+          booking.seat = booking.seatPreference === 'Window' ? '7A' : '7C';
+          booking.status = 'Checked-In — Boarding Pass Issued';
+          booking.checkedInAt = new Date().toISOString();
+          ppSaveBookings(list);
+          ppRenderBoardingPass(booking);
+        }
+        ppSwitchView('pp-view-boarding-pass');
+      }, 2000);
+    }
+
+    function ppRenderBoardingPass(b) {
+      const qrData = encodeURIComponent(`DXB-ONE-ID-${b.ref}-${b.flight}-${b.seat}`);
+      document.getElementById('pp-boarding-pass-card').innerHTML = `
+        <div style="background: var(--color-gold); color: #FFFFFF; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-weight: 800; font-size: 18px; letter-spacing: 0.05em;">${b.from}</span>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
+          <span style="font-weight: 800; font-size: 18px; letter-spacing: 0.05em;">${b.to}</span>
+        </div>
+
+        <div style="padding: 24px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+              <span class="caption-text">Passenger</span>
+              <p class="body-text" style="font-weight: 700; font-size: 17px;">${b.name}</p>
+            </div>
+            <div style="text-align: right;">
+              <span class="caption-text">Flight</span>
+              <p class="body-text" style="font-weight: 700; font-size: 17px;">${b.flight}</p>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px dashed var(--border-color);">
+            <div>
+              <span class="caption-text">Gate</span>
+              <p style="font-weight: 800; font-size: 28px; color: var(--color-primary);">${b.gate}</p>
+            </div>
+            <div style="text-align: center;">
+              <span class="caption-text">Boarding Time</span>
+              <p style="font-weight: 800; font-size: 24px;">${b.boarding}</p>
+            </div>
+            <div style="text-align: right;">
+              <span class="caption-text">Seat</span>
+              <p style="font-weight: 800; font-size: 28px; color: var(--color-info);">${b.seat}</p>
+              <span class="caption-text">${b.seatPreference}</span>
+            </div>
+          </div>
+
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" alt="Boarding pass QR code" width="140" height="140">
+            <span class="caption-text">Scan at Smart Gate • ${b.ref}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ---------- My bookings list on home ---------- */
+    function ppRenderMyBookings() {
+      const list = ppLoadBookings();
+      const card = document.getElementById('pp-my-bookings-card');
+      if (!card) return;
+
+      if (list.length === 0) {
+        card.style.display = 'none';
+        return;
+      }
+
+      card.style.display = 'block';
+      document.getElementById('pp-my-bookings-count').textContent =
+        `${list.length} Booking${list.length === 1 ? '' : 's'}`;
+
+      document.getElementById('pp-my-bookings-list').innerHTML = list.slice(0, 4).map(b => {
+        const issued = b.status.indexOf('Checked-In') === 0;
+        return `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; gap: 12px;">
+            <div>
+              <p class="body-text" style="font-weight: 700; font-size: 14px;">${b.flight} • ${b.route}</p>
+              <span class="caption-text">${b.ref} • ${b.cabinClass} • ${b.date}</span>
+            </div>
+            <span class="chip ${issued ? 'chip-completed' : 'chip-warning'}" style="flex-shrink: 0;">
+              ${issued ? 'Seat ' + b.seat : 'Check-in pending'}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function ppInit() {
+      document.getElementById('pp-greeting-name').textContent = ppPassengerName();
+      ppRenderMyBookings();
+    }
+
+    window.ppSwitchView = ppSwitchView;
+    window.ppConfirmBooking = ppConfirmBooking;
+    window.ppSimulateCheckIn = ppSimulateCheckIn;
+    window.ppUpdateFarePreview = ppUpdateFarePreview;
+
+    ppInit();
+  })();
+</script>

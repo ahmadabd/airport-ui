@@ -76,6 +76,8 @@ function handleHashRoute() {
     switchRoute('signin');
   } else if (hash === 'signup') {
     switchRoute('signup');
+  } else if (hash === 'portal') {
+    switchRoute('portal');
   } else {
     switchRoute('landing');
   }
@@ -136,6 +138,9 @@ function switchRoute(route) {
     } else if (route === 'signup') {
       window.location.hash = 'signup';
       renderSignUpView();
+    } else if (route === 'portal') {
+      window.location.hash = 'portal';
+      renderPassengerPortalView();
     }
   }
 }
@@ -474,6 +479,45 @@ function handlePassengerSignUp() {
 }
 
 /* ==========================================================================
+   5b. Public Passenger Portal (#portal) — Passenger Journey Module
+   Booking + online check-in flow, fetched from pages/passenger-portal.html
+   ========================================================================== */
+async function renderPassengerPortalView() {
+  const contentArea = document.getElementById('main-content');
+  if (!contentArea) return;
+
+  try {
+    const response = await fetch('pages/passenger-portal.html');
+    if (response.ok) {
+      const htmlText = await response.text();
+      contentArea.innerHTML = htmlText;
+
+      // Re-execute inline scripts in the loaded page
+      contentArea.querySelectorAll('script').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+      return;
+    }
+  } catch (err) {
+    console.info('[Emirates-DXB] Passenger Portal requires Developer Mode (local server).');
+  }
+
+  contentArea.innerHTML = `
+    <div class="card" style="max-width: 520px; margin: 0 auto; text-align: center; padding: 28px;">
+      <h1 class="page-title" style="margin-bottom: 8px;">Passenger Portal</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">
+        This module loads <code>pages/passenger-portal.html</code> dynamically. Browsers block local
+        file fetches, so please run the project in Developer Mode (<code>npx serve</code>) to view it.
+      </p>
+      <button class="btn-primary" onclick="switchRoute('landing')">Return to Home →</button>
+    </div>
+  `;
+}
+
+/* ==========================================================================
    6. Restricted Admin Login Form (Shown when accessing #admin without Admin Role)
    ========================================================================== */
 function renderAdminLoginForm() {
@@ -601,10 +645,24 @@ async function loadAdminModule(moduleId) {
   }
 
   try {
-    const response = await fetch(`pages/${moduleId}.html`);
-
-    if (!response.ok) {
-      throw new Error(`Failed to load ${moduleId}`);
+    const pagePath = `pages/${moduleId}.html`;
+    const response = await fetch(pagePath);
+    if (response.ok) {
+      const htmlText = await response.text();
+      const cleanedContent = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim();
+      
+      if (cleanedContent.length > 0) {
+        contentArea.innerHTML = htmlText;
+        // Re-execute inline scripts in loaded page
+        const scripts = contentArea.querySelectorAll('script');
+        scripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+          oldScript.parentNode.replaceChild(newScript, oldScript);
+        });
+        return;
+      }
     }
 
     const htmlText = await response.text();
