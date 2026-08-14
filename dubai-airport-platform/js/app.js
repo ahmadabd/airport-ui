@@ -620,14 +620,27 @@ async function loadAdminModule(moduleId) {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
 
-  const targetChip = document.querySelector(`.module-chip[data-module="${moduleId}"]`);
+  const targetChip = document.querySelector(
+    `.module-chip[data-module="${moduleId}"]`
+  );
+
   if (targetChip) {
-    document.querySelectorAll('.module-chip').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.module-chip').forEach(c => {
+      c.classList.remove('active');
+    });
+
     targetChip.classList.add('active');
   }
 
+  currentAdminModule = moduleId;
+
   if (moduleId === 'user-management') {
     renderUserManagementModule();
+    return;
+  }
+
+  if (moduleId === 'dashboard') {
+    renderAdminDashboard();
     return;
   }
 
@@ -651,17 +664,34 @@ async function loadAdminModule(moduleId) {
         return;
       }
     }
-  } catch (err) {
-    console.info(`[Emirates-DXB] Using built-in template for '${moduleId}'.`);
-  }
 
-  if (moduleId === 'dashboard') {
-    renderAdminDashboard();
-  } else {
+    const htmlText = await response.text();
+
+    contentArea.innerHTML = htmlText;
+
+    // Initialize Gate Management after HTML is loaded
+    if (moduleId === 'gate-management') {
+      filterGateTable();
+    }
+
+  } catch (error) {
+    console.error(
+      `[Emirates-DXB] Failed to load module: ${moduleId}`,
+      error
+    );
+
     renderModulePlaceholder(moduleId);
   }
 }
-
+function initGateManagement() {
+  try {
+    if (typeof filterGateTable === 'function') {
+      filterGateTable();
+    }
+  } catch (error) {
+    console.error('[Gate Management] Initialization error:', error);
+  }
+}
 function renderUserManagementModule() {
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
@@ -840,8 +870,58 @@ function renderAdminDashboard() {
 }
 
 function renderModulePlaceholder(moduleId) {
+
+  if (moduleId === 'gate-management') {
+    loadGateManagementPage();
+    return;
+  }
+
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
+
+  async function loadGateManagementPage() {
+  const contentArea = document.getElementById('main-content');
+  if (!contentArea) return;
+
+  try {
+    const response = await fetch('pages/gate-management.html');
+
+    if (!response.ok) {
+      throw new Error('Gate Management page failed to load');
+    }
+
+    const html = await response.text();
+
+    contentArea.innerHTML = html;
+
+    // Execute scripts inside the loaded HTML
+    const scripts = contentArea.querySelectorAll('script');
+
+    scripts.forEach(oldScript => {
+      const newScript = document.createElement('script');
+
+      Array.from(oldScript.attributes).forEach(attribute => {
+        newScript.setAttribute(attribute.name, attribute.value);
+      });
+
+      newScript.textContent = oldScript.textContent;
+
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
+
+  } catch (error) {
+    console.error('Gate Management Error:', error);
+
+    contentArea.innerHTML = `
+      <div class="card">
+        <h2 class="section-title">Gate Management</h2>
+        <p class="supporting-text" style="margin-top:8px;">
+          Failed to load Gate Management.
+        </p>
+      </div>
+    `;
+  }
+}
 
   const titles = {
     'gate-management': 'Gate Management',
@@ -872,4 +952,278 @@ function renderModulePlaceholder(moduleId) {
       </button>
     </div>
   `;
+}
+/* ==========================================================================
+   GATE MANAGEMENT INTERACTIONS
+   ========================================================================== */
+
+function filterGateTable() {
+  const searchInput = document.getElementById('gate-search');
+  const terminalInput = document.getElementById('gate-terminal');
+  const statusInput = document.getElementById('gate-status');
+  const timeInput = document.getElementById('gate-time');
+
+  if (!searchInput || !terminalInput || !statusInput || !timeInput) {
+    return;
+  }
+
+  const search = searchInput.value.toLowerCase().trim();
+  const terminal = terminalInput.value;
+  const status = statusInput.value;
+  const time = timeInput.value;
+
+  const rows = document.querySelectorAll('#gate-table-body tr');
+
+  let visibleCount = 0;
+
+  rows.forEach(row => {
+    const gate = (row.dataset.gate || '').toLowerCase();
+    const flight = (row.dataset.flight || '').toLowerCase();
+    const route = (row.dataset.route || '').toLowerCase();
+
+    const rowStatus = row.dataset.status || '';
+    const rowTerminal = row.dataset.terminal || '';
+    const rowTime = row.dataset.time || '';
+
+    const searchMatch =
+      !search ||
+      gate.includes(search) ||
+      flight.includes(search) ||
+      route.includes(search);
+
+    const terminalMatch =
+      !terminal || rowTerminal === terminal;
+
+    const statusMatch =
+      !status || rowStatus === status;
+
+    const timeMatch =
+      !time || rowTime === time;
+
+    const visible =
+      searchMatch &&
+      terminalMatch &&
+      statusMatch &&
+      timeMatch;
+
+    row.style.display = visible ? '' : 'none';
+
+    if (visible) {
+      visibleCount++;
+    }
+  });
+
+  const resultCount =
+    document.getElementById('gate-result-count');
+
+  if (resultCount) {
+    resultCount.textContent =
+      `${visibleCount} active records`;
+  }
+
+  const emptyState =
+    document.getElementById('gate-empty-state');
+
+  if (emptyState) {
+    emptyState.style.display =
+      visibleCount === 0 ? 'block' : 'none';
+  }
+}
+
+
+function resetGateFilters() {
+  const searchInput = document.getElementById('gate-search');
+  const terminalInput = document.getElementById('gate-terminal');
+  const statusInput = document.getElementById('gate-status');
+  const timeInput = document.getElementById('gate-time');
+
+  if (searchInput) searchInput.value = '';
+  if (terminalInput) terminalInput.value = '';
+  if (statusInput) statusInput.value = '';
+  if (timeInput) timeInput.value = '';
+
+  filterGateTable();
+}
+
+
+function gateRefreshData() {
+  const button = document.activeElement;
+
+  if (
+    button &&
+    button.tagName === 'BUTTON' &&
+    button.textContent.includes('Refresh')
+  ) {
+    button.textContent = '✓ Updated';
+
+    setTimeout(() => {
+      button.textContent = '↻ Refresh';
+    }, 1200);
+  }
+}
+
+
+function openGateDetails(gateId) {
+  const rows =
+    document.querySelectorAll('#gate-table-body tr');
+
+  let selectedRow = null;
+
+  rows.forEach(row => {
+    if (row.dataset.gate === gateId) {
+      selectedRow = row;
+    }
+  });
+
+  if (!selectedRow) {
+    console.warn(`Gate ${gateId} not found.`);
+    return;
+  }
+
+  const cells =
+    selectedRow.querySelectorAll('td');
+
+  const flight =
+    selectedRow.dataset.flight || '—';
+
+  const route =
+    cells[2]
+      ? cells[2].innerText.trim()
+      : '—';
+
+  const aircraft =
+    cells[3]
+      ? cells[3].innerText.trim()
+      : '—';
+
+  const status =
+    selectedRow.dataset.status || 'Available';
+
+  const boarding =
+    cells[5]
+      ? cells[5].innerText.trim()
+      : '—';
+
+  const departure =
+    cells[6]
+      ? cells[6].innerText.trim()
+      : '—';
+
+  const terminal =
+    selectedRow.dataset.terminal || '—';
+
+
+  const title =
+    document.getElementById('gate-detail-title');
+
+  const detailFlight =
+    document.getElementById('detail-flight');
+
+  const detailRoute =
+    document.getElementById('detail-route');
+
+  const detailAircraft =
+    document.getElementById('detail-aircraft');
+
+  const detailBoarding =
+    document.getElementById('detail-boarding');
+
+  const detailDeparture =
+    document.getElementById('detail-departure');
+
+  const detailTerminal =
+    document.getElementById('detail-terminal');
+
+  const statusElement =
+    document.getElementById('gate-detail-status');
+
+  const overlay =
+    document.getElementById('gate-overlay');
+
+  const panel =
+    document.getElementById('gate-detail-panel');
+
+
+  if (title) {
+    title.textContent = `Gate ${gateId}`;
+  }
+
+  if (detailFlight) {
+    detailFlight.textContent = flight;
+  }
+
+  if (detailRoute) {
+    detailRoute.textContent = route;
+  }
+
+  if (detailAircraft) {
+    detailAircraft.textContent = aircraft;
+  }
+
+  if (detailBoarding) {
+    detailBoarding.textContent = boarding;
+  }
+
+  if (detailDeparture) {
+    detailDeparture.textContent = departure;
+  }
+
+  if (detailTerminal) {
+    detailTerminal.textContent = terminal;
+  }
+
+  if (statusElement) {
+    statusElement.textContent = status;
+    statusElement.className =
+      'chip ' + getGateStatusClass(status);
+  }
+
+  if (overlay) {
+    overlay.classList.add('open');
+  }
+
+  if (panel) {
+    panel.classList.add('open');
+  }
+}
+
+
+function getGateStatusClass(status) {
+  switch (status) {
+
+    case 'Available':
+      return 'chip-success';
+
+    case 'Assigned':
+      return 'chip-info';
+
+    case 'Boarding':
+      return 'chip-in-progress';
+
+    case 'Change Required':
+      return 'chip-warning';
+
+    case 'Conflict':
+      return 'chip-error';
+
+    default:
+      return 'chip-info';
+  }
+}
+
+
+function closeGateDetails() {
+  const overlay =
+    document.getElementById('gate-overlay');
+
+  const panel =
+    document.getElementById('gate-detail-panel');
+
+  if (overlay) {
+    overlay.classList.remove('open');
+  }
+
+  if (panel) {
+    panel.classList.remove('open');
+  }
 }

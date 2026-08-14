@@ -1,3 +1,1711 @@
-<!-- Gate Management Module.
-     Responsible for gate assignment, gate status, boarding status, gate changes,
-     and gate occupancy tracking across all Dubai Airport terminals. -->
+<style>
+  /* =========================================================
+     GATE MANAGEMENT MODULE
+     DXB Operations Control Center
+     Page-specific styles only
+     ========================================================= */
+
+  .gate-page {
+    width: 100%;
+  }
+
+  .gate-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+
+  .gate-page-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .gate-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .gate-live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-success);
+  }
+
+  .gate-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-success);
+    display: inline-block;
+  }
+
+  .gate-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-16);
+    margin-bottom: 20px;
+  }
+
+  .gate-kpi {
+    background: var(--bg-surface);
+    border: var(--border-standard);
+    border-radius: var(--radius-card);
+    padding: 18px;
+    box-shadow: var(--shadow-subtle);
+    min-height: 112px;
+  }
+
+  .gate-kpi-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  .gate-kpi-value {
+    font-size: 28px;
+    line-height: 32px;
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .gate-kpi-meta {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .gate-kpi.alert .gate-kpi-value {
+    color: var(--color-error);
+  }
+
+  .gate-kpi.available .gate-kpi-value {
+    color: var(--color-success);
+  }
+
+  .gate-filter-card {
+    background: var(--bg-surface);
+    border: var(--border-standard);
+    border-radius: var(--radius-card);
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .gate-filter-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+
+  .gate-filter-row .input-group {
+    margin-bottom: 0;
+  }
+
+  .gate-reset-btn {
+    height: 48px;
+    padding: 0 18px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-button);
+    background: var(--bg-secondary);
+    color: var(--text-main);
+    font-family: var(--font-family);
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .gate-reset-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .gate-section-card {
+    background: var(--bg-surface);
+    border: var(--border-standard);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-subtle);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+
+  .gate-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .gate-section-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .gate-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .gate-table {
+    width: 100%;
+    min-width: 980px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .gate-table th {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+
+  .gate-table td {
+    padding: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  .gate-table tbody tr:hover {
+    background: #FAFAFA;
+  }
+
+  .gate-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .gate-code {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-primary);
+  }
+
+  .flight-number {
+    font-weight: 700;
+    color: var(--text-main);
+  }
+
+  .route-text {
+    color: var(--text-secondary);
+  }
+
+  .aircraft-text {
+    font-weight: 600;
+  }
+
+  .time-main {
+    font-weight: 700;
+  }
+
+  .time-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .gate-action-btn {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--color-primary);
+    background: var(--bg-surface);
+    color: var(--color-primary);
+    border-radius: 6px;
+    font-family: var(--font-family);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .gate-action-btn:hover {
+    background: var(--color-primary);
+    color: #FFFFFF;
+  }
+
+  .gate-alert-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .gate-alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .gate-alert-item:last-child {
+    border-bottom: none;
+  }
+
+  .gate-alert-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .gate-alert-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-warning);
+    color: var(--color-warning);
+    flex-shrink: 0;
+    font-weight: 700;
+  }
+
+  .gate-alert-icon.error {
+    background: var(--bg-error);
+    color: var(--color-error);
+  }
+
+  .gate-alert-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+
+  .gate-alert-description {
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .gate-empty-state {
+    padding: 36px 20px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .gate-detail-panel {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: min(460px, 100%);
+    height: 100vh;
+    background: var(--bg-surface);
+    z-index: 1000;
+    box-shadow: -8px 0 30px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+  }
+
+  .gate-detail-panel.open {
+    display: block;
+  }
+
+  .gate-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .gate-detail-body {
+    padding: 20px;
+  }
+
+  .gate-detail-close {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  .gate-detail-close:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary);
+  }
+
+  .gate-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .gate-detail-item {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .gate-detail-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 3px;
+  }
+
+  .gate-detail-value {
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .gate-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 999;
+  }
+
+  .gate-overlay.open {
+    display: block;
+  }
+
+  @media (max-width: 1100px) {
+    .gate-kpi-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .gate-filter-row {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .gate-reset-btn {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .gate-page-header {
+      flex-direction: column;
+    }
+
+    .gate-page-header-actions {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .gate-kpi-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .gate-filter-row {
+      grid-template-columns: 1fr;
+    }
+
+    .gate-detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+
+<div class="gate-page">
+
+  <!-- =======================================================
+       PAGE HEADER
+       ======================================================= -->
+
+  <div class="gate-page-header">
+
+    <div class="gate-page-header-left">
+
+      <span class="caption-text">
+        Dubai International Airport — DXB • Operations Control Center
+      </span>
+
+      <h1 class="page-title">
+        Gate Management
+      </h1>
+
+      <span class="supporting-text">
+        Monitor gate allocation, boarding activity, occupancy and operational conflicts.
+      </span>
+
+    </div>
+
+    <div class="gate-page-header-actions">
+
+      <span class="gate-live-indicator">
+        <span class="gate-live-dot"></span>
+        LIVE OPERATIONS
+      </span>
+
+      <button
+        class="btn-secondary"
+        style="width:auto; height:42px; padding:0 16px;"
+        onclick="gateRefreshData()"
+      >
+        ↻ Refresh
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       KPI SUMMARY
+       ======================================================= -->
+
+  <div class="gate-kpi-grid">
+
+    <div class="gate-kpi">
+      <div class="gate-kpi-label">Total Gates</div>
+      <div class="gate-kpi-value">42</div>
+      <div class="gate-kpi-meta">Across T1, T2 & T3</div>
+    </div>
+
+    <div class="gate-kpi">
+      <div class="gate-kpi-label">Occupied</div>
+      <div class="gate-kpi-value">31</div>
+      <div class="gate-kpi-meta">73.8% utilization</div>
+    </div>
+
+    <div class="gate-kpi available">
+      <div class="gate-kpi-label">Available</div>
+      <div class="gate-kpi-value">8</div>
+      <div class="gate-kpi-meta">Ready for assignment</div>
+    </div>
+
+    <div class="gate-kpi">
+      <div class="gate-kpi-label">Boarding</div>
+      <div class="gate-kpi-value">6</div>
+      <div class="gate-kpi-meta">Active boarding operations</div>
+    </div>
+
+    <div class="gate-kpi alert">
+      <div class="gate-kpi-label">Alerts</div>
+      <div class="gate-kpi-value" id="gate-alert-count">3</div>
+      <div class="gate-kpi-meta">Require attention</div>
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       FILTERS
+       ======================================================= -->
+
+  <div class="gate-filter-card">
+
+    <div class="gate-filter-row">
+
+      <div class="input-group">
+
+        <label class="input-label">
+          Search
+        </label>
+
+        <input
+          type="text"
+          id="gate-search"
+          class="input-field"
+          placeholder="Flight number, gate or route..."
+          oninput="filterGateTable()"
+        >
+
+      </div>
+
+
+      <div class="input-group">
+
+        <label class="input-label">
+          Terminal
+        </label>
+
+        <select
+          id="gate-terminal"
+          class="input-field"
+          onchange="filterGateTable()"
+        >
+
+          <option value="">All Terminals</option>
+          <option value="T1">Terminal 1</option>
+          <option value="T2">Terminal 2</option>
+          <option value="T3">Terminal 3</option>
+
+        </select>
+
+      </div>
+
+
+      <div class="input-group">
+
+        <label class="input-label">
+          Gate Status
+        </label>
+
+        <select
+          id="gate-status"
+          class="input-field"
+          onchange="filterGateTable()"
+        >
+
+          <option value="">All Statuses</option>
+          <option value="Available">Available</option>
+          <option value="Assigned">Assigned</option>
+          <option value="Boarding">Boarding</option>
+          <option value="Change Required">Change Required</option>
+          <option value="Conflict">Conflict</option>
+
+        </select>
+
+      </div>
+
+
+      <div class="input-group">
+
+        <label class="input-label">
+          Time Window
+        </label>
+
+        <select
+          id="gate-time"
+          class="input-field"
+          onchange="filterGateTable()"
+        >
+
+          <option value="">All Times</option>
+          <option value="next">Next 60 min</option>
+          <option value="boarding">Boarding</option>
+
+        </select>
+
+      </div>
+
+
+      <button
+        class="gate-reset-btn"
+        onclick="resetGateFilters()"
+      >
+        Reset
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       MAIN OPERATIONAL TABLE
+       ======================================================= -->
+
+  <div class="gate-section-card">
+
+    <div class="gate-section-header">
+
+      <div class="gate-section-title">
+
+        <h2 class="section-title">
+          Gate Operations
+        </h2>
+
+        <span class="supporting-text">
+          Live overview of gate allocation and flight activity
+        </span>
+
+      </div>
+
+      <span class="supporting-text" id="gate-result-count">
+        10 active records
+      </span>
+
+    </div>
+
+
+    <div class="gate-table-wrapper">
+
+      <table class="gate-table">
+
+        <thead>
+
+          <tr>
+
+            <th>Gate</th>
+            <th>Flight</th>
+            <th>Route</th>
+            <th>Aircraft</th>
+            <th>Status</th>
+            <th>Boarding</th>
+            <th>Departure</th>
+            <th>Terminal</th>
+            <th>Action</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="gate-table-body">
+
+
+          <tr
+            data-gate="A01"
+            data-flight="EK001"
+            data-route="LHR"
+            data-status="Boarding"
+            data-terminal="T3"
+            data-time="boarding"
+          >
+
+            <td>
+              <span class="gate-code">A01</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK001</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → LHR</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">A380-800</span>
+            </td>
+
+            <td>
+              <span class="chip chip-in-progress">
+                Boarding
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">08:30</span>
+            </td>
+
+            <td>
+              <span class="time-main">09:10</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('A01')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="A02"
+            data-flight="EK203"
+            data-route="CDG"
+            data-status="Assigned"
+            data-terminal="T3"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">A02</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK203</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → CDG</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">B777-300ER</span>
+            </td>
+
+            <td>
+              <span class="chip chip-info">
+                Assigned
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">08:45</span>
+            </td>
+
+            <td>
+              <span class="time-main">09:30</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('A02')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="A03"
+            data-flight=""
+            data-route=""
+            data-status="Available"
+            data-terminal="T3"
+            data-time=""
+          >
+
+            <td>
+              <span class="gate-code">A03</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="route-text">—</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="chip chip-success">
+                Available
+              </span>
+            </td>
+
+            <td>—</td>
+
+            <td>—</td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('A03')"
+              >
+                Assign
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="A04"
+            data-flight="EK412"
+            data-route="SYD"
+            data-status="Conflict"
+            data-terminal="T3"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">A04</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK412</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → SYD</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">A380-800</span>
+            </td>
+
+            <td>
+              <span class="chip chip-error">
+                Conflict
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:00</span>
+            </td>
+
+            <td>
+              <span class="time-main">09:45</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('A04')"
+              >
+                Resolve
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="B07"
+            data-flight="EK317"
+            data-route="FRA"
+            data-status="Change Required"
+            data-terminal="T1"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">B07</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK317</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → FRA</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">A350-900</span>
+            </td>
+
+            <td>
+              <span class="chip chip-warning">
+                Change Required
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:10</span>
+            </td>
+
+            <td>
+              <span class="time-main">09:55</span>
+            </td>
+
+            <td>T1</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('B07')"
+              >
+                Change
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="B12"
+            data-flight="EK805"
+            data-route="RUH"
+            data-status="Assigned"
+            data-terminal="T1"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">B12</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK805</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → RUH</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">B777-300ER</span>
+            </td>
+
+            <td>
+              <span class="chip chip-info">
+                Assigned
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:20</span>
+            </td>
+
+            <td>
+              <span class="time-main">10:05</span>
+            </td>
+
+            <td>T1</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('B12')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="C05"
+            data-flight="EK908"
+            data-route="JFK"
+            data-status="Boarding"
+            data-terminal="T3"
+            data-time="boarding"
+          >
+
+            <td>
+              <span class="gate-code">C05</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK908</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → JFK</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">B777-200LR</span>
+            </td>
+
+            <td>
+              <span class="chip chip-in-progress">
+                Boarding
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:25</span>
+            </td>
+
+            <td>
+              <span class="time-main">10:15</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('C05')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="C07"
+            data-flight="EK722"
+            data-route="NBO"
+            data-status="Available"
+            data-terminal="T3"
+            data-time=""
+          >
+
+            <td>
+              <span class="gate-code">C07</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="route-text">—</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="chip chip-success">
+                Available
+              </span>
+            </td>
+
+            <td>—</td>
+
+            <td>—</td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('C07')"
+              >
+                Assign
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="D14"
+            data-flight="EK505"
+            data-route="BOM"
+            data-status="Assigned"
+            data-terminal="T1"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">D14</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK505</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → BOM</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">A380-800</span>
+            </td>
+
+            <td>
+              <span class="chip chip-info">
+                Assigned
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:40</span>
+            </td>
+
+            <td>
+              <span class="time-main">10:25</span>
+            </td>
+
+            <td>T1</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('D14')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="E02"
+            data-flight="EK404"
+            data-route="HND"
+            data-status="Boarding"
+            data-terminal="T3"
+            data-time="boarding"
+          >
+
+            <td>
+              <span class="gate-code">E02</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK404</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → HND</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">A350-900</span>
+            </td>
+
+            <td>
+              <span class="chip chip-in-progress">
+                Boarding
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">09:45</span>
+            </td>
+
+            <td>
+              <span class="time-main">10:35</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('E02')"
+              >
+                View
+              </button>
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+
+      <div
+        id="gate-empty-state"
+        class="gate-empty-state"
+        style="display:none;"
+      >
+        No gates match the selected filters.
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       ALERTS
+       ======================================================= -->
+
+  <div class="gate-section-card">
+
+    <div class="gate-section-header">
+
+      <div class="gate-section-title">
+
+        <h2 class="section-title">
+          Operational Alerts
+        </h2>
+
+        <span class="supporting-text">
+          Issues requiring operator attention
+        </span>
+
+      </div>
+
+      <span class="chip chip-warning">
+        3 Attention Required
+      </span>
+
+    </div>
+
+
+    <div class="gate-alert-list">
+
+      <div class="gate-alert-item">
+
+        <div class="gate-alert-content">
+
+          <div class="gate-alert-icon error">
+            !
+          </div>
+
+          <div>
+
+            <div class="gate-alert-title">
+              Gate A04 — Assignment Conflict
+            </div>
+
+            <div class="gate-alert-description">
+              Gate occupancy overlaps with the planned turnaround window for EK412.
+            </div>
+
+          </div>
+
+        </div>
+
+        <span class="chip chip-error">
+          Conflict
+        </span>
+
+      </div>
+
+
+      <div class="gate-alert-item">
+
+        <div class="gate-alert-content">
+
+          <div class="gate-alert-icon">
+            !
+          </div>
+
+          <div>
+
+            <div class="gate-alert-title">
+              Gate B07 — Change Required
+            </div>
+
+            <div class="gate-alert-description">
+              Aircraft compatibility requires reassignment before boarding starts.
+            </div>
+
+          </div>
+
+        </div>
+
+        <span class="chip chip-warning">
+          Action Required
+        </span>
+
+      </div>
+
+
+      <div class="gate-alert-item">
+
+        <div class="gate-alert-content">
+
+          <div class="gate-alert-icon">
+            !
+          </div>
+
+          <div>
+
+            <div class="gate-alert-title">
+              Gate C07 — Assignment Opportunity
+            </div>
+
+            <div class="gate-alert-description">
+              Gate is currently available for the next eligible flight.
+            </div>
+
+          </div>
+
+        </div>
+
+        <span class="chip chip-info">
+          Available
+        </span>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================================================
+     DETAIL DRAWER
+     ========================================================= -->
+
+<div
+  class="gate-overlay"
+  id="gate-overlay"
+  onclick="closeGateDetails()"
+></div>
+
+<aside
+  class="gate-detail-panel"
+  id="gate-detail-panel"
+>
+
+  <div class="gate-detail-header">
+
+    <div>
+
+      <span class="caption-text">
+        Gate Operations
+      </span>
+
+      <h2
+        class="section-title"
+        id="gate-detail-title"
+      >
+        Gate A01
+      </h2>
+
+    </div>
+
+    <button
+      class="gate-detail-close"
+      onclick="closeGateDetails()"
+    >
+      ×
+    </button>
+
+  </div>
+
+
+  <div class="gate-detail-body">
+
+    <span
+      class="chip chip-in-progress"
+      id="gate-detail-status"
+    >
+      Boarding
+    </span>
+
+
+    <div class="gate-detail-grid">
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Flight</div>
+        <div class="gate-detail-value" id="detail-flight">EK001</div>
+      </div>
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Terminal</div>
+        <div class="gate-detail-value" id="detail-terminal">T3</div>
+      </div>
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Route</div>
+        <div class="gate-detail-value" id="detail-route">DXB → LHR</div>
+      </div>
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Aircraft</div>
+        <div class="gate-detail-value" id="detail-aircraft">A380-800</div>
+      </div>
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Boarding</div>
+        <div class="gate-detail-value" id="detail-boarding">08:30</div>
+      </div>
+
+      <div class="gate-detail-item">
+        <div class="gate-detail-label">Departure</div>
+        <div class="gate-detail-value" id="detail-departure">09:10</div>
+      </div>
+
+    </div>
+
+
+    <div class="card" style="margin-top:20px;">
+
+      <div class="card-header">
+
+        <h3 class="card-title">
+          Operational Timeline
+        </h3>
+
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <span class="chip chip-completed">Done</span>
+          <div>
+            <strong>Gate Assigned</strong>
+            <div class="supporting-text">07:15</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <span class="chip chip-in-progress">Live</span>
+          <div>
+            <strong>Boarding</strong>
+            <div class="supporting-text">08:30</div>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <span class="chip chip-info">Next</span>
+          <div>
+            <strong>Departure</strong>
+            <div class="supporting-text">09:10</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <div style="display:flex; gap:10px; margin-top:20px;">
+
+      <button
+        class="btn-primary"
+        style="width:auto; flex:1;"
+        onclick="alert('Gate change workflow opened for this demo.')"
+      >
+        Change Gate
+      </button>
+
+      <button
+        class="btn-secondary"
+        style="width:auto; flex:1;"
+        onclick="closeGateDetails()"
+      >
+        Close
+      </button>
+
+    </div>
+
+  </div>
+
+</aside>
+
+
+<script>
+  /* =========================================================
+     GATE MANAGEMENT INTERACTION
+     Front-end demo only
+     ========================================================= */
+
+  function filterGateTable() {
+
+    const search =
+      document.getElementById('gate-search').value.toLowerCase();
+
+    const terminal =
+      document.getElementById('gate-terminal').value;
+
+    const status =
+      document.getElementById('gate-status').value;
+
+    const time =
+      document.getElementById('gate-time').value;
+
+    const rows =
+      document.querySelectorAll('#gate-table-body tr');
+
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+
+      const gate =
+        (row.dataset.gate || '').toLowerCase();
+
+      const flight =
+        (row.dataset.flight || '').toLowerCase();
+
+      const route =
+        (row.dataset.route || '').toLowerCase();
+
+      const rowStatus =
+        row.dataset.status || '';
+
+      const rowTerminal =
+        row.dataset.terminal || '';
+
+      const rowTime =
+        row.dataset.time || '';
+
+      const searchMatch =
+        !search ||
+        gate.includes(search) ||
+        flight.includes(search) ||
+        route.includes(search);
+
+      const terminalMatch =
+        !terminal ||
+        rowTerminal === terminal;
+
+      const statusMatch =
+        !status ||
+        rowStatus === status;
+
+      const timeMatch =
+        !time ||
+        rowTime === time;
+
+      const visible =
+        searchMatch &&
+        terminalMatch &&
+        statusMatch &&
+        timeMatch;
+
+      row.style.display =
+        visible ? '' : 'none';
+
+      if (visible) {
+        visibleCount++;
+      }
+
+    });
+
+    document.getElementById('gate-result-count').textContent =
+      `${visibleCount} active records`;
+
+    document.getElementById('gate-empty-state').style.display =
+      visibleCount === 0 ? 'block' : 'none';
+
+  }
+
+
+  function resetGateFilters() {
+
+    document.getElementById('gate-search').value = '';
+    document.getElementById('gate-terminal').value = '';
+    document.getElementById('gate-status').value = '';
+    document.getElementById('gate-time').value = '';
+
+    filterGateTable();
+
+  }
+
+
+  function gateRefreshData() {
+
+    const button =
+      event && event.currentTarget
+        ? event.currentTarget
+        : null;
+
+    if (button) {
+      button.textContent = '✓ Updated';
+
+      setTimeout(() => {
+        button.textContent = '↻ Refresh';
+      }, 1200);
+    }
+
+  }
+
+
+  function openGateDetails(gateId) {
+
+    const rows =
+      document.querySelectorAll('#gate-table-body tr');
+
+    let selectedRow = null;
+
+    rows.forEach(row => {
+
+      if (row.dataset.gate === gateId) {
+        selectedRow = row;
+      }
+
+    });
+
+    if (!selectedRow) return;
+
+    const cells =
+      selectedRow.querySelectorAll('td');
+
+    const flight =
+      selectedRow.dataset.flight || '—';
+
+    const route =
+      cells[2]
+        ? cells[2].innerText.trim()
+        : '—';
+
+    const aircraft =
+      cells[3]
+        ? cells[3].innerText.trim()
+        : '—';
+
+    const status =
+      selectedRow.dataset.status || 'Available';
+
+    const boarding =
+      cells[5]
+        ? cells[5].innerText.trim()
+        : '—';
+
+    const departure =
+      cells[6]
+        ? cells[6].innerText.trim()
+        : '—';
+
+    const terminal =
+      selectedRow.dataset.terminal || '—';
+
+
+    document.getElementById('gate-detail-title').textContent =
+      `Gate ${gateId}`;
+
+    document.getElementById('detail-flight').textContent =
+      flight;
+
+    document.getElementById('detail-route').textContent =
+      route;
+
+    document.getElementById('detail-aircraft').textContent =
+      aircraft;
+
+    document.getElementById('detail-boarding').textContent =
+      boarding;
+
+    document.getElementById('detail-departure').textContent =
+      departure;
+
+    document.getElementById('detail-terminal').textContent =
+      terminal;
+
+
+    const statusElement =
+      document.getElementById('gate-detail-status');
+
+    statusElement.textContent =
+      status;
+
+    statusElement.className =
+      'chip ' + getGateStatusClass(status);
+
+
+    document.getElementById('gate-overlay')
+      .classList.add('open');
+
+    document.getElementById('gate-detail-panel')
+      .classList.add('open');
+
+  }
+
+
+  function getGateStatusClass(status) {
+
+    switch (status) {
+
+      case 'Available':
+        return 'chip-success';
+
+      case 'Assigned':
+        return 'chip-info';
+
+      case 'Boarding':
+        return 'chip-in-progress';
+
+      case 'Change Required':
+        return 'chip-warning';
+
+      case 'Conflict':
+        return 'chip-error';
+
+      default:
+        return 'chip-info';
+
+    }
+
+  }
+
+
+  function closeGateDetails() {
+
+    document.getElementById('gate-overlay')
+      .classList.remove('open');
+
+    document.getElementById('gate-detail-panel')
+      .classList.remove('open');
+
+  }
+
+
+  /* Initial table state */
+
+  filterGateTable();
+
+</script>
