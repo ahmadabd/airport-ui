@@ -1,208 +1,247 @@
-<!-- Passenger Journey Module — Emirates–DXB Operations Control Platform
-     Passenger-facing self-service flow: flight search, booking, auto/online check-in
-     seat preference, and digital boarding pass generation. -->
+<!-- Passenger Journey Module (Admin / OCC) — Emirates–DXB Operations Control Platform
+     Displays live booking & online check-in records submitted from the public Passenger
+     Portal (#portal). Data is shared via the DXB_PASSENGER_BOOKINGS localStorage key. -->
 
-<div id="pj-module-wrapper" style="max-width: 640px; margin: 0 auto;">
+<div id="pj-wrapper">
 
-  <!-- VIEW 1: HOME / WELCOME -->
-  <section id="pj-view-home">
-    <div style="margin-bottom: 24px;">
-      <h1 class="page-title">Welcome back, Hossein!</h1>
-      <p class="supporting-text" style="margin-top: 6px;">Your One-ID biometric profile is verified. Where are you flying next?</p>
+  <!-- Page Header -->
+  <div class="card-header" style="margin-bottom: 16px;">
+    <div>
+      <span class="caption-text">Dubai International Airport (DXB) • Operations Control Center</span>
+      <h1 class="page-title">Passenger Journey</h1>
+      <p class="supporting-text" style="margin-top: 4px;">Booking & online check-in records received from the public Passenger Portal</p>
     </div>
-
-    <div class="card">
-      <div class="grid-3col" style="margin-bottom: 0;">
-        <div class="input-group" style="margin-bottom: 0;">
-          <span class="caption-text">From</span>
-          <div class="body-text" style="font-weight: 700;">Dubai (DXB)</div>
-        </div>
-        <div class="input-group" style="margin-bottom: 0;">
-          <span class="caption-text">To</span>
-          <div class="body-text" style="font-weight: 700;">London (LHR)</div>
-        </div>
-        <div class="input-group" style="margin-bottom: 0;">
-          <span class="caption-text">Date</span>
-          <div class="body-text" style="font-weight: 700;">Tomorrow</div>
-        </div>
-      </div>
-      <button class="btn-primary" style="margin-top: 20px;" onclick="pjSwitchView('pj-view-booking')">
-        Search Flights →
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 14px; font-size: 13px;" onclick="pjRefresh()">
+        Refresh
+      </button>
+      <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 14px; font-size: 13px;" onclick="pjOpenPortal()">
+        Open Passenger Portal →
       </button>
     </div>
-  </section>
+  </div>
 
-  <!-- VIEW 2: FLIGHT SELECTION & AUTO CHECK-IN PREFERENCES -->
-  <section id="pj-view-booking" style="display: none;">
-    <button class="btn-secondary" style="width: auto; height: 36px; padding: 0 14px; font-size: 13px; margin-bottom: 16px;" onclick="pjSwitchView('pj-view-home')">
-      ← Back to search
-    </button>
-
-    <h2 class="section-title" style="margin-bottom: 16px;">Select Flight & Preferences</h2>
-
-    <!-- Selected Flight Card -->
-    <div class="card" style="border-color: var(--color-gold); position: relative;">
-      <span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;">Fastest</span>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates EK 001</span>
-        <span class="body-text" style="font-weight: 700; font-size: 18px;">$450</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div style="text-align: center;">
-          <div style="font-size: 22px; font-weight: 800;">08:30</div>
-          <div class="caption-text">DXB</div>
-        </div>
-        <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px;">
-          <span class="caption-text">7h 20m</span>
-          <div style="width: 100%; height: 1px; background: var(--border-color); margin: 8px 0; position: relative;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--bg-surface)" stroke="var(--color-gold)" stroke-width="2" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-          </div>
-          <span class="caption-text">Direct</span>
-        </div>
-        <div style="text-align: center;">
-          <div style="font-size: 22px; font-weight: 800;">12:50</div>
-          <div class="caption-text">LHR</div>
-        </div>
+  <!-- KPI Summary -->
+  <div class="grid-4col" style="margin-bottom: 16px;">
+    <div class="card" style="margin-bottom: 0; padding: 16px;">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Total Bookings</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800;" id="pj-kpi-total">0</span>
+        <span class="chip chip-info">Live</span>
       </div>
     </div>
 
-    <!-- Auto Check-in Preferences -->
-    <div class="card">
-      <div style="display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px;">
-        <div style="background: var(--bg-success); color: var(--color-success); width: 40px; height: 40px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/></svg>
-        </div>
-        <div>
-          <h3 class="card-title" style="color: var(--color-gold); font-size: 16px;">Smart Auto Check-in Setup</h3>
-          <p class="supporting-text" style="margin-top: 4px;">Because you are a One-ID verified user, we will automatically check you in 24 hours before departure. No forms required.</p>
-        </div>
-      </div>
-
-      <label class="input-label" style="display: block; margin-bottom: 10px;">Select your seat preference for auto-assignment:</label>
-      <div class="grid-2col" style="margin-bottom: 0;">
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
-          <input type="radio" name="pj-seat-pref" value="window" checked style="accent-color: var(--color-primary); width: 16px; height: 16px;">
-          <span class="body-text" style="font-size: 14px;">Window Seat</span>
-        </label>
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
-          <input type="radio" name="pj-seat-pref" value="aisle" style="accent-color: var(--color-primary); width: 16px; height: 16px;">
-          <span class="body-text" style="font-size: 14px;">Aisle Seat</span>
-        </label>
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-success);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-success);">Checked-In</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--color-success);" id="pj-kpi-checkedin">0</span>
+        <span class="chip chip-completed" id="pj-kpi-rate">0%</span>
       </div>
     </div>
 
-    <button class="btn-primary" style="height: 52px; font-size: 16px;" onclick="pjSwitchView('pj-view-success')">
-      Book Flight & Set Auto Check-in →
-    </button>
-  </section>
-
-  <!-- VIEW 3: BOOKING CONFIRMED / WAITING FOR AUTO CHECK-IN -->
-  <section id="pj-view-success" style="display: none; text-align: center; padding: 40px 0;">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
-      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-
-    <h2 class="section-title" style="margin-bottom: 12px;">Booking Confirmed!</h2>
-    <p class="body-text" style="max-width: 440px; margin: 0 auto 20px; color: var(--text-secondary);">
-      Your flight to London has been successfully booked using your One-ID profile.
-    </p>
-
-    <div class="chip chip-info" style="display: inline-flex; padding: 12px 18px; font-size: 14px; white-space: normal; text-align: left; max-width: 440px;">
-      We will automatically check you in and issue your boarding pass exactly 24 hours before departure. Relax!
-    </div>
-
-    <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border-color);">
-      <p class="caption-text" style="margin-bottom: 12px;">(Demo Action: Simulate time passing to T-24 hours)</p>
-      <button class="btn-secondary" id="pj-sim-btn" style="width: auto; padding: 0 22px;" onclick="pjSimulateCheckIn()">
-        Fast Forward 24h →
-      </button>
-      <div id="pj-loading" style="display: none; margin-top: 16px; color: var(--color-gold);">
-        <p class="supporting-text">Processing biometric auto check-in…</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- VIEW 4: DIGITAL BOARDING PASS -->
-  <section id="pj-view-boarding-pass" style="display: none;">
-    <div style="text-align: center; margin-bottom: 24px;">
-      <span class="chip chip-completed" style="margin-bottom: 12px;">Auto Check-in Complete</span>
-      <h2 class="section-title">Your Digital Boarding Pass is Ready</h2>
-    </div>
-
-    <!-- Boarding Pass Card -->
-    <div class="card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
-      <div style="background: var(--color-gold); color: #FFFFFF; padding: 18px 24px; display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 800; font-size: 18px; letter-spacing: 0.05em;">DXB</span>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-        <span style="font-weight: 800; font-size: 18px; letter-spacing: 0.05em;">LHR</span>
-      </div>
-
-      <div style="padding: 24px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>
-            <span class="caption-text">Passenger</span>
-            <p class="body-text" style="font-weight: 700; font-size: 17px;">Hossein</p>
-          </div>
-          <div style="text-align: right;">
-            <span class="caption-text">Flight</span>
-            <p class="body-text" style="font-weight: 700; font-size: 17px;">EK 001</p>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; padding-bottom: 20px; margin-bottom: 20px; border-bottom: 2px dashed var(--border-color);">
-          <div>
-            <span class="caption-text">Gate</span>
-            <p style="font-weight: 800; font-size: 28px; color: var(--color-primary);">A12</p>
-          </div>
-          <div style="text-align: center;">
-            <span class="caption-text">Boarding Time</span>
-            <p style="font-weight: 800; font-size: 24px;">07:45</p>
-          </div>
-          <div style="text-align: right;">
-            <span class="caption-text">Seat</span>
-            <p style="font-weight: 800; font-size: 28px; color: var(--color-info);">7A</p>
-            <span class="caption-text">Window</span>
-          </div>
-        </div>
-
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=DXB-ONE-ID-HOSSEIN-EK001-7A" alt="Boarding pass QR code" width="140" height="140">
-          <span class="caption-text">Scan at Smart Gate</span>
-        </div>
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-warning);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-warning);">Check-in Pending</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800; color: var(--color-warning);" id="pj-kpi-pending">0</span>
+        <span class="chip chip-warning">Awaiting T-24h</span>
       </div>
     </div>
 
-    <div style="max-width: 420px; margin: 20px auto 0;">
-      <button class="btn-secondary" onclick="alert('Digital boarding pass saved to Wallet!')">
-        Add to Wallet
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-gold);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Total Revenue</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 32px; font-weight: 800;" id="pj-kpi-revenue">$0</span>
+        <span class="chip chip-info">Booked Fares</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card" style="margin-bottom: 16px; padding: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+      <h3 class="card-title" style="font-size: 16px;">Filters</h3>
+      <button class="btn-secondary" style="height: 32px; width: auto; padding: 0 12px; font-size: 12px;" onclick="pjResetFilters()">
+        Reset Filters
       </button>
     </div>
-  </section>
+
+    <div class="grid-3col" style="gap: 10px; margin-bottom: 0;">
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Search Passenger / Flight / PNR</label>
+        <input type="text" id="pj-filter-search" class="input-field" style="height: 38px; font-size: 13px;" placeholder="e.g. EK 001 or EK-98214" oninput="pjRender()">
+      </div>
+
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Check-in Status</label>
+        <select id="pj-filter-status" class="input-field" style="height: 38px; font-size: 13px;" onchange="pjRender()">
+          <option value="All" selected>All Statuses</option>
+          <option value="Checked-In">Checked-In</option>
+          <option value="Booked">Check-in Pending</option>
+        </select>
+      </div>
+
+      <div class="input-group" style="margin-bottom: 0;">
+        <label class="input-label" style="font-size: 12px;">Cabin Class</label>
+        <select id="pj-filter-class" class="input-field" style="height: 38px; font-size: 13px;" onchange="pjRender()">
+          <option value="All" selected>All Classes</option>
+          <option value="Economy">Economy</option>
+          <option value="Premium Economy">Premium Economy</option>
+          <option value="Business">Business</option>
+          <option value="First">First</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bookings Table -->
+  <div class="card" style="padding: 0; overflow: hidden;">
+    <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 class="section-title" style="font-size: 18px;">Passenger Booking & Check-In Records</h2>
+        <span class="supporting-text">Submitted live from the public Passenger Portal</span>
+      </div>
+      <span class="caption-text" id="pj-count-badge">0 Records</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
+            <th style="padding: 12px 16px; text-align: left;">PNR</th>
+            <th style="padding: 12px 16px; text-align: left;">Passenger</th>
+            <th style="padding: 12px 16px; text-align: left;">Flight</th>
+            <th style="padding: 12px 16px; text-align: left;">Route</th>
+            <th style="padding: 12px 16px; text-align: left;">Class</th>
+            <th style="padding: 12px 16px; text-align: left;">Seat</th>
+            <th style="padding: 12px 16px; text-align: left;">Gate</th>
+            <th style="padding: 12px 16px; text-align: left;">Boarding</th>
+            <th style="padding: 12px 16px; text-align: left;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="pj-table-body">
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
 
 </div>
 
 <script>
   (function () {
-    function pjSwitchView(viewId) {
-      ['pj-view-home', 'pj-view-booking', 'pj-view-success', 'pj-view-boarding-pass'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+    const PJ_STORE_KEY = 'DXB_PASSENGER_BOOKINGS';
+
+    function pjLoad() {
+      try {
+        return JSON.parse(localStorage.getItem(PJ_STORE_KEY)) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function pjIsCheckedIn(b) {
+      return b.status.indexOf('Checked-In') === 0;
+    }
+
+    function pjRender() {
+      const all = pjLoad();
+
+      const search = document.getElementById('pj-filter-search').value.trim().toLowerCase();
+      const status = document.getElementById('pj-filter-status').value;
+      const cabin = document.getElementById('pj-filter-class').value;
+
+      const rows = all.filter(b => {
+        const matchesSearch = !search ||
+          b.name.toLowerCase().includes(search) ||
+          b.flight.toLowerCase().includes(search) ||
+          b.ref.toLowerCase().includes(search) ||
+          b.route.toLowerCase().includes(search);
+        const matchesStatus = status === 'All' ||
+          (status === 'Checked-In' ? pjIsCheckedIn(b) : !pjIsCheckedIn(b));
+        const matchesClass = cabin === 'All' || b.cabinClass === cabin;
+        return matchesSearch && matchesStatus && matchesClass;
       });
-      const target = document.getElementById(viewId);
-      if (target) target.style.display = 'block';
-      window.scrollTo(0, 0);
+
+      pjRenderKPIs(all);
+      pjRenderTable(rows);
     }
 
-    function pjSimulateCheckIn() {
-      document.getElementById('pj-sim-btn').style.display = 'none';
-      document.getElementById('pj-loading').style.display = 'block';
+    function pjRenderKPIs(all) {
+      const checkedIn = all.filter(pjIsCheckedIn).length;
+      const revenue = all.reduce((sum, b) => sum + (b.fare || 0), 0);
+      const rate = all.length ? Math.round((checkedIn / all.length) * 100) : 0;
 
-      setTimeout(() => {
-        pjSwitchView('pj-view-boarding-pass');
-      }, 2000);
+      document.getElementById('pj-kpi-total').textContent = all.length;
+      document.getElementById('pj-kpi-checkedin').textContent = checkedIn;
+      document.getElementById('pj-kpi-pending').textContent = all.length - checkedIn;
+      document.getElementById('pj-kpi-rate').textContent = rate + '%';
+      document.getElementById('pj-kpi-revenue').textContent = '$' + revenue.toLocaleString('en-US');
     }
 
-    window.pjSwitchView = pjSwitchView;
-    window.pjSimulateCheckIn = pjSimulateCheckIn;
+    function pjRenderTable(rows) {
+      const body = document.getElementById('pj-table-body');
+      document.getElementById('pj-count-badge').textContent =
+        `${rows.length} Record${rows.length === 1 ? '' : 's'}`;
+
+      if (rows.length === 0) {
+        body.innerHTML = `
+          <tr>
+            <td colspan="9" style="padding: 32px; text-align: center;">
+              <p class="supporting-text" style="margin-bottom: 12px;">
+                No passenger bookings yet. Records appear here as soon as a passenger books a flight
+                or completes online check-in in the public Passenger Portal.
+              </p>
+              <button class="btn-secondary" style="width: auto; padding: 0 18px;" onclick="pjOpenPortal()">
+                Open Passenger Portal →
+              </button>
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      body.innerHTML = rows.map(b => {
+        const checkedIn = pjIsCheckedIn(b);
+        return `
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 12px 16px; font-weight: 600; color: var(--color-gold);">${b.ref}</td>
+            <td style="padding: 12px 16px; font-weight: 600;">${b.name}</td>
+            <td style="padding: 12px 16px;">${b.flight}</td>
+            <td style="padding: 12px 16px;">${b.route}</td>
+            <td style="padding: 12px 16px;">${b.cabinClass}</td>
+            <td style="padding: 12px 16px;">${b.seat}${b.seat === '—' ? '' : ' <span class="caption-text">(' + b.seatPreference + ')</span>'}</td>
+            <td style="padding: 12px 16px;">${b.gate}</td>
+            <td style="padding: 12px 16px;">${b.boarding}</td>
+            <td style="padding: 12px 16px;">
+              <span class="chip ${checkedIn ? 'chip-completed' : 'chip-warning'}">
+                ${checkedIn ? 'Checked-In' : 'Check-in Pending'}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function pjResetFilters() {
+      document.getElementById('pj-filter-search').value = '';
+      document.getElementById('pj-filter-status').value = 'All';
+      document.getElementById('pj-filter-class').value = 'All';
+      pjRender();
+    }
+
+    function pjRefresh() {
+      pjRender();
+    }
+
+    function pjOpenPortal() {
+      switchRoute('portal');
+    }
+
+    window.pjRender = pjRender;
+    window.pjResetFilters = pjResetFilters;
+    window.pjRefresh = pjRefresh;
+    window.pjOpenPortal = pjOpenPortal;
+
+    pjRender();
   })();
 </script>
