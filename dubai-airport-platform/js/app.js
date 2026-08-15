@@ -582,7 +582,19 @@ async function loadAdminModule(moduleId) {
       const htmlText = await response.text()
       const cleaned = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim()
       if (cleaned.length > 40) {
+        if (window.TowerHub && window.TowerHub.destroyTimers) window.TowerHub.destroyTimers()
         host.innerHTML = htmlText
+        // Re-run inline scripts only (tower-hub.js is loaded globally from index.html)
+        host.querySelectorAll('script').forEach((oldScript) => {
+          if (oldScript.src) {
+            oldScript.remove()
+            return
+          }
+          const newScript = document.createElement('script')
+          newScript.textContent = oldScript.textContent
+          oldScript.parentNode.replaceChild(newScript, oldScript)
+        })
+        if (moduleId === 'tower-control' && window.TowerHub) window.TowerHub.init()
         return
       }
     }

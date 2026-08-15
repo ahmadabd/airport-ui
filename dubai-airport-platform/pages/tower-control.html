@@ -1,3 +1,144 @@
-<!-- Local Tower Control Module.
-     Responsible for monitoring aircraft movement, taxiing routes, runway status,
-     landing and takeoff queues, pushback approvals, and air traffic control clearance operations. -->
+<!-- Local Tower Control — Emirates-styled Smart Hub -->
+<link rel="stylesheet" href="css/tower-hub.css">
+
+<div class="tower-hub" id="tower-hub-root">
+  <header class="th-topbar">
+    <div class="th-brand">
+      <div class="th-brand-mark" aria-hidden="true"></div>
+      <div>
+        <h1>DXB Tower Automation</h1>
+        <span>Smart Hub · Local Tower Control</span>
+      </div>
+    </div>
+
+    <div class="th-rwy-chips">
+      <button class="th-rwy-chip active" data-rwy="12L" type="button">
+        <span class="th-rwy-id">12L / 30R</span>
+        <span class="th-rwy-state ok" id="th-state-12l">ACTIVE</span>
+      </button>
+      <button class="th-rwy-chip" data-rwy="12R" type="button">
+        <span class="th-rwy-id">12R / 30L</span>
+        <span class="th-rwy-state ok">ACTIVE</span>
+      </button>
+    </div>
+
+    <div class="th-env">
+      <div class="th-env-item">
+        <span class="th-env-label">RVR 12L</span>
+        <span class="th-env-value">1,800 m</span>
+      </div>
+      <div class="th-env-item">
+        <span class="th-env-label">Wind</span>
+        <span class="th-env-value">120° / 12 kt</span>
+      </div>
+      <div class="th-env-item warn">
+        <span class="th-env-label">VIS</span>
+        <span class="th-env-value">Fog · LVO</span>
+      </div>
+      <div class="th-clock" id="th-clock">--:--:--Z</div>
+    </div>
+  </header>
+
+  <div class="th-alert" id="th-alert-banner" hidden>
+    <div class="th-alert-pulse"></div>
+    <strong>RUNWAY INCURSION RISK</strong>
+    <span>Vehicle on 12L hold-short — conflict with UAE123 landing</span>
+    <div class="th-alert-actions">
+      <button class="th-btn th-btn-danger" id="th-btn-go-around" type="button">Recommend Go-Around</button>
+      <button class="th-btn th-btn-ghost" id="th-btn-dismiss-alert" type="button">Acknowledge</button>
+    </div>
+  </div>
+
+  <div class="th-workspace">
+    <section class="th-panel">
+      <div class="th-panel-head">
+        <h2>Surface Awareness</h2>
+        <div class="th-panel-meta"><span class="th-dot live"></span> A-SMGCS · ADS-B · MLAT</div>
+      </div>
+      <div class="th-surface" id="th-surface">
+        <div class="th-surface-bg"></div>
+        <div class="th-taxiway th-tw-a"></div>
+        <div class="th-taxiway th-tw-b"></div>
+        <div class="th-runway th-rwy-12l">
+          <div class="th-rwy-paint"></div>
+          <span class="th-rwy-label left">12L</span>
+          <span class="th-rwy-label right">30R</span>
+        </div>
+        <div class="th-runway th-rwy-12r">
+          <div class="th-rwy-paint"></div>
+          <span class="th-rwy-label left">12R</span>
+          <span class="th-rwy-label right">30L</span>
+        </div>
+        <div class="th-aircraft-layer" id="th-aircraft-layer"></div>
+        <div class="th-conflict-zone" id="th-conflict-zone" hidden></div>
+        <div class="th-legend">
+          <span><i class="th-lg arr"></i> Arrival</span>
+          <span><i class="th-lg dep"></i> Departure</span>
+          <span><i class="th-lg gnd"></i> Ground</span>
+          <span><i class="th-lg alert"></i> Conflict</span>
+        </div>
+      </div>
+      <div class="th-occupancy">
+        <div class="th-occ-card">
+          <span class="th-occ-rwy">RWY 12L</span>
+          <span class="th-occ-status clear" id="th-occ-12l">CLEAR</span>
+          <span class="th-occ-meta" id="th-occ-12l-meta">No occupancy</span>
+        </div>
+        <div class="th-occ-card">
+          <span class="th-occ-rwy">RWY 12R</span>
+          <span class="th-occ-status occupied" id="th-occ-12r">OCCUPIED</span>
+          <span class="th-occ-meta">EK205 · rollout</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="th-panel">
+      <div class="th-panel-head">
+        <h2>Synthetic Strips</h2>
+        <div class="th-tabs">
+          <button class="th-tab active" data-tab="arr" type="button">Arrivals</button>
+          <button class="th-tab" data-tab="dep" type="button">Departures</button>
+        </div>
+      </div>
+      <div class="th-strip-list" id="th-strip-list"></div>
+    </section>
+
+    <aside class="th-panel">
+      <div class="th-panel-head">
+        <h2>Decision Support</h2>
+        <span class="th-ai-badge">Human-in-the-Loop</span>
+      </div>
+      <div class="th-ai-queue" id="th-ai-queue"></div>
+      <div class="th-quick">
+        <h3>Digital Clearances</h3>
+        <div class="th-qa-grid">
+          <button class="th-qa-btn" type="button" data-clearance="line-up">Line Up & Wait</button>
+          <button class="th-qa-btn" type="button" data-clearance="takeoff">Cleared Takeoff</button>
+          <button class="th-qa-btn" type="button" data-clearance="land">Cleared to Land</button>
+          <button class="th-qa-btn" type="button" data-clearance="hold">Hold Short</button>
+        </div>
+      </div>
+      <div class="th-systems">
+        <h3>Linked Systems</h3>
+        <ul>
+          <li><span class="th-dot live"></span> A-SMGCS</li>
+          <li><span class="th-dot live"></span> ADS-B / MLAT</li>
+          <li><span class="th-dot live"></span> AODB</li>
+          <li><span class="th-dot warn"></span> RVR · degraded VIS</li>
+          <li><span class="th-dot muted"></span> Approach / Ground · read-only</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="th-footer">
+    <span>MVP · Suggestive only — final authority with Local Tower Controller</span>
+    <span class="th-toast" id="th-toast" hidden></span>
+    <span>Press <strong>A</strong> approve · <strong>C</strong> conflict demo</span>
+  </footer>
+</div>
+
+<script src="js/tower-hub.js"></script>
+<script>
+  if (window.TowerHub) window.TowerHub.init()
+</script>
