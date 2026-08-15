@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
    ========================================================================== */
 const DEFAULT_USERS = [
   { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '4 Aug 2026' },
-  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' }
+  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' },
+  { name: 'Sara Rahimi', email: 'crew@dxb.gov.ae', password: 'Crew123!', role: 'crew', date: '4 Aug 2026' }
 ];
 
 let USERS_DB = [];
@@ -26,6 +27,12 @@ function initUserDatabase() {
   if (stored) {
     try {
       USERS_DB = JSON.parse(stored);
+      DEFAULT_USERS.forEach(defaultUser => {
+  if (!USERS_DB.some(user => user.email === defaultUser.email)) {
+    USERS_DB.push(defaultUser);
+  }
+});
+localStorage.setItem('EMIRATES_DXB_USERS', JSON.stringify(USERS_DB));
     } catch (e) {
       USERS_DB = [...DEFAULT_USERS];
       saveUserDatabase();
@@ -408,13 +415,36 @@ function handlePassengerSignIn() {
   const password = document.getElementById('signin-password').value.trim();
 
   const user = USERS_DB.find(u => u.email === email && u.password === password);
-  if (user) {
-    currentUser = user;
-    alert(`Welcome back, ${user.name}! Signed in as Passenger (Role: ${user.role}).`);
-    switchRoute('landing');
-  } else {
+
+  if (!user) {
     alert('Invalid credentials. Demo Passenger Login: passenger@emirates.com / 123');
+    return;
   }
+
+  currentUser = user;
+
+  if (user.role === 'crew') {
+    let crewJourney = {};
+
+    try {
+      crewJourney = JSON.parse(localStorage.getItem('crewflow_journey') || '{}');
+    } catch (e) {
+      crewJourney = {};
+    }
+
+    crewJourney.user = {
+      name: 'Sara Rahimi',
+      role: 'Cabin Crew',
+      employeeId: 'EK-CC-2847'
+    };
+
+    localStorage.setItem('crewflow_journey', JSON.stringify(crewJourney));
+    window.location.href = './crew-app/#/crew';
+    return;
+  }
+
+  alert(`Welcome back, ${user.name}! Signed in as Passenger (Role: ${user.role}).`);
+  switchRoute('landing');
 }
 
 function renderSignUpView() {
