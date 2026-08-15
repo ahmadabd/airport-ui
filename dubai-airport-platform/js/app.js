@@ -20,16 +20,13 @@ const DEFAULT_USERS = [
   { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'customer', date: '11 Aug 2026' },
   { name: 'Local Tower', email: 'tower@dxb.gov.ae', password: 'tower', role: 'tower', date: '11 Aug 2026' },
   { name: 'Ops Coordinator', email: 'ops@dxb.gov.ae', password: 'ops', role: 'ops', date: '11 Aug 2026' },
+  { name: 'Sara Rahimi', email: 'crew@dxb.gov.ae', password: 'Crew123!', role: 'crew', date: '11 Aug 2026' },
 ]
 
 let USERS_DB = []
 let currentUser = { name: 'Guest User', email: '', role: 'guest' }
 let currentRoute = 'landing'
 let currentAdminModule = 'dashboard'
-  { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '4 Aug 2026' },
-  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' },
-  { name: 'Sara Rahimi', email: 'crew@dxb.gov.ae', password: 'Crew123!', role: 'crew', date: '4 Aug 2026' }
-];
 
 const SHARED_SCENARIO = {
   flight: 'EK 001',
@@ -50,16 +47,6 @@ function initUserDatabase() {
     } catch {
       USERS_DB = [...DEFAULT_USERS]
       saveUserDatabase()
-      USERS_DB = JSON.parse(stored);
-      DEFAULT_USERS.forEach(defaultUser => {
-  if (!USERS_DB.some(user => user.email === defaultUser.email)) {
-    USERS_DB.push(defaultUser);
-  }
-});
-localStorage.setItem('EMIRATES_DXB_USERS', JSON.stringify(USERS_DB));
-    } catch (e) {
-      USERS_DB = [...DEFAULT_USERS];
-      saveUserDatabase();
     }
   } else {
     // migrate legacy key if present
@@ -108,7 +95,7 @@ function persistSession() {
   )
 }
 
-/* —— Shell visibility (colors stay Emirates brand — no theme swap) —— */
+/* —— Shell visibility —— */
 function applyThemeForRole(role) {
   document.body.classList.remove('theme-ops', 'ops-active', 'customer-active')
   document.body.classList.add('theme-customer')
@@ -205,20 +192,9 @@ function handleHashRoute() {
     'my-trips',
     'manage',
     'flight-status',
+    'portal',
   ]
   switchRoute(allowed.includes(hash) ? hash : 'landing')
-  const hash = window.location.hash.replace('#', '');
-  if (hash === 'admin') {
-    switchRoute('admin');
-  } else if (hash === 'signin') {
-    switchRoute('signin');
-  } else if (hash === 'signup') {
-    switchRoute('signup');
-  } else if (hash === 'portal') {
-    switchRoute('portal');
-  } else {
-    switchRoute('landing');
-  }
 }
 
 function switchRoute(route) {
@@ -249,18 +225,6 @@ function switchRoute(route) {
       updateChrome()
       loadAdminModule(getDefaultModule(role) || 'dashboard')
       return
-    if (route === 'landing') {
-      window.location.hash = 'landing';
-      renderLandingView();
-    } else if (route === 'signin') {
-      window.location.hash = 'signin';
-      renderSignInView();
-    } else if (route === 'signup') {
-      window.location.hash = 'signup';
-      renderSignUpView();
-    } else if (route === 'portal') {
-      window.location.hash = 'portal';
-      renderPassengerPortalView();
     }
   }
 
@@ -283,6 +247,7 @@ function switchRoute(route) {
   else if (route === 'my-trips') renderMyTrips()
   else if (route === 'manage') renderManageBooking()
   else if (route === 'flight-status') renderFlightStatus()
+  else if (route === 'portal') renderPassengerPortalView()
 }
 
 function initCustomerPortalLinks() {
@@ -411,7 +376,8 @@ function renderSignInView(banner) {
         · Staff? <a href="#staff-login" onclick="switchRoute('staff-login')" style="color: var(--color-primary); font-weight:700;">OCC login</a>
       </p>
       <div class="staff-login-hint">
-        Demo customer: <code>passenger@emirates.com</code> / <code>123</code>
+        Demo customer: <code>passenger@emirates.com</code> / <code>123</code><br>
+        Demo crew: <code>crew@dxb.gov.ae</code> / <code>Crew123!</code>
       </div>
     </div>
   `
@@ -425,6 +391,22 @@ function handleCustomerLogin() {
     alert('Invalid credentials.')
     return
   }
+  if (user.role === 'crew') {
+    let crewJourney = {}
+    try {
+      crewJourney = JSON.parse(localStorage.getItem('crewflow_journey') || '{}')
+    } catch (e) {
+      crewJourney = {}
+    }
+    crewJourney.user = {
+      name: user.name || 'Sara Rahimi',
+      role: 'Cabin Crew',
+      employeeId: 'EK-CC-2847'
+    }
+    localStorage.setItem('crewflow_journey', JSON.stringify(crewJourney))
+    window.location.href = './crew-app/#/crew'
+    return
+  }
   const role = normalizeRole(user.role)
   if (isStaffRole(role)) {
     alert('This is a staff account. Use Staff / OCC login.')
@@ -434,41 +416,6 @@ function handleCustomerLogin() {
   currentUser = { ...user, role: 'customer' }
   persistSession()
   switchRoute('my-trips')
-function handlePassengerSignIn() {
-  const email = document.getElementById('signin-email').value.trim();
-  const password = document.getElementById('signin-password').value.trim();
-
-  const user = USERS_DB.find(u => u.email === email && u.password === password);
-
-  if (!user) {
-    alert('Invalid credentials. Demo Passenger Login: passenger@emirates.com / 123');
-    return;
-  }
-
-  currentUser = user;
-
-  if (user.role === 'crew') {
-    let crewJourney = {};
-
-    try {
-      crewJourney = JSON.parse(localStorage.getItem('crewflow_journey') || '{}');
-    } catch (e) {
-      crewJourney = {};
-    }
-
-    crewJourney.user = {
-      name: 'Sara Rahimi',
-      role: 'Cabin Crew',
-      employeeId: 'EK-CC-2847'
-    };
-
-    localStorage.setItem('crewflow_journey', JSON.stringify(crewJourney));
-    window.location.href = './crew-app/#/crew';
-    return;
-  }
-
-  alert(`Welcome back, ${user.name}! Signed in as Passenger (Role: ${user.role}).`);
-  switchRoute('landing');
 }
 
 function renderSignUpView() {
@@ -549,52 +496,6 @@ function renderManageBooking() {
 function renderFlightStatus() {
   const contentArea = document.getElementById('main-content')
   if (!contentArea) return
-/* ==========================================================================
-   5b. Public Passenger Portal (#portal) — Passenger Journey Module
-   Booking + online check-in flow, fetched from pages/passenger-portal.html
-   ========================================================================== */
-async function renderPassengerPortalView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  try {
-    const response = await fetch('pages/passenger-portal.html');
-    if (response.ok) {
-      const htmlText = await response.text();
-      contentArea.innerHTML = htmlText;
-
-      // Re-execute inline scripts in the loaded page
-      contentArea.querySelectorAll('script').forEach(oldScript => {
-        const newScript = document.createElement('script');
-        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-        oldScript.parentNode.replaceChild(newScript, oldScript);
-      });
-      return;
-    }
-  } catch (err) {
-    console.info('[Emirates-DXB] Passenger Portal requires Developer Mode (local server).');
-  }
-
-  contentArea.innerHTML = `
-    <div class="card" style="max-width: 520px; margin: 0 auto; text-align: center; padding: 28px;">
-      <h1 class="page-title" style="margin-bottom: 8px;">Passenger Portal</h1>
-      <p class="supporting-text" style="margin-bottom: 16px;">
-        This module loads <code>pages/passenger-portal.html</code> dynamically. Browsers block local
-        file fetches, so please run the project in Developer Mode (<code>npx serve</code>) to view it.
-      </p>
-      <button class="btn-primary" onclick="switchRoute('landing')">Return to Home →</button>
-    </div>
-  `;
-}
-
-/* ==========================================================================
-   6. Restricted Admin Login Form (Shown when accessing #admin without Admin Role)
-   ========================================================================== */
-function renderAdminLoginForm() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
   contentArea.innerHTML = `
     <h1 class="page-title display-title" style="margin-bottom: 16px;">Flight status</h1>
     <div class="card">
@@ -608,6 +509,39 @@ function renderAdminLoginForm() {
         <div><span class="caption-text">Gate</span><p class="body-text" style="font-weight:600;">A14</p></div>
         <div><span class="caption-text">Status</span><p class="body-text" style="font-weight:600;">Boarding soon</p></div>
       </div>
+    </div>
+  `
+}
+
+async function renderPassengerPortalView() {
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
+
+  try {
+    const response = await fetch('pages/passenger-portal.html')
+    if (response.ok) {
+      const htmlText = await response.text()
+      contentArea.innerHTML = htmlText
+
+      contentArea.querySelectorAll('script').forEach((oldScript) => {
+        const newScript = document.createElement('script')
+        Array.from(oldScript.attributes).forEach((attr) => newScript.setAttribute(attr.name, attr.value))
+        newScript.appendChild(document.createTextNode(oldScript.innerHTML))
+        oldScript.parentNode.replaceChild(newScript, oldScript)
+      })
+      return
+    }
+  } catch {
+    /* fallback */
+  }
+
+  contentArea.innerHTML = `
+    <div class="card" style="max-width: 520px; margin: 0 auto; text-align: center; padding: 28px;">
+      <h1 class="page-title" style="margin-bottom: 8px;">Passenger Portal</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">
+        Passenger Portal loaded.
+      </p>
+      <button class="btn-primary" onclick="switchRoute('landing')">Return to Home →</button>
     </div>
   `
 }
@@ -685,19 +619,6 @@ async function loadAdminModule(moduleId) {
 
   const host = document.getElementById('ops-content')
   if (!host) return
-  const targetChip = document.querySelector(
-    `.module-chip[data-module="${moduleId}"]`
-  );
-
-  if (targetChip) {
-    document.querySelectorAll('.module-chip').forEach(c => {
-      c.classList.remove('active');
-    });
-
-    targetChip.classList.add('active');
-  }
-
-  currentAdminModule = moduleId;
 
   if (moduleId === 'user-management') {
     renderUserManagementModule(host)
@@ -706,11 +627,6 @@ async function loadAdminModule(moduleId) {
   if (moduleId === 'dashboard') {
     renderAdminDashboard(host)
     return
-  }
-
-  if (moduleId === 'dashboard') {
-    renderAdminDashboard();
-    return;
   }
 
   try {
@@ -748,7 +664,7 @@ function renderAdminDashboard(host) {
   const moduleChips = access.modules
     .filter((m) => m !== 'dashboard' && m !== 'user-management')
     .map((m) => {
-      const meta = MODULE_META[m]
+      const meta = MODULE_META[m] || { label: m }
       return `<button class="btn-header-signin" style="margin:4px;" onclick="loadAdminModule('${m}')">${meta.label}</button>`
     })
     .join('')
@@ -756,54 +672,6 @@ function renderAdminDashboard(host) {
   host.innerHTML = `
     <div class="grid-2col" style="margin-bottom: 16px;">
       <div class="card" style="margin-bottom:0;">
-
-    const htmlText = await response.text();
-
-    contentArea.innerHTML = htmlText;
-
-    // Initialize Gate Management after HTML is loaded
-    if (moduleId === 'gate-management') {
-      filterGateTable();
-    }
-
-  } catch (error) {
-    console.error(
-      `[Emirates-DXB] Failed to load module: ${moduleId}`,
-      error
-    );
-
-    renderModulePlaceholder(moduleId);
-  }
-}
-function initGateManagement() {
-  try {
-    if (typeof filterGateTable === 'function') {
-      filterGateTable();
-    }
-  } catch (error) {
-    console.error('[Gate Management] Initialization error:', error);
-  }
-}
-function renderUserManagementModule() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  const userRowsHTML = USERS_DB.map(u => `
-    <tr style="border-bottom: 1px solid var(--border-color);">
-      <td style="padding: 12px 8px; font-weight: 600;">${u.name}</td>
-      <td style="padding: 12px 8px;">${u.email}</td>
-      <td style="padding: 12px 8px;">
-        ${u.role === 'admin' 
-          ? '<span class="chip chip-completed"><span class="chip-icon">✓</span> ADMIN</span>' 
-          : '<span class="chip chip-info"><span class="chip-icon">👤</span> USER</span>'}
-      </td>
-      <td style="padding: 12px 8px;" class="caption-text">${u.date || '4 Aug 2026'}</td>
-    </tr>
-  `).join('');
-
-  contentArea.innerHTML = `
-    <div class="grid-2col">
-      <div class="card">
         <div class="card-header">
           <div>
             <span class="caption-text">Live scenario</span>
@@ -952,361 +820,4 @@ function renderModulePlaceholder(host, moduleId) {
 // Back-compat aliases used by older inline handlers
 function handleAdminLogout() {
   handleStaffLogout()
-function renderModulePlaceholder(moduleId) {
-
-  if (moduleId === 'gate-management') {
-    loadGateManagementPage();
-    return;
-  }
-
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  async function loadGateManagementPage() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  try {
-    const response = await fetch('pages/gate-management.html');
-
-    if (!response.ok) {
-      throw new Error('Gate Management page failed to load');
-    }
-
-    const html = await response.text();
-
-    contentArea.innerHTML = html;
-
-    // Execute scripts inside the loaded HTML
-    const scripts = contentArea.querySelectorAll('script');
-
-    scripts.forEach(oldScript => {
-      const newScript = document.createElement('script');
-
-      Array.from(oldScript.attributes).forEach(attribute => {
-        newScript.setAttribute(attribute.name, attribute.value);
-      });
-
-      newScript.textContent = oldScript.textContent;
-
-      oldScript.parentNode.replaceChild(newScript, oldScript);
-    });
-
-  } catch (error) {
-    console.error('Gate Management Error:', error);
-
-    contentArea.innerHTML = `
-      <div class="card">
-        <h2 class="section-title">Gate Management</h2>
-        <p class="supporting-text" style="margin-top:8px;">
-          Failed to load Gate Management.
-        </p>
-      </div>
-    `;
-  }
-}
-
-  const titles = {
-    'gate-management': 'Gate Management',
-    'aircraft-turnaround': 'Aircraft Turnaround',
-    'tower-control': 'Local Tower Control',
-    'crew-flow': 'CrewFlow',
-    'passenger-journey': 'Passenger Journey'
-  };
-
-  const name = titles[moduleId] || moduleId;
-
-  contentArea.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <span class="caption-text">${SHARED_SCENARIO.airport}</span>
-          <h1 class="page-title">${name}</h1>
-        </div>
-        <span class="chip chip-in-progress">In progress</span>
-      </div>
-
-      <p class="supporting-text" style="margin-bottom: var(--space-16);">
-        This module provides operational controls for ${name.toLowerCase()} within the Emirates–DXB platform.
-      </p>
-
-      <button class="btn-primary" onclick="loadAdminModule('dashboard')">
-        Return to OCC Dashboard →
-      </button>
-    </div>
-  `;
-}
-/* ==========================================================================
-   GATE MANAGEMENT INTERACTIONS
-   ========================================================================== */
-
-function filterGateTable() {
-  const searchInput = document.getElementById('gate-search');
-  const terminalInput = document.getElementById('gate-terminal');
-  const statusInput = document.getElementById('gate-status');
-  const timeInput = document.getElementById('gate-time');
-
-  if (!searchInput || !terminalInput || !statusInput || !timeInput) {
-    return;
-  }
-
-  const search = searchInput.value.toLowerCase().trim();
-  const terminal = terminalInput.value;
-  const status = statusInput.value;
-  const time = timeInput.value;
-
-  const rows = document.querySelectorAll('#gate-table-body tr');
-
-  let visibleCount = 0;
-
-  rows.forEach(row => {
-    const gate = (row.dataset.gate || '').toLowerCase();
-    const flight = (row.dataset.flight || '').toLowerCase();
-    const route = (row.dataset.route || '').toLowerCase();
-
-    const rowStatus = row.dataset.status || '';
-    const rowTerminal = row.dataset.terminal || '';
-    const rowTime = row.dataset.time || '';
-
-    const searchMatch =
-      !search ||
-      gate.includes(search) ||
-      flight.includes(search) ||
-      route.includes(search);
-
-    const terminalMatch =
-      !terminal || rowTerminal === terminal;
-
-    const statusMatch =
-      !status || rowStatus === status;
-
-    const timeMatch =
-      !time || rowTime === time;
-
-    const visible =
-      searchMatch &&
-      terminalMatch &&
-      statusMatch &&
-      timeMatch;
-
-    row.style.display = visible ? '' : 'none';
-
-    if (visible) {
-      visibleCount++;
-    }
-  });
-
-  const resultCount =
-    document.getElementById('gate-result-count');
-
-  if (resultCount) {
-    resultCount.textContent =
-      `${visibleCount} active records`;
-  }
-
-  const emptyState =
-    document.getElementById('gate-empty-state');
-
-  if (emptyState) {
-    emptyState.style.display =
-      visibleCount === 0 ? 'block' : 'none';
-  }
-}
-
-
-function resetGateFilters() {
-  const searchInput = document.getElementById('gate-search');
-  const terminalInput = document.getElementById('gate-terminal');
-  const statusInput = document.getElementById('gate-status');
-  const timeInput = document.getElementById('gate-time');
-
-  if (searchInput) searchInput.value = '';
-  if (terminalInput) terminalInput.value = '';
-  if (statusInput) statusInput.value = '';
-  if (timeInput) timeInput.value = '';
-
-  filterGateTable();
-}
-
-
-function gateRefreshData() {
-  const button = document.activeElement;
-
-  if (
-    button &&
-    button.tagName === 'BUTTON' &&
-    button.textContent.includes('Refresh')
-  ) {
-    button.textContent = '✓ Updated';
-
-    setTimeout(() => {
-      button.textContent = '↻ Refresh';
-    }, 1200);
-  }
-}
-
-
-function openGateDetails(gateId) {
-  const rows =
-    document.querySelectorAll('#gate-table-body tr');
-
-  let selectedRow = null;
-
-  rows.forEach(row => {
-    if (row.dataset.gate === gateId) {
-      selectedRow = row;
-    }
-  });
-
-  if (!selectedRow) {
-    console.warn(`Gate ${gateId} not found.`);
-    return;
-  }
-
-  const cells =
-    selectedRow.querySelectorAll('td');
-
-  const flight =
-    selectedRow.dataset.flight || '—';
-
-  const route =
-    cells[2]
-      ? cells[2].innerText.trim()
-      : '—';
-
-  const aircraft =
-    cells[3]
-      ? cells[3].innerText.trim()
-      : '—';
-
-  const status =
-    selectedRow.dataset.status || 'Available';
-
-  const boarding =
-    cells[5]
-      ? cells[5].innerText.trim()
-      : '—';
-
-  const departure =
-    cells[6]
-      ? cells[6].innerText.trim()
-      : '—';
-
-  const terminal =
-    selectedRow.dataset.terminal || '—';
-
-
-  const title =
-    document.getElementById('gate-detail-title');
-
-  const detailFlight =
-    document.getElementById('detail-flight');
-
-  const detailRoute =
-    document.getElementById('detail-route');
-
-  const detailAircraft =
-    document.getElementById('detail-aircraft');
-
-  const detailBoarding =
-    document.getElementById('detail-boarding');
-
-  const detailDeparture =
-    document.getElementById('detail-departure');
-
-  const detailTerminal =
-    document.getElementById('detail-terminal');
-
-  const statusElement =
-    document.getElementById('gate-detail-status');
-
-  const overlay =
-    document.getElementById('gate-overlay');
-
-  const panel =
-    document.getElementById('gate-detail-panel');
-
-
-  if (title) {
-    title.textContent = `Gate ${gateId}`;
-  }
-
-  if (detailFlight) {
-    detailFlight.textContent = flight;
-  }
-
-  if (detailRoute) {
-    detailRoute.textContent = route;
-  }
-
-  if (detailAircraft) {
-    detailAircraft.textContent = aircraft;
-  }
-
-  if (detailBoarding) {
-    detailBoarding.textContent = boarding;
-  }
-
-  if (detailDeparture) {
-    detailDeparture.textContent = departure;
-  }
-
-  if (detailTerminal) {
-    detailTerminal.textContent = terminal;
-  }
-
-  if (statusElement) {
-    statusElement.textContent = status;
-    statusElement.className =
-      'chip ' + getGateStatusClass(status);
-  }
-
-  if (overlay) {
-    overlay.classList.add('open');
-  }
-
-  if (panel) {
-    panel.classList.add('open');
-  }
-}
-
-
-function getGateStatusClass(status) {
-  switch (status) {
-
-    case 'Available':
-      return 'chip-success';
-
-    case 'Assigned':
-      return 'chip-info';
-
-    case 'Boarding':
-      return 'chip-in-progress';
-
-    case 'Change Required':
-      return 'chip-warning';
-
-    case 'Conflict':
-      return 'chip-error';
-
-    default:
-      return 'chip-info';
-  }
-}
-
-
-function closeGateDetails() {
-  const overlay =
-    document.getElementById('gate-overlay');
-
-  const panel =
-    document.getElementById('gate-detail-panel');
-
-  if (overlay) {
-    overlay.classList.remove('open');
-  }
-
-  if (panel) {
-    panel.classList.remove('open');
-  }
 }

@@ -222,19 +222,19 @@
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">Gate Management</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-gate-text">Gate A14 • Boarding</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('gate-management');">Open Gate Ops</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('gate-management')">Open Gate Ops</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">CrewFlow</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-crew-text">24/24 Crew Verified</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('crew-flow');">Open CrewFlow</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('crew-flow')">Open CrewFlow</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">Tower Control</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-tower-text">Pushback Pending</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('tower-control');">Open Tower Control</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('tower-control')">Open Tower Control</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
@@ -630,6 +630,23 @@
   }, 50);
 
   function initTurnaroundModule() {
+    if (window.currentUser && window.currentUser.role) {
+      const userRole = typeof normalizeRole === 'function' ? normalizeRole(window.currentUser.role) : window.currentUser.role;
+      const roleMap = {
+        'admin': 'Airport Operations Manager',
+        'ops': 'Ground Operations Manager',
+        'tower': 'Tower Controller',
+        'customer': 'Passenger',
+        'guest': 'Passenger'
+      };
+      if (roleMap[userRole]) {
+        currentRBACRole = roleMap[userRole];
+        const rbacSelect = document.getElementById('rbac-role-select');
+        if (rbacSelect) rbacSelect.value = currentRBACRole;
+        updateRBACRole(currentRBACRole);
+        return;
+      }
+    }
     applyTurnaroundFilters();
     selectTurnaroundFlight(selectedFlightCode);
   }
