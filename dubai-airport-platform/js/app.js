@@ -1,831 +1,758 @@
 /**
- * Emirates Official Website Engine & Router (emirates.com)
- * Signature Red Palette (#D71A21), Official Flight Search Hero, Auth, Admin OCC & Clean Header
- * Design Guide Version: 7 August 2026
+ * DXB Airport Platform — Customer + OCC engine
+ * Themes, RBAC, routing (elham-branch)
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initUserDatabase();
-  initModuleStrip();
-  initBottomNav();
-  initHashRouter();
-});
+  initUserDatabase()
+  restoreSession()
+  initCustomerPortalLinks()
+  initBottomNav()
+  initHashRouter()
+  setInterval(updateOpsClock, 1000)
+})
 
-/* ==========================================================================
-   1. LocalStorage User Database Persistence
-   ========================================================================== */
+const STORAGE_USERS = 'EMIRATES_DXB_USERS_V2'
+const STORAGE_SESSION = 'EMIRATES_DXB_SESSION_V2'
+
 const DEFAULT_USERS = [
-  { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '4 Aug 2026' },
-  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'user', date: '4 Aug 2026' }
-];
+  { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '11 Aug 2026' },
+  { name: 'Sara Al-Mansoor', email: 'passenger@emirates.com', password: '123', role: 'customer', date: '11 Aug 2026' },
+  { name: 'Local Tower', email: 'tower@dxb.gov.ae', password: 'tower', role: 'tower', date: '11 Aug 2026' },
+  { name: 'Ops Coordinator', email: 'ops@dxb.gov.ae', password: 'ops', role: 'ops', date: '11 Aug 2026' },
+]
 
-let USERS_DB = [];
-
-function initUserDatabase() {
-  const stored = localStorage.getItem('EMIRATES_DXB_USERS');
-  if (stored) {
-    try {
-      USERS_DB = JSON.parse(stored);
-    } catch (e) {
-      USERS_DB = [...DEFAULT_USERS];
-      saveUserDatabase();
-    }
-  } else {
-    USERS_DB = [...DEFAULT_USERS];
-    saveUserDatabase();
-  }
-}
-
-function saveUserDatabase() {
-  localStorage.setItem('EMIRATES_DXB_USERS', JSON.stringify(USERS_DB));
-}
-
-// Current Session User
-let currentUser = {
-  name: 'Guest User',
-  email: '',
-  role: 'guest'
-};
+let USERS_DB = []
+let currentUser = { name: 'Guest User', email: '', role: 'guest' }
+let currentRoute = 'landing'
+let currentAdminModule = 'dashboard'
 
 const SHARED_SCENARIO = {
   flight: 'EK 001',
   route: 'DXB → LHR',
   airport: 'Dubai International Airport — DXB',
   terminal: 'Terminal 3',
-  date: 'Tue, 4 Aug',
+  date: 'Tue, 11 Aug',
   boarding: '08:30',
-  aircraft: 'A380-800'
-};
+  aircraft: 'A380-800',
+}
 
-let currentRoute = 'landing';
-let currentAdminModule = 'dashboard';
+/* —— Persistence —— */
+function initUserDatabase() {
+  const stored = localStorage.getItem(STORAGE_USERS)
+  if (stored) {
+    try {
+      USERS_DB = JSON.parse(stored).map((u) => ({ ...u, role: normalizeRole(u.role) }))
+    } catch {
+      USERS_DB = [...DEFAULT_USERS]
+      saveUserDatabase()
+    }
+  } else {
+    // migrate legacy key if present
+    const legacy = localStorage.getItem('EMIRATES_DXB_USERS')
+    if (legacy) {
+      try {
+        USERS_DB = JSON.parse(legacy).map((u) => ({ ...u, role: normalizeRole(u.role) }))
+      } catch {
+        USERS_DB = [...DEFAULT_USERS]
+      }
+    } else {
+      USERS_DB = [...DEFAULT_USERS]
+    }
+    // ensure demo staff accounts exist
+    DEFAULT_USERS.forEach((d) => {
+      if (!USERS_DB.some((u) => u.email === d.email)) USERS_DB.push(d)
+    })
+    saveUserDatabase()
+  }
+}
 
-/* ==========================================================================
-   2. Hash Router (Listens to URL #admin, #signin, #signup, #landing)
-   ========================================================================== */
+function saveUserDatabase() {
+  localStorage.setItem(STORAGE_USERS, JSON.stringify(USERS_DB))
+}
+
+function restoreSession() {
+  const raw = localStorage.getItem(STORAGE_SESSION)
+  if (!raw) return
+  try {
+    const session = JSON.parse(raw)
+    const user = USERS_DB.find((u) => u.email === session.email)
+    if (user) currentUser = { ...user, role: normalizeRole(user.role) }
+  } catch {
+    /* ignore */
+  }
+}
+
+function persistSession() {
+  if (currentUser.role === 'guest') {
+    localStorage.removeItem(STORAGE_SESSION)
+    return
+  }
+  localStorage.setItem(
+    STORAGE_SESSION,
+    JSON.stringify({ email: currentUser.email, role: currentUser.role })
+  )
+}
+
+/* —— Shell visibility (colors stay Emirates brand — no theme swap) —— */
+function applyThemeForRole(role) {
+  document.body.classList.remove('theme-ops', 'ops-active', 'customer-active')
+  document.body.classList.add('theme-customer')
+}
+
+function setOpsShellVisible(visible) {
+  document.body.classList.toggle('ops-active', visible)
+  const shell = document.getElementById('ops-shell')
+  if (shell) shell.style.display = visible ? 'flex' : 'none'
+}
+
+function setCustomerPortalVisible(visible) {
+  document.body.classList.toggle('customer-active', visible)
+  const nameEl = document.getElementById('customer-portal-name')
+  if (nameEl) nameEl.textContent = currentUser.name
+}
+
+function updateChrome() {
+  const role = normalizeRole(currentUser.role)
+  applyThemeForRole(role)
+
+  const status = document.getElementById('user-status-display')
+  if (status) {
+    status.textContent =
+      role !== 'guest' ? `${currentUser.name} (${getAccess(role).label})` : 'Guest'
+  }
+
+  const isStaff = isStaffRole(role) && currentRoute === 'admin'
+  setOpsShellVisible(isStaff)
+  setCustomerPortalVisible(role === 'customer' && !isStaff)
+
+  const publicBits = [
+    document.getElementById('public-top-strip'),
+    document.getElementById('public-header'),
+    document.getElementById('public-bottom-nav'),
+    document.getElementById('main-content'),
+  ]
+  publicBits.forEach((el) => {
+    if (!el) return
+    if (isStaff) el.style.display = 'none'
+    else el.style.removeProperty('display')
+  })
+
+  if (isStaff) buildOpsNav()
+}
+
+function buildOpsNav() {
+  const nav = document.getElementById('ops-nav')
+  const badge = document.getElementById('ops-role-badge')
+  if (!nav) return
+
+  const role = normalizeRole(currentUser.role)
+  const access = getAccess(role)
+  if (badge) badge.textContent = `${access.label} · ${role.toUpperCase()}`
+
+  nav.innerHTML = access.modules
+    .map((id) => {
+      const meta = MODULE_META[id] || { label: id, icon: '•' }
+      const active = id === currentAdminModule ? 'active' : ''
+      return `<button type="button" class="ops-nav-btn ${active}" data-module="${id}">
+        <span class="ops-ico">${meta.icon}</span> ${meta.label}
+      </button>`
+    })
+    .join('')
+
+  nav.querySelectorAll('[data-module]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      loadAdminModule(btn.getAttribute('data-module'))
+    })
+  })
+}
+
+function updateOpsClock() {
+  const el = document.getElementById('ops-clock')
+  if (!el || !document.body.classList.contains('ops-active')) return
+  const now = new Date()
+  el.textContent = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}Z`
+}
+
+/* —— Router —— */
 function initHashRouter() {
-  window.addEventListener('hashchange', handleHashRoute);
-  handleHashRoute();
+  window.addEventListener('hashchange', handleHashRoute)
+  handleHashRoute()
 }
 
 function handleHashRoute() {
-  const hash = window.location.hash.replace('#', '');
-  if (hash === 'admin') {
-    switchRoute('admin');
-  } else if (hash === 'signin') {
-    switchRoute('signin');
-  } else if (hash === 'signup') {
-    switchRoute('signup');
-  } else {
-    switchRoute('landing');
-  }
+  const hash = window.location.hash.replace('#', '') || 'landing'
+  const allowed = [
+    'landing',
+    'signin',
+    'signup',
+    'admin',
+    'staff-login',
+    'my-trips',
+    'manage',
+    'flight-status',
+  ]
+  switchRoute(allowed.includes(hash) ? hash : 'landing')
 }
 
 function switchRoute(route) {
-  currentRoute = route;
+  const role = normalizeRole(currentUser.role)
 
-  const topStrip = document.querySelector('.emirates-top-strip');
-  const mainNav = document.getElementById('public-main-nav');
-  const userActions = document.getElementById('user-actions-container');
-  const adminNav = document.getElementById('admin-module-strip');
-  const userStatusDisplay = document.getElementById('user-status-display');
-
-  // Update Status Display
-  if (userStatusDisplay) {
-    userStatusDisplay.textContent = currentUser.role !== 'guest'
-      ? `${currentUser.name} (${currentUser.role.toUpperCase()})`
-      : 'Guest';
+  // Guards
+  if (route === 'admin' && !isStaffRole(role)) {
+    currentRoute = 'staff-login'
+    window.location.hash = 'staff-login'
+    updateChrome()
+    renderStaffLogin()
+    return
   }
+
+  if (['my-trips', 'manage', 'flight-status'].includes(route) && role === 'guest') {
+    currentRoute = 'signin'
+    window.location.hash = 'signin'
+    updateChrome()
+    renderSignInView(`Sign in to access ${route.replace('-', ' ')}.`)
+    return
+  }
+
+  if (isStaffRole(role) && ['landing', 'signin', 'signup', 'my-trips', 'manage', 'flight-status'].includes(route)) {
+    // staff stay in OCC unless logging out
+    if (route !== 'staff-login') {
+      currentRoute = 'admin'
+      window.location.hash = 'admin'
+      updateChrome()
+      loadAdminModule(getDefaultModule(role) || 'dashboard')
+      return
+    }
+  }
+
+  currentRoute = route
+  window.location.hash = route
+  updateChrome()
 
   if (route === 'admin') {
-    window.location.hash = 'admin';
-    
-    // Hide top landing page headers/navs in /admin mode — ONLY keep logo!
-    if (topStrip) topStrip.style.display = 'none';
-    if (mainNav) mainNav.style.display = 'none';
-    if (userActions) userActions.style.display = 'none';
-
-    // Check Authorization: Only ADMIN role can access /admin
-    if (currentUser.role !== 'admin') {
-      if (adminNav) adminNav.style.display = 'none';
-      renderAdminLoginForm();
-    } else {
-      if (adminNav) adminNav.style.display = 'flex';
-      renderAdminDashboard();
-    }
-  } else {
-    // Restore public landing top bars when on public routes
-    if (topStrip) topStrip.style.display = 'flex';
-    if (mainNav) mainNav.style.display = 'flex';
-    if (userActions) userActions.style.display = 'flex';
-    if (adminNav) adminNav.style.display = 'none';
-
-    if (mainNav) {
-      const items = mainNav.querySelectorAll('.emirates-nav-item');
-      items.forEach(i => i.classList.remove('active'));
-      if (route === 'landing' && items[0]) items[0].classList.add('active');
-      if (route === 'signin' && items[1]) items[1].classList.add('active');
-    }
-
-    if (route === 'landing') {
-      window.location.hash = 'landing';
-      renderLandingView();
-    } else if (route === 'signin') {
-      window.location.hash = 'signin';
-      renderSignInView();
-    } else if (route === 'signup') {
-      window.location.hash = 'signup';
-      renderSignUpView();
-    }
+    const mod = canAccessModule(role, currentAdminModule)
+      ? currentAdminModule
+      : getDefaultModule(role)
+    loadAdminModule(mod || 'dashboard')
+    return
   }
+
+  if (route === 'landing') renderLandingView()
+  else if (route === 'signin') renderSignInView()
+  else if (route === 'signup') renderSignUpView()
+  else if (route === 'staff-login') renderStaffLogin()
+  else if (route === 'my-trips') renderMyTrips()
+  else if (route === 'manage') renderManageBooking()
+  else if (route === 'flight-status') renderFlightStatus()
 }
 
-/* ==========================================================================
-   3. Admin Logout Handler
-   ========================================================================== */
-function handleAdminLogout() {
-  currentUser = {
-    name: 'Guest User',
-    email: '',
-    role: 'guest'
-  };
-  alert('Admin session ended. You have been logged out.');
-  switchRoute('admin');
+function initCustomerPortalLinks() {
+  document.querySelectorAll('[data-customer-route]').forEach((btn) => {
+    btn.addEventListener('click', () => switchRoute(btn.getAttribute('data-customer-route')))
+  })
+  const logout = document.getElementById('btn-customer-logout')
+  if (logout) logout.addEventListener('click', handleCustomerLogout)
 }
 
-/* ==========================================================================
-   4. Official Emirates.com Landing Page & Flight Search Hero
-   ========================================================================== */
+function initBottomNav() {
+  document.querySelectorAll('.bottom-nav-item').forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault()
+      const target = item.getAttribute('data-nav')
+      switchRoute(target === 'home' ? 'landing' : 'signin')
+    })
+  })
+}
+
+/* —— Auth —— */
+function handleCustomerLogout() {
+  currentUser = { name: 'Guest User', email: '', role: 'guest' }
+  persistSession()
+  switchRoute('landing')
+}
+
+function handleStaffLogout() {
+  currentUser = { name: 'Guest User', email: '', role: 'guest' }
+  persistSession()
+  applyThemeForRole('guest')
+  setOpsShellVisible(false)
+  switchRoute('staff-login')
+}
+
+/* —— Customer views —— */
 function renderLandingView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
 
   contentArea.innerHTML = `
-    <!-- Official Emirates Hero Flight Search Card -->
     <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 24px;">
-      
-      <div style="display: flex; background-color: #F8F9FA; border-bottom: 1px solid #E0E0E0; overflow-x: auto;">
-        <button class="search-tab-btn active" id="tab-search-flights" onclick="switchSearchTab('flights')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
-          Search flights
-        </button>
-        <button class="search-tab-btn" id="tab-manage-booking" onclick="switchSearchTab('manage')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          Manage booking / Check-in
-        </button>
-        <button class="search-tab-btn" id="tab-flight-status" onclick="switchSearchTab('status')">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          Flight status
-        </button>
+      <div style="display: flex; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); overflow-x: auto;">
+        <button class="search-tab-btn active" type="button">Search flights</button>
+        <button class="search-tab-btn" type="button" onclick="switchRoute('manage')">Manage booking / Check-in</button>
+        <button class="search-tab-btn" type="button" onclick="switchRoute('flight-status')">Flight status</button>
       </div>
-
-      <div class="search-form-body" id="search-tab-content">
-        <form id="booking-form" onsubmit="event.preventDefault(); handleBuyTicket();">
+      <div class="search-form-body">
+        <form onsubmit="event.preventDefault(); handleBuyTicket();">
           <div style="display: flex; gap: 24px; margin-bottom: 16px; font-size: 14px; font-weight: 600;">
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="radio" name="trip" value="return" checked style="accent-color: var(--color-primary);"> Return
-            </label>
-            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
-              <input type="radio" name="trip" value="oneway" style="accent-color: var(--color-primary);"> One way
-            </label>
+            <label style="display: flex; align-items: center; gap: 6px;"><input type="radio" name="trip" checked style="accent-color: var(--color-primary);"> Return</label>
+            <label style="display: flex; align-items: center; gap: 6px;"><input type="radio" name="trip" style="accent-color: var(--color-primary);"> One way</label>
           </div>
-
-          <div class="grid-2col" style="gap: 16px; margin-bottom: 0;">
+          <div class="grid-2col" style="gap: 16px;">
             <div class="input-group">
               <label class="input-label">Departure airport</label>
-              <select class="input-field" id="flight-from">
-                <option value="DXB" selected>Dubai (DXB) — Terminal 3 Hub</option>
-              </select>
+              <select class="input-field"><option selected>Dubai (DXB) — Terminal 3 Hub</option></select>
             </div>
-
             <div class="input-group">
-              <label class="input-label">Arrival airport (Destination)</label>
-              <select class="input-field" id="flight-to">
-                <option value="LHR">London Heathrow (LHR)</option>
-                <option value="CDG">Paris Charles de Gaulle (CDG)</option>
-                <option value="FRA">Frankfurt Airport (FRA)</option>
-                <option value="RUH">Riyadh King Khalid (RUH)</option>
-                <option value="JFK">New York (JFK)</option>
-                <option value="HND">Tokyo Haneda (HND)</option>
+              <label class="input-label">Arrival airport</label>
+              <select class="input-field">
+                <option>London Heathrow (LHR)</option>
+                <option>Paris Charles de Gaulle (CDG)</option>
+                <option>Frankfurt Airport (FRA)</option>
+                <option>New York (JFK)</option>
               </select>
             </div>
           </div>
-
-          <div class="grid-2col" style="gap: 16px; margin-bottom: 0;">
+          <div class="grid-2col" style="gap: 16px; margin-top: 12px;">
             <div class="input-group">
-              <label class="input-label">Departure & Return dates</label>
-              <input type="text" class="input-field" id="flight-date" value="Tue, 4 Aug — Tue, 11 Aug">
+              <label class="input-label">Dates</label>
+              <input class="input-field" value="Tue, 11 Aug — Tue, 18 Aug" readonly>
             </div>
-
             <div class="input-group">
               <label class="input-label">Passengers & Class</label>
-              <select class="input-field" id="flight-class">
-                <option value="Economy">1 Passenger, Economy Class</option>
-                <option value="Premium Economy">1 Passenger, Premium Economy</option>
-                <option value="Business">1 Passenger, Business Class</option>
-                <option value="First">1 Passenger, First Class</option>
+              <select class="input-field">
+                <option>1 Passenger, Economy Class</option>
+                <option>1 Passenger, Business Class</option>
+                <option>1 Passenger, First Class</option>
               </select>
             </div>
           </div>
-
-          <button type="submit" class="btn-primary" style="height: 52px; font-size: 17px; margin-top: 8px;">
-            Search flights →
-          </button>
+          <button type="submit" class="btn-primary" style="margin-top: 16px; width: 100%;">Search flights →</button>
         </form>
       </div>
-
     </div>
 
-    <div id="booking-result-container"></div>
-
-    <div class="grid-3col">
-      <div class="card">
-        <span class="caption-text" style="color: var(--color-gold); font-weight: 700;">A380 EXPERIENCE</span>
-        <h3 class="card-title" style="margin-top: 4px; margin-bottom: 8px;">Fly the Emirates A380</h3>
-        <p class="supporting-text">Enjoy Private Suites, Onboard Lounge, and Shower Spas in First Class.</p>
-      </div>
-
-      <div class="card">
-        <span class="caption-text" style="color: var(--color-gold); font-weight: 700;">ICE ENTERTAINMENT</span>
-        <h3 class="card-title" style="margin-top: 4px; margin-bottom: 8px;">6,500 Channels of Movies</h3>
-        <p class="supporting-text">Award-winning inflight entertainment system ice across all cabin classes.</p>
-      </div>
-
-      <div class="card">
-        <span class="caption-text" style="color: var(--color-gold); font-weight: 700;">DUBAI HUB</span>
-        <h3 class="card-title" style="margin-top: 4px; margin-bottom: 8px;">DXB Terminal 3</h3>
-        <p class="supporting-text">World-class lounges, direct boarding concourses, and seamless connections.</p>
-      </div>
+    <div class="grid-2col" style="grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="card"><span class="caption-text" style="color: var(--color-gold);">A380 EXPERIENCE</span><h3 class="display-title card-title">Fly the Emirates A380</h3><p class="supporting-text">Private Suites, Onboard Lounge, and Shower Spas in First Class.</p></div>
+      <div class="card"><span class="caption-text" style="color: var(--color-gold);">ENTERTAINMENT</span><h3 class="display-title card-title">6,500 Channels</h3><p class="supporting-text">Award-winning ice entertainment across all cabin classes.</p></div>
+      <div class="card"><span class="caption-text" style="color: var(--color-gold);">DXB HUB</span><h3 class="display-title card-title">Terminal 3</h3><p class="supporting-text">World-class lounges and seamless connections.</p></div>
     </div>
-  `;
-}
-
-function switchSearchTab(tab) {
-  const btnFlights = document.getElementById('tab-search-flights');
-  const btnManage = document.getElementById('tab-manage-booking');
-  const btnStatus = document.getElementById('tab-flight-status');
-  const content = document.getElementById('search-tab-content');
-
-  [btnFlights, btnManage, btnStatus].forEach(b => b && b.classList.remove('active'));
-
-  if (tab === 'flights') {
-    if (btnFlights) btnFlights.classList.add('active');
-    renderLandingView();
-  } else if (tab === 'manage') {
-    if (btnManage) btnManage.classList.add('active');
-    content.innerHTML = `
-      <form onsubmit="event.preventDefault(); alert('Finding your booking for EK 001...');">
-        <div class="grid-2col" style="gap: 16px;">
-          <div class="input-group">
-            <label class="input-label">Booking reference (PNR)</label>
-            <input type="text" class="input-field" value="EK-98214" required>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Passenger Last Name</label>
-            <input type="text" class="input-field" value="Al-Mansoor" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary">Manage booking →</button>
-      </form>
-    `;
-  } else if (tab === 'status') {
-    if (btnStatus) btnStatus.classList.add('active');
-    content.innerHTML = `
-      <form onsubmit="event.preventDefault(); alert('Checking Flight Status for EK 001...');">
-        <div class="grid-2col" style="gap: 16px;">
-          <div class="input-group">
-            <label class="input-label">Flight Number</label>
-            <input type="text" class="input-field" value="EK 001" required>
-          </div>
-          <div class="input-group">
-            <label class="input-label">Date</label>
-            <input type="text" class="input-field" value="Tue, 4 Aug" required>
-          </div>
-        </div>
-        <button type="submit" class="btn-primary">Check flight status →</button>
-      </form>
-    `;
-  }
+  `
 }
 
 function handleBuyTicket() {
-  const destination = document.getElementById('flight-to').value;
-  const travelClass = document.getElementById('flight-class').value;
-  const date = document.getElementById('flight-date').value;
-  const resultContainer = document.getElementById('booking-result-container');
-
-  const prices = {
-    'Economy': 'GBP £680',
-    'Premium Economy': 'GBP £1,250',
-    'Business': 'GBP £2,850',
-    'First': 'GBP £5,900'
-  };
-
-  resultContainer.innerHTML = `
-    <div class="card" style="border-color: var(--border-success); background-color: var(--bg-success); margin-bottom: 24px;">
-      <div class="card-header">
-        <div>
-          <span class="caption-text" style="color: var(--color-success);">Emirates Booking Confirmed</span>
-          <h3 class="card-title" style="color: var(--color-success);">Ticket Reserved Successfully!</h3>
-        </div>
-        <span class="chip chip-completed">Confirmed</span>
-      </div>
-
-      <div style="background-color: #FFFFFF; padding: 20px; border-radius: 12px; border: var(--border-standard); margin-bottom: 16px;">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-          <div>
-            <span class="caption-text">Passenger Ticket</span>
-            <p class="body-text" style="font-weight: 700; color: var(--color-primary); font-size: 18px;">EK 001 • ${travelClass}</p>
-          </div>
-          <div style="text-align: right;">
-            <span class="caption-text">Booking Reference</span>
-            <p class="body-text" style="font-weight: 700; font-size: 18px; color: var(--color-gold);">EK-98214</p>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
-          <div><strong>Passenger Name:</strong> ${currentUser.name}</div>
-          <div><strong>Route:</strong> DXB → ${destination}</div>
-          <div><strong>Assigned Seat:</strong> 14A (Window)</div>
-          <div><strong>Date:</strong> ${date}</div>
-          <div><strong>Terminal:</strong> DXB Terminal 3</div>
-          <div><strong>Total Paid:</strong> <span style="color: var(--color-success); font-weight: 700; font-size: 16px;">${prices[travelClass] || 'GBP £680'}</span></div>
-        </div>
-      </div>
-
-      <button class="btn-secondary" onclick="alert('Digital Boarding Pass saved to Apple Wallet!')">
-        Download Boarding Pass
-      </button>
-    </div>
-  `;
+  if (normalizeRole(currentUser.role) === 'guest') {
+    switchRoute('signin')
+    return
+  }
+  alert(`Search started for ${SHARED_SCENARIO.route}. Demo booking flow.`)
+  switchRoute('my-trips')
 }
 
-/* ==========================================================================
-   5. Passenger Sign In & Sign Up Views
-   ========================================================================== */
-function renderSignInView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
+function renderSignInView(banner) {
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
   contentArea.innerHTML = `
-    <div class="card" style="max-width: 480px; margin: 0 auto; padding: 28px;">
-      <div class="card-header">
-        <div>
-          <span class="caption-text">Emirates Skywards</span>
-          <h1 class="page-title">Sign In to Your Account</h1>
-        </div>
-        <span class="chip chip-completed">Skywards</span>
-      </div>
-
-      <form onsubmit="event.preventDefault(); handlePassengerSignIn();">
+    <div class="card" style="max-width: 440px; margin: 24px auto;">
+      <h1 class="page-title display-title">Sign in</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">Customer portal — book, manage, and track your journey.</p>
+      ${banner ? `<p class="chip chip-warning" style="margin-bottom: 12px; display:inline-flex;">${banner}</p>` : ''}
+      <form onsubmit="event.preventDefault(); handleCustomerLogin();">
         <div class="input-group">
-          <label class="input-label">Email or Skywards Number</label>
+          <label class="input-label">Email</label>
           <input type="email" id="signin-email" class="input-field" value="passenger@emirates.com" required>
         </div>
-
         <div class="input-group">
           <label class="input-label">Password</label>
           <input type="password" id="signin-password" class="input-field" value="123" required>
         </div>
-
-        <button type="submit" class="btn-primary" style="margin-top: 8px;">
-          Sign in to Skywards →
-        </button>
+        <button class="btn-primary" type="submit" style="width:100%; margin-top:8px;">Sign in →</button>
       </form>
-
-      <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 16px;">
-        <span class="supporting-text">Don't have an Emirates account?</span>
-        <a href="#signup" style="color: var(--color-primary); font-weight: 700; margin-left: 6px; text-decoration: none;" onclick="switchRoute('signup')">
-          Join Skywards Free →
-        </a>
+      <p class="supporting-text" style="margin-top: 16px;">
+        No account? <a href="#signup" onclick="switchRoute('signup')" style="color: var(--color-primary); font-weight:700;">Sign up</a>
+        · Staff? <a href="#staff-login" onclick="switchRoute('staff-login')" style="color: var(--color-primary); font-weight:700;">OCC login</a>
+      </p>
+      <div class="staff-login-hint">
+        Demo customer: <code>passenger@emirates.com</code> / <code>123</code>
       </div>
     </div>
-  `;
+  `
 }
 
-function handlePassengerSignIn() {
-  const email = document.getElementById('signin-email').value.trim();
-  const password = document.getElementById('signin-password').value.trim();
-
-  const user = USERS_DB.find(u => u.email === email && u.password === password);
-  if (user) {
-    currentUser = user;
-    alert(`Welcome back, ${user.name}! Signed in as Passenger (Role: ${user.role}).`);
-    switchRoute('landing');
-  } else {
-    alert('Invalid credentials. Demo Passenger Login: passenger@emirates.com / 123');
+function handleCustomerLogin() {
+  const email = document.getElementById('signin-email').value.trim()
+  const password = document.getElementById('signin-password').value.trim()
+  const user = USERS_DB.find((u) => u.email === email && u.password === password)
+  if (!user) {
+    alert('Invalid credentials.')
+    return
   }
+  const role = normalizeRole(user.role)
+  if (isStaffRole(role)) {
+    alert('This is a staff account. Use Staff / OCC login.')
+    switchRoute('staff-login')
+    return
+  }
+  currentUser = { ...user, role: 'customer' }
+  persistSession()
+  switchRoute('my-trips')
 }
 
 function renderSignUpView() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
   contentArea.innerHTML = `
-    <div class="card" style="max-width: 480px; margin: 0 auto; padding: 28px;">
-      <div class="card-header">
-        <div>
-          <span class="caption-text">Join Emirates Skywards</span>
-          <h1 class="page-title">Create Account</h1>
-        </div>
-        <span class="chip chip-info">User Account</span>
-      </div>
-
-      <form onsubmit="event.preventDefault(); handlePassengerSignUp();">
-        <div class="input-group">
-          <label class="input-label">Full Name</label>
-          <input type="text" id="signup-name" class="input-field" placeholder="e.g. Sara Al-Mansoor" required>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Email Address</label>
-          <input type="email" id="signup-email" class="input-field" placeholder="name@example.com" required>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Create Password</label>
-          <input type="password" id="signup-password" class="input-field" placeholder="••••••••" required>
-        </div>
-
-        <p class="caption-text" style="margin-bottom: 16px; color: var(--text-secondary);">
-          Note: Newly created accounts receive the <strong>USER</strong> role and can manage bookings and search flights.
-        </p>
-
-        <button type="submit" class="btn-primary">
-          Join Emirates Skywards →
-        </button>
+    <div class="card" style="max-width: 440px; margin: 24px auto;">
+      <h1 class="page-title display-title">Create account</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">New accounts receive the Customer role.</p>
+      <form onsubmit="event.preventDefault(); handleSignUp();">
+        <div class="input-group"><label class="input-label">Full name</label><input id="signup-name" class="input-field" required></div>
+        <div class="input-group"><label class="input-label">Email</label><input type="email" id="signup-email" class="input-field" required></div>
+        <div class="input-group"><label class="input-label">Password</label><input type="password" id="signup-password" class="input-field" required></div>
+        <button class="btn-primary" type="submit" style="width:100%;">Create customer account →</button>
       </form>
     </div>
-  `;
+  `
 }
 
-function handlePassengerSignUp() {
-  const name = document.getElementById('signup-name').value.trim();
-  const email = document.getElementById('signup-email').value.trim();
-  const password = document.getElementById('signup-password').value.trim();
-
-  const newUser = { name, email, password, role: 'user', date: '4 Aug 2026' };
-  USERS_DB.push(newUser);
-  saveUserDatabase();
-  currentUser = newUser;
-
-  alert(`Account created successfully! Signed in as ${name} (Role: USER).`);
-  switchRoute('landing');
-}
-
-/* ==========================================================================
-   6. Restricted Admin Login Form (Shown when accessing #admin without Admin Role)
-   ========================================================================== */
-function renderAdminLoginForm() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  contentArea.innerHTML = `
-    <div class="card" style="max-width: 480px; margin: 0 auto; border-color: var(--color-primary); padding: 28px;">
-      <div class="card-header">
-        <div>
-          <span class="caption-text" style="color: var(--color-primary); font-weight: 700;">Restricted Route (/admin)</span>
-          <h1 class="page-title">Admin OCC Login</h1>
-        </div>
-        <span class="chip chip-blocked">Admin Only</span>
-      </div>
-
-      <div style="background-color: var(--bg-error); border: 1px solid var(--border-error); padding: 14px; border-radius: 8px; margin-bottom: 20px;">
-        <p class="supporting-text" style="color: var(--color-error); font-weight: 600;">
-          ⚠ Access Restricted: You must sign in with an ADMIN role account to access the DXB Operations Control Center (/admin).
-        </p>
-      </div>
-
-      <form onsubmit="event.preventDefault(); handleAdminLogin();">
-        <div class="input-group">
-          <label class="input-label">Admin Email / Staff ID</label>
-          <input type="email" id="admin-email" class="input-field" value="admin@dxb.gov.ae" required>
-        </div>
-
-        <div class="input-group">
-          <label class="input-label">Admin Password</label>
-          <input type="password" id="admin-password" class="input-field" value="admin" required>
-        </div>
-
-        <button type="submit" class="btn-primary" style="margin-top: 8px;">
-          Authenticate & Open /admin Platform →
-        </button>
-      </form>
-
-      <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 16px;">
-        <a href="#landing" style="color: var(--text-secondary); text-decoration: none;" onclick="switchRoute('landing')">
-          ← Return to Public Emirates Site
-        </a>
-      </div>
-    </div>
-  `;
-}
-
-function handleAdminLogin() {
-  const email = document.getElementById('admin-email').value.trim();
-  const password = document.getElementById('admin-password').value.trim();
-
-  const user = USERS_DB.find(u => u.email === email && u.password === password && u.role === 'admin');
-  if (user) {
-    currentUser = user;
-    alert(`Admin Authentication Granted! Opening DXB OCC Platform for ${user.name}.`);
-    switchRoute('admin');
-  } else {
-    alert('Access Denied: Invalid Admin credentials. Demo Admin Login: admin@dxb.gov.ae / admin');
+function handleSignUp() {
+  const name = document.getElementById('signup-name').value.trim()
+  const email = document.getElementById('signup-email').value.trim()
+  const password = document.getElementById('signup-password').value.trim()
+  if (USERS_DB.some((u) => u.email === email)) {
+    alert('Email already registered.')
+    return
   }
+  const newUser = { name, email, password, role: 'customer', date: '11 Aug 2026' }
+  USERS_DB.push(newUser)
+  saveUserDatabase()
+  currentUser = newUser
+  persistSession()
+  switchRoute('my-trips')
 }
 
-/* ==========================================================================
-   7. /admin Operations Control Platform & User Management Module
-   ========================================================================== */
-function initModuleStrip() {
-  const chips = document.querySelectorAll('.module-chip');
-  chips.forEach(chip => {
-    chip.addEventListener('click', () => {
-      const moduleId = chip.getAttribute('data-module');
-      if (!moduleId) return;
-
-      chips.forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-
-      currentAdminModule = moduleId;
-      loadAdminModule(moduleId);
-    });
-  });
+function renderMyTrips() {
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
+  contentArea.innerHTML = `
+    <h1 class="page-title display-title" style="margin-bottom: 8px;">My Trips</h1>
+    <p class="supporting-text" style="margin-bottom: 20px;">Upcoming journeys for ${currentUser.name}</p>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span class="caption-text">${SHARED_SCENARIO.date}</span>
+          <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
+        </div>
+        <span class="chip chip-completed">Confirmed</span>
+      </div>
+      <div class="grid-2col">
+        <div><span class="caption-text">Route</span><p class="body-text" style="font-weight:600;">${SHARED_SCENARIO.route}</p></div>
+        <div><span class="caption-text">Boarding</span><p class="body-text" style="font-weight:600;">${SHARED_SCENARIO.boarding} · ${SHARED_SCENARIO.terminal}</p></div>
+        <div><span class="caption-text">Aircraft</span><p class="body-text" style="font-weight:600;">${SHARED_SCENARIO.aircraft}</p></div>
+        <div><span class="caption-text">Seat</span><p class="body-text" style="font-weight:600;">24A · Economy</p></div>
+      </div>
+      <div style="display:flex; gap:8px; margin-top:16px; flex-wrap:wrap;">
+        <button class="btn-primary" onclick="switchRoute('manage')">Manage booking</button>
+        <button class="btn-header-signin" onclick="switchRoute('flight-status')">Flight status</button>
+      </div>
+    </div>
+  `
 }
 
-function initBottomNav() {
-  const navItems = document.querySelectorAll('.bottom-nav-item');
-  navItems.forEach(item => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault();
-      navItems.forEach(n => n.classList.remove('active'));
-      item.classList.add('active');
-
-      const target = item.getAttribute('data-nav');
-      if (target === 'home') {
-        switchRoute('landing');
-      } else if (target === 'signin') {
-        switchRoute('signin');
-      }
-    });
-  });
+function renderManageBooking() {
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
+  contentArea.innerHTML = `
+    <div class="card" style="max-width: 520px; margin: 0 auto;">
+      <h1 class="page-title display-title">Manage booking</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">Check-in, seat selection, and booking changes.</p>
+      <div class="input-group"><label class="input-label">Booking reference</label><input class="input-field" value="EK7X2M"></div>
+      <div class="input-group"><label class="input-label">Last name</label><input class="input-field" value="Al-Mansoor"></div>
+      <button class="btn-primary" style="width:100%;" onclick="alert('Demo: check-in window opens 48h before departure.')">Continue →</button>
+    </div>
+  `
 }
 
+function renderFlightStatus() {
+  const contentArea = document.getElementById('main-content')
+  if (!contentArea) return
+  contentArea.innerHTML = `
+    <h1 class="page-title display-title" style="margin-bottom: 16px;">Flight status</h1>
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">${SHARED_SCENARIO.flight} · ${SHARED_SCENARIO.route}</h2>
+        <span class="chip chip-in-progress">On time</span>
+      </div>
+      <div class="grid-2col">
+        <div><span class="caption-text">Departure</span><p class="body-text" style="font-weight:600;">DXB T3 · ${SHARED_SCENARIO.boarding}</p></div>
+        <div><span class="caption-text">Arrival</span><p class="body-text" style="font-weight:600;">LHR T3 · 13:05</p></div>
+        <div><span class="caption-text">Gate</span><p class="body-text" style="font-weight:600;">A14</p></div>
+        <div><span class="caption-text">Status</span><p class="body-text" style="font-weight:600;">Boarding soon</p></div>
+      </div>
+    </div>
+  `
+}
+
+/* —— Staff login —— */
+function renderStaffLogin() {
+  applyThemeForRole('guest')
+  document.body.classList.remove('customer-active', 'ops-active')
+  setOpsShellVisible(false)
+  ;['public-top-strip', 'public-header', 'public-bottom-nav'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.style.display = 'none'
+  })
+  const contentArea = document.getElementById('main-content')
+  if (contentArea) contentArea.style.display = 'block'
+
+  contentArea.innerHTML = `
+    <div class="card" style="max-width: 480px; margin: 40px auto;">
+      <span class="caption-text">DXB OPERATIONS</span>
+      <h1 class="page-title">Staff / OCC Login</h1>
+      <p class="supporting-text" style="margin-bottom: 16px;">Tower, Operations, and Admin access the management workspace here.</p>
+      <form onsubmit="event.preventDefault(); handleStaffLogin();">
+        <div class="input-group">
+          <label class="input-label">Staff email</label>
+          <input type="email" id="staff-email" class="input-field" value="admin@dxb.gov.ae" required>
+        </div>
+        <div class="input-group">
+          <label class="input-label">Password</label>
+          <input type="password" id="staff-password" class="input-field" value="admin" required>
+        </div>
+        <button class="btn-primary" type="submit" style="width:100%;">Authenticate →</button>
+      </form>
+      <div class="staff-login-hint">
+        <div>Admin: <code>admin@dxb.gov.ae</code> / <code>admin</code></div>
+        <div>Tower: <code>tower@dxb.gov.ae</code> / <code>tower</code></div>
+        <div>Ops: <code>ops@dxb.gov.ae</code> / <code>ops</code></div>
+      </div>
+      <p style="margin-top:16px; text-align:center;">
+        <a href="#landing" onclick="event.preventDefault(); applyThemeForRole('guest'); switchRoute('landing')" style="color: var(--text-secondary);">← Back to customer site</a>
+      </p>
+    </div>
+  `
+}
+
+function handleStaffLogin() {
+  const email = document.getElementById('staff-email').value.trim()
+  const password = document.getElementById('staff-password').value.trim()
+  const user = USERS_DB.find((u) => u.email === email && u.password === password)
+  if (!user || !isStaffRole(user.role)) {
+    alert('Access denied. Use a staff account (admin / tower / ops).')
+    return
+  }
+  currentUser = { ...user, role: normalizeRole(user.role) }
+  persistSession()
+  currentAdminModule = getDefaultModule(currentUser.role) || 'dashboard'
+  switchRoute('admin')
+}
+
+/* —— OCC modules —— */
 async function loadAdminModule(moduleId) {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  const targetChip = document.querySelector(`.module-chip[data-module="${moduleId}"]`);
-  if (targetChip) {
-    document.querySelectorAll('.module-chip').forEach(c => c.classList.remove('active'));
-    targetChip.classList.add('active');
+  const role = normalizeRole(currentUser.role)
+  if (!canAccessModule(role, moduleId)) {
+    alert(`Role "${getAccess(role).label}" cannot access this module.`)
+    moduleId = getDefaultModule(role) || 'dashboard'
   }
+
+  currentAdminModule = moduleId
+  buildOpsNav()
+
+  const title = document.getElementById('ops-page-title')
+  const meta = document.getElementById('ops-page-meta')
+  const metaInfo = MODULE_META[moduleId] || { label: moduleId }
+  if (title) title.textContent = metaInfo.label
+  if (meta) meta.textContent = `${getAccess(role).label} · ${SHARED_SCENARIO.airport}`
+
+  const host = document.getElementById('ops-content')
+  if (!host) return
 
   if (moduleId === 'user-management') {
-    renderUserManagementModule();
-    return;
+    renderUserManagementModule(host)
+    return
+  }
+  if (moduleId === 'dashboard') {
+    renderAdminDashboard(host)
+    return
   }
 
   try {
-    const pagePath = `pages/${moduleId}.html`;
-    const response = await fetch(pagePath);
+    const response = await fetch(`pages/${moduleId}.html`)
     if (response.ok) {
-      const htmlText = await response.text();
-      const cleanedContent = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim();
-      
-      if (cleanedContent.length > 0) {
-        contentArea.innerHTML = htmlText;
-        // Re-execute inline scripts in loaded page
-        const scripts = contentArea.querySelectorAll('script');
-        scripts.forEach(oldScript => {
-          const newScript = document.createElement('script');
-          Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
-          newScript.appendChild(document.createTextNode(oldScript.innerHTML));
-          oldScript.parentNode.replaceChild(newScript, oldScript);
-        });
-        return;
+      const htmlText = await response.text()
+      const cleaned = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim()
+      if (cleaned.length > 40) {
+        host.innerHTML = htmlText
+        return
       }
     }
-  } catch (err) {
-    console.info(`[Emirates-DXB] Using built-in template for '${moduleId}'.`);
+  } catch {
+    /* fallback */
   }
 
-  if (moduleId === 'dashboard') {
-    renderAdminDashboard();
-  } else {
-    renderModulePlaceholder(moduleId);
-  }
+  renderModulePlaceholder(host, moduleId)
 }
 
-function renderUserManagementModule() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
+function renderAdminDashboard(host) {
+  const role = normalizeRole(currentUser.role)
+  const access = getAccess(role)
+  const moduleChips = access.modules
+    .filter((m) => m !== 'dashboard' && m !== 'user-management')
+    .map((m) => {
+      const meta = MODULE_META[m]
+      return `<button class="btn-header-signin" style="margin:4px;" onclick="loadAdminModule('${m}')">${meta.label}</button>`
+    })
+    .join('')
 
-  const userRowsHTML = USERS_DB.map(u => `
-    <tr style="border-bottom: 1px solid var(--border-color);">
-      <td style="padding: 12px 8px; font-weight: 600;">${u.name}</td>
-      <td style="padding: 12px 8px;">${u.email}</td>
-      <td style="padding: 12px 8px;">
-        ${u.role === 'admin' 
-          ? '<span class="chip chip-completed"><span class="chip-icon">✓</span> ADMIN</span>' 
-          : '<span class="chip chip-info"><span class="chip-icon">👤</span> USER</span>'}
-      </td>
-      <td style="padding: 12px 8px;" class="caption-text">${u.date || '4 Aug 2026'}</td>
-    </tr>
-  `).join('');
-
-  contentArea.innerHTML = `
-    <div class="grid-2col">
-      <div class="card">
+  host.innerHTML = `
+    <div class="grid-2col" style="margin-bottom: 16px;">
+      <div class="card" style="margin-bottom:0;">
         <div class="card-header">
           <div>
-            <span class="caption-text">Admin Control</span>
-            <h2 class="card-title">Add New User</h2>
-          </div>
-          <span class="chip chip-completed">Admin Role</span>
-        </div>
-
-        <form onsubmit="event.preventDefault(); handleAddNewUserByAdmin();">
-          <div class="input-group">
-            <label class="input-label">Full Name</label>
-            <input type="text" id="newuser-name" class="input-field" placeholder="e.g. Captain John" required>
-          </div>
-
-          <div class="input-group">
-            <label class="input-label">Email Address</label>
-            <input type="email" id="newuser-email" class="input-field" placeholder="john@dxb.gov.ae" required>
-          </div>
-
-          <div class="input-group">
-            <label class="input-label">Password</label>
-            <input type="password" id="newuser-password" class="input-field" placeholder="Initial password" required>
-          </div>
-
-          <div class="input-group">
-            <label class="input-label">Assign Role</label>
-            <select id="newuser-role" class="input-field">
-              <option value="user">USER (Passenger — No /admin access)</option>
-              <option value="admin">ADMIN (OCC Staff — Full /admin access)</option>
-            </select>
-          </div>
-
-          <button type="submit" class="btn-primary" style="margin-top: 8px;">
-            Create User Account →
-          </button>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">Registered System Users</h2>
-          <span class="supporting-text">${USERS_DB.length} Total</span>
-        </div>
-
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
-            <thead>
-              <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-secondary);">
-                <th style="padding: 8px;">Name</th>
-                <th style="padding: 8px;">Email</th>
-                <th style="padding: 8px;">Role</th>
-                <th style="padding: 8px;">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${userRowsHTML}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function handleAddNewUserByAdmin() {
-  const name = document.getElementById('newuser-name').value.trim();
-  const email = document.getElementById('newuser-email').value.trim();
-  const password = document.getElementById('newuser-password').value.trim();
-  const role = document.getElementById('newuser-role').value;
-
-  const newUser = { name, email, password, role, date: '4 Aug 2026' };
-  USERS_DB.push(newUser);
-  saveUserDatabase();
-
-  alert(`New Account '${name}' created successfully with role '${role.toUpperCase()}'! User saved to LocalStorage.`);
-  renderUserManagementModule();
-}
-
-function renderAdminDashboard() {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  contentArea.innerHTML = `
-    <div class="grid-2col" style="margin-bottom: var(--space-16);">
-      <div class="card" style="margin-bottom: 0;">
-        <div class="card-header">
-          <div>
-            <span class="caption-text">DXB OCC Telemetry</span>
+            <span class="caption-text">Live scenario</span>
             <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
           </div>
-          <span class="chip chip-completed">
-            <span class="chip-icon">✓</span> Scheduled
-          </span>
+          <span class="chip chip-completed">Scheduled</span>
         </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: var(--space-8); background: var(--bg-secondary); padding: 12px; border-radius: 12px; margin-bottom: 12px;">
-          <div>
-            <span class="caption-text">Route</span>
-            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.route}</p>
-          </div>
-          <div>
-            <span class="caption-text">Boarding Time</span>
-            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.boarding}</p>
-          </div>
-          <div>
-            <span class="caption-text">Terminal</span>
-            <p class="body-text" style="font-weight: 600;">${SHARED_SCENARIO.terminal}</p>
-          </div>
-        </div>
-
-        <button class="btn-primary" onclick="loadAdminModule('crew-flow')">
-          View Flight Operations →
-        </button>
+        <p class="supporting-text">${SHARED_SCENARIO.route} · ${SHARED_SCENARIO.terminal} · Boarding ${SHARED_SCENARIO.boarding}</p>
+        <div style="margin-top:12px;">${moduleChips}</div>
       </div>
-
-      <div class="card" style="background-color: var(--bg-secondary); margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="display: flex; gap: 12px; align-items: flex-start;">
-          <span class="chip chip-action-required" style="padding: 6px;">⚠</span>
-          <div>
-            <h3 class="card-title" style="font-size: 16px;">Ground Task Incomplete</h3>
-            <p class="supporting-text" style="margin-top: 4px;">Finalize ground crew clearance for EK 001 departure.</p>
-          </div>
-        </div>
-
-        <div style="margin-top: 16px;">
-          <span class="chip chip-action-required">Action required</span>
-        </div>
+      <div class="card" style="margin-bottom:0;">
+        <h3 class="card-title">Your access</h3>
+        <p class="supporting-text" style="margin: 8px 0 12px;">${access.description}</p>
+        <p class="body-text" style="font-family: var(--font-mono); font-size: 0.8rem;">
+          Modules: ${access.modules.join(' · ')}
+        </p>
       </div>
     </div>
-
+    ${role === 'admin' ? renderRoleMatrixHTML() : ''}
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Live Operational Status</h3>
-        <span class="supporting-text">${SHARED_SCENARIO.date} • ${SHARED_SCENARIO.airport}</span>
+        <h3 class="card-title">Operational snapshot</h3>
+        <span class="supporting-text">${SHARED_SCENARIO.date}</span>
       </div>
-
-      <div style="display: flex; flex-direction: column; gap: var(--space-12);">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
-          <div>
-            <p class="body-text" style="font-weight: 600; font-size: 15px;">Runway 12L & 12R</p>
-            <span class="supporting-text">Normal departure operations</span>
-          </div>
-          <span class="chip chip-completed">✓ Active</span>
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:8px;">
+          <div><p class="body-text" style="font-weight:600;">Runway 12L & 12R</p><span class="supporting-text">Normal operations</span></div>
+          <span class="chip chip-completed">Active</span>
         </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <p class="body-text" style="font-weight: 600; font-size: 15px;">Gate A14 Boarding</p>
-            <span class="supporting-text">EK 001 passenger check-in</span>
-          </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><p class="body-text" style="font-weight:600;">Gate A14</p><span class="supporting-text">EK 001 boarding</span></div>
           <span class="chip chip-in-progress">In progress</span>
         </div>
       </div>
     </div>
-  `;
+  `
 }
 
-function renderModulePlaceholder(moduleId) {
-  const contentArea = document.getElementById('main-content');
-  if (!contentArea) return;
-
-  const titles = {
-    'gate-management': 'Gate Management',
-    'aircraft-turnaround': 'Aircraft Turnaround',
-    'tower-control': 'Local Tower Control',
-    'crew-flow': 'CrewFlow',
-    'passenger-journey': 'Passenger Journey'
-  };
-
-  const name = titles[moduleId] || moduleId;
-
-  contentArea.innerHTML = `
-    <div class="card">
-      <div class="card-header">
-        <div>
-          <span class="caption-text">${SHARED_SCENARIO.airport}</span>
-          <h1 class="page-title">${name}</h1>
-        </div>
-        <span class="chip chip-in-progress">In progress</span>
-      </div>
-
-      <p class="supporting-text" style="margin-bottom: var(--space-16);">
-        This module provides operational controls for ${name.toLowerCase()} within the Emirates–DXB platform.
-      </p>
-
-      <button class="btn-primary" onclick="loadAdminModule('dashboard')">
-        Return to OCC Dashboard →
-      </button>
+function renderRoleMatrixHTML() {
+  return `
+    <div class="card role-matrix-card" style="margin-bottom: 16px;">
+      <h3 class="card-title" style="margin-bottom: 12px;">Role & access matrix</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th>Guest</th>
+            <th>Customer</th>
+            <th>Tower</th>
+            <th>Ops</th>
+            <th>Admin</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Book / public site</td><td class="access-yes">✓</td><td class="access-yes">✓</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-yes">✓</td></tr>
+          <tr><td>My Trips / Manage</td><td class="access-no">—</td><td class="access-yes">✓</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-no">—</td></tr>
+          <tr><td>Tower Control</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-yes">✓</td><td class="access-no">—</td><td class="access-yes">✓</td></tr>
+          <tr><td>Gates / Turnaround / Crew</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-yes">✓</td><td class="access-yes">✓</td></tr>
+          <tr><td>User management</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-no">—</td><td class="access-yes">✓</td></tr>
+        </tbody>
+      </table>
     </div>
-  `;
+  `
+}
+
+function renderUserManagementModule(host) {
+  if (!getAccess(currentUser.role).canManageUsers) {
+    host.innerHTML = `<div class="card"><p>Access denied.</p></div>`
+    return
+  }
+
+  const rows = USERS_DB.map(
+    (u) => `
+    <tr>
+      <td style="padding:10px 8px; font-weight:600;">${u.name}</td>
+      <td style="padding:10px 8px;">${u.email}</td>
+      <td style="padding:10px 8px;"><span class="chip chip-info">${normalizeRole(u.role).toUpperCase()}</span></td>
+      <td style="padding:10px 8px;" class="caption-text">${u.date || '—'}</td>
+    </tr>`
+  ).join('')
+
+  host.innerHTML = `
+    <div class="grid-2col">
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:12px;">Add user</h2>
+        <form onsubmit="event.preventDefault(); handleAddNewUserByAdmin();">
+          <div class="input-group"><label class="input-label">Name</label><input id="newuser-name" class="input-field" required></div>
+          <div class="input-group"><label class="input-label">Email</label><input type="email" id="newuser-email" class="input-field" required></div>
+          <div class="input-group"><label class="input-label">Password</label><input type="password" id="newuser-password" class="input-field" required></div>
+          <div class="input-group">
+            <label class="input-label">Role</label>
+            <select id="newuser-role" class="input-field">
+              <option value="customer">Customer — passenger portal</option>
+              <option value="tower">Tower — tower modules only</option>
+              <option value="ops">Ops — ground operations modules</option>
+              <option value="admin">Admin — full OCC + users</option>
+            </select>
+          </div>
+          <button class="btn-primary" type="submit">Create account →</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2 class="card-title" style="margin-bottom:12px;">Users (${USERS_DB.length})</h2>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <thead><tr style="color:var(--text-secondary); border-bottom:1px solid var(--border-color);">
+              <th style="text-align:left; padding:8px;">Name</th>
+              <th style="text-align:left; padding:8px;">Email</th>
+              <th style="text-align:left; padding:8px;">Role</th>
+              <th style="text-align:left; padding:8px;">Date</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    ${renderRoleMatrixHTML()}
+  `
+}
+
+function handleAddNewUserByAdmin() {
+  const name = document.getElementById('newuser-name').value.trim()
+  const email = document.getElementById('newuser-email').value.trim()
+  const password = document.getElementById('newuser-password').value.trim()
+  const role = document.getElementById('newuser-role').value
+  USERS_DB.push({ name, email, password, role, date: '11 Aug 2026' })
+  saveUserDatabase()
+  loadAdminModule('user-management')
+}
+
+function renderModulePlaceholder(host, moduleId) {
+  const name = (MODULE_META[moduleId] && MODULE_META[moduleId].label) || moduleId
+  host.innerHTML = `
+    <div class="card">
+      <span class="caption-text">Module base</span>
+      <h1 class="page-title">${name}</h1>
+      <p class="supporting-text" style="margin: 12px 0 16px;">
+        Base shell for <strong>${name}</strong> is ready. Role-gated for your account.
+        Extend this module under <code>pages/${moduleId}.html</code>.
+      </p>
+      <button class="btn-primary" onclick="loadAdminModule('dashboard')">← OCC Dashboard</button>
+    </div>
+  `
+}
+
+// Back-compat aliases used by older inline handlers
+function handleAdminLogout() {
+  handleStaffLogout()
 }
