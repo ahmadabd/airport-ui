@@ -100,6 +100,18 @@
 
 <div id="pp-wrapper" style="max-width: 640px; margin: 0 auto;">
 
+  <!-- Persistent auth status strip — visible above every view -->
+  <div id="pp-auth-status" class="card" style="margin-bottom: 20px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div id="pp-auth-icon" style="width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
+      <div>
+        <p class="body-text" id="pp-auth-text" style="font-weight: 700; font-size: 14px;">Not signed in</p>
+        <p class="caption-text" id="pp-auth-subtext">Sign in to book flights and manage check-in</p>
+      </div>
+    </div>
+    <div id="pp-auth-actions" style="display: flex; gap: 8px;"></div>
+  </div>
+
   <!-- VIEW 1: HOME / FLIGHT SEARCH -->
   <section id="pp-view-home">
     <div style="margin-bottom: 24px;">
@@ -157,6 +169,28 @@
     <div id="pp-results-list" style="display: flex; flex-direction: column; gap: 12px;">
       <!-- Injected by JS -->
     </div>
+  </section>
+
+  <!-- VIEW 2b: SIGN-IN REQUIRED GATE (shown when a guest tries to book a selected flight) -->
+  <section id="pp-view-auth-required" style="display: none; text-align: center; padding: 40px 0;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-warning); color: var(--color-warning); margin-bottom: 20px;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+
+    <h2 class="section-title" style="margin-bottom: 12px;">Sign In Required</h2>
+    <p class="body-text" style="max-width: 440px; margin: 0 auto 8px; color: var(--text-secondary);">
+      To book <strong id="pp-auth-required-flight">this flight</strong> and set up automatic One-ID check-in, please sign in to your Emirates Skywards account first.
+    </p>
+    <p class="caption-text" style="margin-bottom: 28px;">Your flight selection will still be here when you come back — just search again and pick it once you're signed in.</p>
+
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 380px; margin: 0 auto;">
+      <button class="btn-primary" style="width: auto; padding: 0 28px;" onclick="switchRoute('signin')">Sign In →</button>
+      <button class="btn-secondary" style="width: auto; padding: 0 28px;" onclick="switchRoute('signup')">Create Account</button>
+    </div>
+
+    <button class="btn-secondary" style="width: auto; margin-top: 20px; padding: 0 18px; font-size: 13px; height: 36px;" onclick="ppSwitchView('pp-view-results')">
+      ← Back to flight results
+    </button>
   </section>
 
   <!-- VIEW 3: SELECTED FLIGHT — CABIN CLASS & AUTO CHECK-IN PREFERENCES -->
@@ -387,9 +421,53 @@
       return 'Guest Passenger';
     }
 
+    /* ---------- Auth status (reads/writes the shared `currentUser` global from app.js) ---------- */
+    function ppIsLoggedIn() {
+      return typeof currentUser !== 'undefined' && currentUser && currentUser.role !== 'guest';
+    }
+
+    function ppRenderAuthStatus() {
+      const icon = document.getElementById('pp-auth-icon');
+      const text = document.getElementById('pp-auth-text');
+      const subtext = document.getElementById('pp-auth-subtext');
+      const actions = document.getElementById('pp-auth-actions');
+      if (!icon) return;
+
+      if (ppIsLoggedIn()) {
+        icon.style.backgroundColor = 'var(--bg-success)';
+        icon.style.color = 'var(--color-success)';
+        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+        text.textContent = currentUser.name;
+        subtext.textContent = `Signed in${currentUser.email ? ' • ' + currentUser.email : ''}`;
+        actions.innerHTML = `
+          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="ppLogout()">
+            Log Out
+          </button>
+        `;
+      } else {
+        icon.style.backgroundColor = 'var(--bg-secondary)';
+        icon.style.color = 'var(--text-secondary)';
+        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        text.textContent = 'Not signed in';
+        subtext.textContent = 'Sign in to book flights and manage check-in';
+        actions.innerHTML = `
+          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="switchRoute('signin')">
+            Sign In
+          </button>
+        `;
+      }
+    }
+
+    function ppLogout() {
+      currentUser = { name: 'Guest User', email: '', role: 'guest' };
+      document.getElementById('pp-greeting-name').textContent = ppPassengerName();
+      ppRenderAuthStatus();
+      ppSwitchView('pp-view-home');
+    }
+
     /* ---------- View router ---------- */
     function ppSwitchView(viewId) {
-      ['pp-view-home', 'pp-view-results', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
+      ['pp-view-home', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -470,6 +548,12 @@
         boardingTime: ppBoardingTime(opt.depTime)
       };
 
+      if (!ppIsLoggedIn()) {
+        document.getElementById('pp-auth-required-flight').textContent = `${opt.flightNo} to ${dest.city}`;
+        ppSwitchView('pp-view-auth-required');
+        return;
+      }
+
       ppRenderBookingView();
       ppSwitchView('pp-view-booking');
     }
@@ -497,6 +581,11 @@
 
     /* ---------- Booking ---------- */
     function ppConfirmBooking() {
+      if (!ppIsLoggedIn()) {
+        ppSwitchView('pp-view-auth-required');
+        return;
+      }
+
       const f = ppSelectedFlight;
       const cls = document.getElementById('pp-class').value;
       const seatPref = document.querySelector('input[name="pp-seat-pref"]:checked').value;
@@ -606,11 +695,17 @@
       `;
     }
 
-    /* ---------- My bookings list on home ---------- */
+    /* ---------- My bookings list on home (only for the signed-in passenger) ---------- */
     function ppRenderMyBookings() {
-      const list = ppLoadBookings();
       const card = document.getElementById('pp-my-bookings-card');
       if (!card) return;
+
+      if (!ppIsLoggedIn()) {
+        card.style.display = 'none';
+        return;
+      }
+
+      const list = ppLoadBookings().filter(b => b.name === currentUser.name);
 
       if (list.length === 0) {
         card.style.display = 'none';
@@ -639,6 +734,7 @@
 
     function ppInit() {
       document.getElementById('pp-greeting-name').textContent = ppPassengerName();
+      ppRenderAuthStatus();
       ppRenderMyBookings();
     }
 
@@ -648,6 +744,7 @@
     window.ppConfirmBooking = ppConfirmBooking;
     window.ppSimulateCheckIn = ppSimulateCheckIn;
     window.ppUpdateFarePreview = ppUpdateFarePreview;
+    window.ppLogout = ppLogout;
 
     ppInit();
   })();
