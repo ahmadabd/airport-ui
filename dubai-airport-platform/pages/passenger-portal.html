@@ -4,6 +4,100 @@
      Every completed booking / check-in is persisted to localStorage so the Passenger
      Journey admin module can display it in the OCC queue. -->
 
+<style>
+  /* Passenger Portal motion — scoped to #pp-wrapper so it never touches shared/team styles. */
+  #pp-wrapper .pp-view-enter {
+    animation: ppViewEnter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes ppViewEnter {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #pp-wrapper .pp-card-enter {
+    opacity: 0;
+    animation: ppCardEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes ppCardEnter {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #pp-wrapper .card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+  #pp-wrapper .pp-flight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-gold);
+  }
+
+  #pp-wrapper .pp-seat-option {
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+  }
+  #pp-wrapper .pp-seat-option:has(input:checked) {
+    border-color: var(--color-primary);
+    background-color: rgba(215, 26, 33, 0.06);
+    transform: translateY(-1px);
+  }
+
+  #pp-wrapper .btn-primary,
+  #pp-wrapper .btn-secondary {
+    transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  #pp-wrapper .btn-primary:active,
+  #pp-wrapper .btn-secondary:active {
+    transform: scale(0.97);
+  }
+
+  #pp-wrapper .pp-spinner {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto;
+    border-radius: 999px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--color-gold);
+    animation: ppSpin 0.8s linear infinite;
+  }
+  @keyframes ppSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  #pp-wrapper .pp-success-icon {
+    animation: ppPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes ppPop {
+    0% { opacity: 0; transform: scale(0.4); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  #pp-wrapper .pp-boarding-pass-reveal {
+    animation: ppBoardingReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes ppBoardingReveal {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #pp-wrapper .pp-booking-row {
+    opacity: 0;
+    animation: ppCardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #pp-wrapper .pp-view-enter,
+    #pp-wrapper .pp-card-enter,
+    #pp-wrapper .pp-success-icon,
+    #pp-wrapper .pp-boarding-pass-reveal,
+    #pp-wrapper .pp-booking-row,
+    #pp-wrapper .pp-spinner {
+      animation: none !important;
+    }
+  }
+</style>
+
 <div id="pp-wrapper" style="max-width: 640px; margin: 0 auto;">
 
   <!-- VIEW 1: HOME / FLIGHT SEARCH -->
@@ -74,7 +168,7 @@
     <h2 class="section-title" style="margin-bottom: 16px;">Confirm Flight & Preferences</h2>
 
     <!-- Selected Flight Card -->
-    <div class="card" style="border-color: var(--color-gold); position: relative;">
+    <div class="card pp-card-enter" style="border-color: var(--color-gold); position: relative;">
       <span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;" id="pp-booking-tag">Selected</span>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates <span id="pp-flight-no">EK 001</span></span>
@@ -126,11 +220,11 @@
 
       <label class="input-label" style="display: block; margin-bottom: 10px;">Select your seat preference for auto-assignment:</label>
       <div class="grid-2col" style="margin-bottom: 0;">
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+        <label class="pp-seat-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-input); cursor: pointer;">
           <input type="radio" name="pp-seat-pref" value="Window" checked style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Window Seat</span>
         </label>
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+        <label class="pp-seat-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-input); cursor: pointer;">
           <input type="radio" name="pp-seat-pref" value="Aisle" style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Aisle Seat</span>
         </label>
@@ -144,7 +238,7 @@
 
   <!-- VIEW 4: BOOKING CONFIRMED / WAITING FOR AUTO CHECK-IN -->
   <section id="pp-view-success" style="display: none; text-align: center; padding: 40px 0;">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
+    <div class="pp-success-icon" style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
 
@@ -163,8 +257,9 @@
       <button class="btn-secondary" id="pp-sim-btn" style="width: auto; padding: 0 22px;" onclick="ppSimulateCheckIn()">
         Fast Forward 24h →
       </button>
-      <div id="pp-loading" style="display: none; margin-top: 16px;">
-        <p class="supporting-text" style="color: var(--color-gold);">Processing biometric auto check-in…</p>
+      <div id="pp-loading" style="display: none; margin-top: 20px;">
+        <div class="pp-spinner"></div>
+        <p class="supporting-text" style="color: var(--color-gold); margin-top: 12px;">Processing biometric auto check-in…</p>
       </div>
     </div>
   </section>
@@ -176,7 +271,7 @@
       <h2 class="section-title">Your Digital Boarding Pass is Ready</h2>
     </div>
 
-    <div class="card" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
+    <div class="card pp-boarding-pass-reveal" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
       <!-- Injected by JS -->
     </div>
 
@@ -299,7 +394,13 @@
         if (el) el.style.display = 'none';
       });
       const target = document.getElementById(viewId);
-      if (target) target.style.display = 'block';
+      if (target) {
+        target.style.display = 'block';
+        // Restart the entrance animation on every visit, not just the first paint.
+        target.classList.remove('pp-view-enter');
+        void target.offsetWidth; // force reflow so the class re-triggers
+        target.classList.add('pp-view-enter');
+      }
 
       if (viewId === 'pp-view-home') ppRenderMyBookings();
 
@@ -317,7 +418,7 @@
       document.getElementById('pp-results-list').innerHTML = options.map((opt, index) => {
         const arrival = ppComputeArrival(opt.depTime, opt.durationMin, dest.utcOffset);
         return `
-          <div class="card" style="margin-bottom: 0; position: relative;">
+          <div class="card pp-flight-card pp-card-enter" style="margin-bottom: 0; position: relative; animation-delay: ${index * 90}ms;">
             ${opt.tag ? `<span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;">${opt.tag}</span>` : ''}
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
               <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates ${opt.flightNo}</span>
@@ -520,10 +621,10 @@
       document.getElementById('pp-my-bookings-count').textContent =
         `${list.length} Booking${list.length === 1 ? '' : 's'}`;
 
-      document.getElementById('pp-my-bookings-list').innerHTML = list.slice(0, 4).map(b => {
+      document.getElementById('pp-my-bookings-list').innerHTML = list.slice(0, 4).map((b, index) => {
         const issued = b.status.indexOf('Checked-In') === 0;
         return `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; gap: 12px;">
+          <div class="pp-booking-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; gap: 12px; animation-delay: ${index * 70}ms;">
             <div>
               <p class="body-text" style="font-weight: 700; font-size: 14px;">${b.flight} • ${b.route}</p>
               <span class="caption-text">${b.ref} • ${b.cabinClass} • ${b.date}</span>
