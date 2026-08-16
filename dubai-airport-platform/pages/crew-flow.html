@@ -1,116 +1,630 @@
-<!-- CrewFlow Module — Emirates–DXB Prototype -->
+<!-- CrewFlow Module — Emirates–DXB Operations Control Platform -->
 
-<!-- Header Card -->
-<div class="card">
-  <div class="card-header">
-    <div>
-      <span class="caption-text">Flight Operations • EK 001</span>
-      <h1 class="page-title">CrewFlow Roster</h1>
-    </div>
-    <span class="chip chip-completed">
-      <span class="chip-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      </span>
-      In progress
-    </span>
-  </div>
+<div id="crewflow-module-wrapper">
 
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    Flight crew assignment and duty roster for flight EK 001 (DXB → LHR).
-  </p>
-
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-secondary); padding: 12px; border-radius: 12px;">
+  <!-- Page Header & Title -->
+  <div class="card-header" style="margin-bottom: 16px;">
     <div>
-      <span class="caption-text">Flight</span>
-      <p class="body-text" style="font-weight: 600;">EK 001</p>
+      <span class="caption-text">Dubai International Airport (DXB) • Flight Crew Operations</span>
+      <h1 class="page-title">CrewFlow Roster & Flight Task Dispatch</h1>
     </div>
-    <div>
-      <span class="caption-text">Route</span>
-      <p class="body-text" style="font-weight: 600;">DXB → LHR</p>
-    </div>
-    <div>
-      <span class="caption-text">Date</span>
-      <p class="body-text" style="font-weight: 600;">Tue, 4 Aug</p>
-    </div>
-    <div>
-      <span class="caption-text">Boarding</span>
-      <p class="body-text" style="font-weight: 600;">08:30</p>
-    </div>
-  </div>
-</div>
-
-<!-- Active Crew Members Card -->
-<div class="card">
-  <div class="card-header">
-    <h2 class="card-title">Assigned Crew Members</h2>
-    <span class="supporting-text">4 Verified</span>
-  </div>
-
-  <div style="display: flex; flex-direction: column; gap: 12px;">
-    <!-- Crew Member 1 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Capt. Tariq Al-Mansoor</p>
-        <span class="supporting-text">Commander • B777 Fleet</span>
-      </div>
+    <div style="display: flex; gap: 8px; align-items: center;">
       <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
+        <span class="chip-icon">●</span> Biometric One-ID Sync
       </span>
-    </div>
-
-    <!-- Crew Member 2 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">FO Sarah Jenkins</p>
-        <span class="supporting-text">First Officer • A380 Fleet</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
-
-    <!-- Crew Member 3 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Purser Omar Hassan</p>
-        <span class="supporting-text">Senior Purser • Cabin Crew</span>
-      </div>
-      <span class="chip chip-in-progress">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </span>
-        In progress
-      </span>
-    </div>
-
-    <!-- Crew Member 4 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">FA Elena Rostova</p>
-        <span class="supporting-text">Cabin Attendant • Standby</span>
-      </div>
-      <span class="chip chip-action-required">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </span>
-        Action required
-      </span>
+      <span class="chip chip-info" id="crew-ops-clock">Tue, 4 Aug • 10:15</span>
     </div>
   </div>
+
+  <!-- Flight Summary KPI Cards Row -->
+  <div class="grid-4col" style="margin-bottom: 16px;">
+    <div class="card" style="margin-bottom: 0; padding: 16px;">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Active Flight Crews</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 28px; font-weight: 800; color: var(--text-main);" id="kpi-crew-flights">6</span>
+        <span class="chip chip-info">DXB Operations</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-success);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-success);">Manifest Verified</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 28px; font-weight: 800; color: var(--color-success);" id="kpi-crew-verified">4</span>
+        <span class="chip chip-completed">Ready for Departure</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-warning);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-warning);">Tasks In Progress</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 28px; font-weight: 800; color: var(--color-warning);" id="kpi-crew-progress">2</span>
+        <span class="chip chip-warning">Boarding Prep</span>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-error);">
+      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-error);">Action Required</span>
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
+        <span style="font-size: 28px; font-weight: 800; color: var(--color-error);" id="kpi-crew-action">1</span>
+        <span class="chip chip-error">Pending Task</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flight Selector & Search Bar -->
+  <div class="card" style="margin-bottom: 16px; padding: 16px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h3 class="card-title" style="font-size: 16px;">Select Flight to Inspect Crew & Task Statuses</h3>
+        <span class="supporting-text">Click a flight card or search by flight number to view assigned crew members & task progress</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="crew-flight-search" class="input-field" style="height: 36px; font-size: 13px; width: 220px;" placeholder="Search Flight / Crew..." oninput="filterCrewFlights()">
+      </div>
+    </div>
+
+    <!-- Scrollable Flight Selector Cards -->
+    <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin;" id="crew-flights-scroll-container">
+      <!-- Flight chips populated by JS -->
+    </div>
+  </div>
+
+  <!-- Flight Summary Banner -->
+  <div class="card" style="border-top: 4px solid var(--color-primary); margin-bottom: 20px; padding: 20px;" id="selected-flight-summary-card">
+    <!-- Populated by JS -->
+  </div>
+
+  <!-- Main Grid: Crew Members & Assigned Tasks -->
+  <div class="grid-2col" style="margin-bottom: 20px;">
+
+    <!-- Left Column: Assigned Crew Members Roster List -->
+    <div class="card" style="margin-bottom: 0; padding: 20px;">
+      <div class="card-header" style="margin-bottom: 16px;">
+        <div>
+          <h3 class="card-title" style="font-size: 17px;">Flight Crew Roster</h3>
+          <span class="supporting-text" id="crew-roster-sub">Select a crew member to view detailed duty task statuses</span>
+        </div>
+        <span class="chip chip-completed" id="crew-count-badge">4 Assigned</span>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;" id="crew-members-list-container">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+
+    <!-- Right Column: Individual Crew Member Task Status Inspector -->
+    <div class="card" style="margin-bottom: 0; padding: 20px;" id="crew-task-inspector-card">
+      <!-- Injected by JS -->
+    </div>
+
+  </div>
+
+  <!-- Full Crew Task Matrix for Selected Flight -->
+  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 20px;">
+    <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div>
+        <h3 class="card-title" style="font-size: 16px;">Complete Flight Crew Task Matrix</h3>
+        <span class="supporting-text">Detailed real-time task status breakdown for all assigned crew members</span>
+      </div>
+      <button class="btn-primary" style="width: auto; height: 36px; padding: 0 16px; font-size: 13px;" onclick="confirmFlightCrewManifest()">
+        ✓ Confirm & Sign Off Crew Manifest
+      </button>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <thead>
+          <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
+            <th style="padding: 12px 16px;">Crew Member</th>
+            <th style="padding: 12px 16px;">Role</th>
+            <th style="padding: 12px 16px;">Assigned Task</th>
+            <th style="padding: 12px 16px;">Category</th>
+            <th style="padding: 12px 16px;">Scheduled Time</th>
+            <th style="padding: 12px 16px;">Status</th>
+            <th style="padding: 12px 16px; text-align: right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="crew-task-matrix-tbody">
+          <!-- Injected by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div>
 
-<!-- Primary CTA Card (Single Primary CTA per screen rule) -->
-<div class="card">
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    One required task is still incomplete. Confirm crew check-in to finalize the flight duty manifest.
-  </p>
-  <button class="btn-primary" onclick="alert('Crew check-in manifest confirmed for EK 001')">
-    Confirm Crew Check-In
-  </button>
-</div>
+<!-- Interactive Engine for CrewFlow Roster & Tasks -->
+<script>
+  // Complete Mock Data Database for Crew Members and Tasks across Active Flights
+  const CREW_FLIGHTS_DATA = [
+    {
+      flight: 'EK 001',
+      airline: 'Emirates',
+      aircraft: 'Airbus A380-800',
+      reg: 'A6-EOD',
+      route: 'DXB → LHR',
+      terminal: 'Terminal 3',
+      gate: 'A14',
+      date: 'Tue, 4 Aug',
+      boarding: '08:30',
+      departure: '09:15',
+      readiness: 92,
+      status: 'In Progress',
+      members: [
+        {
+          id: 'CR-101',
+          name: 'Capt. Tariq Al-Mansoor',
+          role: 'Commander',
+          fleet: 'A380 Fleet',
+          idBadge: 'EK-94821',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-101-1', title: 'Medical & Biometric Gate Sign-in', category: 'Pre-flight', time: '07:15', status: 'Completed' },
+            { id: 'T-101-2', title: 'Flight Plan & Weather Briefing', category: 'Pre-flight', time: '07:30', status: 'Completed' },
+            { id: 'T-101-3', title: 'Aircraft Exterior Walkaround Inspection', category: 'Safety', time: '08:00', status: 'Completed' },
+            { id: 'T-101-4', title: 'FMC Flight Computer Programming', category: 'Cockpit', time: '08:15', status: 'Completed' },
+            { id: 'T-101-5', title: 'Departure Briefing with Senior Purser', category: 'Briefing', time: '08:25', status: 'In Progress' }
+          ]
+        },
+        {
+          id: 'CR-102',
+          name: 'FO Sarah Jenkins',
+          role: 'First Officer',
+          fleet: 'A380 Fleet',
+          idBadge: 'EK-88210',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-102-1', title: 'Pre-flight Medical & Biometric Check', category: 'Pre-flight', time: '07:20', status: 'Completed' },
+            { id: 'T-102-2', title: 'ATC Clearance & Transponder Code Setup', category: 'Cockpit', time: '07:45', status: 'Completed' },
+            { id: 'T-102-3', title: 'Fuel Load Verification & Loadsheet Audit', category: 'Safety', time: '08:10', status: 'Completed' },
+            { id: 'T-102-4', title: 'Oxygen System & Emergency Equipment Check', category: 'Safety', time: '08:20', status: 'Completed' }
+          ]
+        },
+        {
+          id: 'CR-103',
+          name: 'Purser Omar Hassan',
+          role: 'Senior Purser',
+          fleet: 'Cabin Crew',
+          idBadge: 'EK-77401',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-103-1', title: 'Cabin Crew Safety Briefing', category: 'Briefing', time: '07:30', status: 'Completed' },
+            { id: 'T-103-2', title: 'Emergency Doors & Slide Pressure Check', category: 'Safety', time: '08:00', status: 'Completed' },
+            { id: 'T-103-3', title: 'First Class & Business Galley Inventory', category: 'Cabin', time: '08:15', status: 'Completed' },
+            { id: 'T-103-4', title: 'Passenger Boarding Door Supervision', category: 'Boarding', time: '08:30', status: 'In Progress' }
+          ]
+        },
+        {
+          id: 'CR-104',
+          name: 'FA Elena Rostova',
+          role: 'Cabin Attendant',
+          fleet: 'Cabin Crew',
+          idBadge: 'EK-65120',
+          verifiedBiometric: false,
+          tasks: [
+            { id: 'T-104-1', title: 'Security Sweep & Overhead Bin Inspection', category: 'Safety', time: '08:05', status: 'Completed' },
+            { id: 'T-104-2', title: 'Special Assistance & Medical Kit Audit', category: 'Cabin', time: '08:20', status: 'Action Required' },
+            { id: 'T-104-3', title: 'Economy Cabin Boarding Greeting', category: 'Boarding', time: '08:30', status: 'Pending' },
+            { id: 'T-104-4', title: 'Cabin Safety Demo Readiness', category: 'Safety', time: '08:55', status: 'Pending' }
+          ]
+        }
+      ]
+    },
+    {
+      flight: 'EK 202',
+      airline: 'Emirates',
+      aircraft: 'Airbus A380-800',
+      reg: 'A6-EBF',
+      route: 'LHR → DXB',
+      terminal: 'Terminal 3',
+      gate: 'A14',
+      date: 'Tue, 4 Aug',
+      boarding: '10:15',
+      departure: '10:45',
+      readiness: 100,
+      status: 'Verified',
+      members: [
+        {
+          id: 'CR-201',
+          name: 'Capt. Marcus Vance',
+          role: 'Commander',
+          fleet: 'A380 Fleet',
+          idBadge: 'EK-91204',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-201-1', title: 'Medical & Biometric Gate Sign-in', category: 'Pre-flight', time: '09:00', status: 'Completed' },
+            { id: 'T-201-2', title: 'Flight Plan & Oceanic Weather Audit', category: 'Pre-flight', time: '09:15', status: 'Completed' },
+            { id: 'T-201-3', title: 'Pre-flight Cockpit Checklist', category: 'Cockpit', time: '09:40', status: 'Completed' }
+          ]
+        },
+        {
+          id: 'CR-202',
+          name: 'FO Leila Al-Farsi',
+          role: 'First Officer',
+          fleet: 'A380 Fleet',
+          idBadge: 'EK-84102',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-202-1', title: 'Pre-flight Medical Clearance', category: 'Pre-flight', time: '09:05', status: 'Completed' },
+            { id: 'T-202-2', title: 'ATC Clearance Verification', category: 'Cockpit', time: '09:30', status: 'Completed' }
+          ]
+        },
+        {
+          id: 'CR-203',
+          name: 'Purser Rashid Khan',
+          role: 'Senior Purser',
+          fleet: 'Cabin Crew',
+          idBadge: 'EK-72390',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-203-1', title: 'Cabin Briefing & Equipment Audit', category: 'Briefing', time: '09:15', status: 'Completed' },
+            { id: 'T-203-2', title: 'Boarding Manifest Verification', category: 'Boarding', time: '10:15', status: 'Completed' }
+          ]
+        }
+      ]
+    },
+    {
+      flight: 'EK 501',
+      airline: 'Emirates',
+      aircraft: 'Boeing 777-300ER',
+      reg: 'A6-EBG',
+      route: 'DXB → CDG',
+      terminal: 'Terminal 3',
+      gate: 'B22',
+      date: 'Tue, 4 Aug',
+      boarding: '10:55',
+      departure: '11:20',
+      readiness: 65,
+      status: 'Action Required',
+      members: [
+        {
+          id: 'CR-301',
+          name: 'Capt. Faisal Al-Sabah',
+          role: 'Commander',
+          fleet: 'B777 Fleet',
+          idBadge: 'EK-93012',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-301-1', title: 'Biometric Gate Clearance', category: 'Pre-flight', time: '09:30', status: 'Completed' },
+            { id: 'T-301-2', title: 'Fuel Load Signoff & FMC Upload', category: 'Safety', time: '10:00', status: 'In Progress' }
+          ]
+        },
+        {
+          id: 'CR-302',
+          name: 'Purser Chloe Martin',
+          role: 'Senior Purser',
+          fleet: 'Cabin Crew',
+          idBadge: 'EK-71982',
+          verifiedBiometric: false,
+          tasks: [
+            { id: 'T-302-1', title: 'Pre-flight Medical Clearance', category: 'Pre-flight', time: '09:40', status: 'Action Required' },
+            { id: 'T-302-2', title: 'Galley Catering Audit', category: 'Cabin', time: '10:15', status: 'Pending' }
+          ]
+        }
+      ]
+    },
+    {
+      flight: 'FZ 812',
+      airline: 'flydubai',
+      aircraft: 'Boeing 737 MAX 8',
+      reg: 'A6-FDB',
+      route: 'DXB → RUH',
+      terminal: 'Terminal 2',
+      gate: 'C12',
+      date: 'Tue, 4 Aug',
+      boarding: '11:37',
+      departure: '12:00',
+      readiness: 85,
+      status: 'In Progress',
+      members: [
+        {
+          id: 'CR-401',
+          name: 'Capt. Hamad Al-Nuaimi',
+          role: 'Commander',
+          fleet: 'B737 Fleet',
+          idBadge: 'FZ-40129',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-401-1', title: 'Pre-flight Briefing & Biometrics', category: 'Pre-flight', time: '10:30', status: 'Completed' },
+            { id: 'T-401-2', title: 'Walkaround Flight Inspection', category: 'Safety', time: '11:00', status: 'Completed' }
+          ]
+        },
+        {
+          id: 'CR-402',
+          name: 'FA Sara Rahimi',
+          role: 'Cabin Attendant',
+          fleet: 'Cabin Crew',
+          idBadge: 'FZ-39120',
+          verifiedBiometric: true,
+          tasks: [
+            { id: 'T-402-1', title: 'Cabin Security Check', category: 'Safety', time: '11:05', status: 'Completed' },
+            { id: 'T-402-2', title: 'Passenger Boarding Prep', category: 'Boarding', time: '11:30', status: 'In Progress' }
+          ]
+        }
+      ]
+    }
+  ];
+
+  // Active Selected State
+  let currentCrewFlightCode = 'EK 001';
+  let selectedCrewMemberId = 'CR-101';
+
+  document.addEventListener('DOMContentLoaded', () => {
+    initCrewFlowModule();
+  });
+
+  setTimeout(() => {
+    initCrewFlowModule();
+  }, 50);
+
+  function initCrewFlowModule() {
+    renderFlightSelectorChips();
+    selectCrewFlight(currentCrewFlightCode);
+  }
+
+  // Render Horizontal Flight Selector Scrollable Cards
+  function renderFlightSelectorChips() {
+    const container = document.getElementById('crew-flights-scroll-container');
+    if (!container) return;
+
+    container.innerHTML = CREW_FLIGHTS_DATA.map(f => {
+      const isSelected = f.flight === currentCrewFlightCode;
+      let chipClass = 'chip-completed';
+      if (f.status === 'In Progress') chipClass = 'chip-warning';
+      if (f.status === 'Action Required') chipClass = 'chip-error';
+
+      return `
+        <div onclick="selectCrewFlight('${f.flight}')" style="min-width: 170px; padding: 12px 14px; background: ${isSelected ? 'var(--bg-surface)' : 'var(--bg-secondary)'}; border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 800; font-size: 15px; color: var(--color-primary);">${f.flight}</span>
+            <span class="chip ${chipClass}" style="font-size: 10px; padding: 1px 6px;">${f.status}</span>
+          </div>
+          <div class="caption-text" style="font-weight: 700;">${f.route}</div>
+          <div class="supporting-text" style="font-size: 11px; margin-top: 2px;">Gate ${f.gate} • ${f.members.length} Crew</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Filter flights by search text
+  function filterCrewFlights() {
+    const search = (document.getElementById('crew-flight-search')?.value || '').toUpperCase();
+    const chips = document.querySelectorAll('#crew-flights-scroll-container > div');
+    
+    CREW_FLIGHTS_DATA.forEach((f, idx) => {
+      const match = !search || f.flight.toUpperCase().includes(search) || f.route.toUpperCase().includes(search) || f.members.some(m => m.name.toUpperCase().includes(search));
+      if (chips[idx]) chips[idx].style.display = match ? 'block' : 'none';
+    });
+  }
+
+  // Select Flight
+  function selectCrewFlight(flightCode) {
+    currentCrewFlightCode = flightCode;
+    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode) || CREW_FLIGHTS_DATA[0];
+    
+    // Select first crew member by default
+    if (flightObj.members.length > 0) {
+      selectedCrewMemberId = flightObj.members[0].id;
+    }
+
+    renderFlightSelectorChips();
+    renderFlightSummaryCard(flightObj);
+    renderCrewRosterList(flightObj);
+    renderCrewTaskInspector(flightObj);
+    renderCrewTaskMatrix(flightObj);
+  }
+
+  // Render Selected Flight Summary Card
+  function renderFlightSummaryCard(f) {
+    const card = document.getElementById('selected-flight-summary-card');
+    if (!card) return;
+
+    let chipClass = 'chip-completed';
+    if (f.status === 'In Progress') chipClass = 'chip-warning';
+    if (f.status === 'Action Required') chipClass = 'chip-error';
+
+    card.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <h2 class="page-title" style="color: var(--color-primary); font-size: 26px;">${f.flight}</h2>
+            <span class="chip ${chipClass}" style="font-weight: 700; font-size: 13px;">${f.status.toUpperCase()}</span>
+            <span class="chip chip-info">${f.airline} • ${f.aircraft}</span>
+          </div>
+          <p class="supporting-text" style="margin-top: 4px;">
+            Route: <strong>${f.route}</strong> • Gate: <strong>${f.gate} (${f.terminal})</strong> • Boarding: <strong>${f.boarding}</strong> • Scheduled Departure: <strong>${f.departure}</strong>
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 16px; background: var(--bg-secondary); padding: 10px 16px; border-radius: 10px; border: var(--border-standard);">
+          <div>
+            <span class="caption-text">Assigned Crew</span>
+            <div style="font-size: 18px; font-weight: 800;">${f.members.length} Members</div>
+          </div>
+          <div style="width: 1px; background: var(--border-color);"></div>
+          <div>
+            <span class="caption-text">Crew Readiness</span>
+            <div style="font-size: 18px; font-weight: 800; color: ${f.readiness === 100 ? 'var(--color-success)' : 'var(--color-warning)'};">${f.readiness}%</div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Render Roster List for Selected Flight
+  function renderCrewRosterList(f) {
+    const container = document.getElementById('crew-members-list-container');
+    const badge = document.getElementById('crew-count-badge');
+    if (!container) return;
+
+    if (badge) badge.textContent = `${f.members.length} Members Assigned`;
+
+    container.innerHTML = f.members.map(m => {
+      const isSelected = m.id === selectedCrewMemberId;
+      const completedTasks = m.tasks.filter(t => t.status === 'Completed').length;
+      const totalTasks = m.tasks.length;
+      const hasActionReq = m.tasks.some(t => t.status === 'Action Required');
+
+      let statusChipClass = 'chip-completed';
+      let statusText = 'Ready';
+      if (completedTasks < totalTasks) {
+        statusChipClass = 'chip-in-progress';
+        statusText = `${completedTasks}/${totalTasks} Tasks`;
+      }
+      if (hasActionReq || !m.verifiedBiometric) {
+        statusChipClass = 'chip-action-required';
+        statusText = 'Action Required';
+      }
+
+      return `
+        <div onclick="selectCrewMember('${m.id}')" style="padding: 14px; background: ${isSelected ? 'var(--bg-surface)' : 'var(--bg-secondary)'}; border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}; border-radius: 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.15s ease;">
+          <div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; font-size: 15px; color: var(--text-main);">${m.name}</span>
+              ${m.verifiedBiometric ? '<span class="chip chip-completed" style="font-size: 10px; padding: 0 6px;">✓ One-ID</span>' : '<span class="chip chip-error" style="font-size: 10px; padding: 0 6px;">Unverified</span>'}
+            </div>
+            <div class="supporting-text" style="font-size: 12px; margin-top: 2px;">${m.role} • Staff ID: ${m.idBadge} • ${m.fleet}</div>
+          </div>
+          <span class="chip ${statusChipClass}" style="font-size: 12px;">${statusText}</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Select Member to inspect
+  function selectCrewMember(memberId) {
+    selectedCrewMemberId = memberId;
+    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === currentCrewFlightCode) || CREW_FLIGHTS_DATA[0];
+    renderCrewRosterList(flightObj);
+    renderCrewTaskInspector(flightObj);
+  }
+
+  // Render Crew Task Inspector (Right Column)
+  function renderCrewTaskInspector(f) {
+    const inspector = document.getElementById('crew-task-inspector-card');
+    if (!inspector) return;
+
+    const member = f.members.find(m => m.id === selectedCrewMemberId) || f.members[0];
+    if (!member) {
+      inspector.innerHTML = `<p class="supporting-text">No crew member selected.</p>`;
+      return;
+    }
+
+    const tasksHTML = member.tasks.map(t => {
+      let chipClass = 'chip-completed';
+      if (t.status === 'In Progress') chipClass = 'chip-in-progress';
+      if (t.status === 'Action Required') chipClass = 'chip-error';
+      if (t.status === 'Pending') chipClass = 'chip-info';
+
+      return `
+        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 10px; border: var(--border-standard); display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">${t.title}</div>
+            <div class="caption-text">Category: ${t.category} • Scheduled: ${t.time}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="chip ${chipClass}" style="font-size: 11px;">${t.status}</span>
+            <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px;" onclick="toggleCrewTaskStatus('${f.flight}', '${member.id}', '${t.id}')">Toggle Status</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    inspector.innerHTML = `
+      <div class="card-header" style="margin-bottom: 14px;">
+        <div>
+          <span class="caption-text">Crew Duty Task Breakdown</span>
+          <h3 class="card-title" style="font-size: 17px; color: var(--color-primary);">${member.name}</h3>
+        </div>
+        <span class="chip ${member.verifiedBiometric ? 'chip-completed' : 'chip-error'}">${member.role}</span>
+      </div>
+
+      <div style="background: var(--bg-secondary); padding: 12px; border-radius: 10px; margin-bottom: 16px; font-size: 13px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <div><strong>Staff ID:</strong> ${member.idBadge}</div>
+          <div><strong>Biometric Status:</strong> ${member.verifiedBiometric ? 'Verified ✓' : 'Pending Verification ⚠'}</div>
+          <div><strong>Fleet Division:</strong> ${member.fleet}</div>
+          <div><strong>Assigned Flight:</strong> ${f.flight} (${f.route})</div>
+        </div>
+      </div>
+
+      <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Assigned Duty Tasks (${member.tasks.length}):</h4>
+      <div>${tasksHTML}</div>
+    `;
+  }
+
+  // Render Full Crew Task Matrix Table
+  function renderCrewTaskMatrix(f) {
+    const tbody = document.getElementById('crew-task-matrix-tbody');
+    if (!tbody) return;
+
+    let rowsHTML = [];
+
+    f.members.forEach(m => {
+      m.tasks.forEach(t => {
+        let chipClass = 'chip-completed';
+        if (t.status === 'In Progress') chipClass = 'chip-in-progress';
+        if (t.status === 'Action Required') chipClass = 'chip-error';
+        if (t.status === 'Pending') chipClass = 'chip-info';
+
+        rowsHTML.push(`
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 12px 16px; font-weight: 600;">${m.name}</td>
+            <td style="padding: 12px 16px;" class="caption-text">${m.role}</td>
+            <td style="padding: 12px 16px; font-weight: 600;">${t.title}</td>
+            <td style="padding: 12px 16px;">
+              <span class="chip chip-info" style="font-size: 11px;">${t.category}</span>
+            </td>
+            <td style="padding: 12px 16px;" class="mono">${t.time}</td>
+            <td style="padding: 12px 16px;">
+              <span class="chip ${chipClass}" style="font-size: 11px;">${t.status}</span>
+            </td>
+            <td style="padding: 12px 16px; text-align: right;">
+              <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 10px; font-size: 11px;" onclick="toggleCrewTaskStatus('${f.flight}', '${m.id}', '${t.id}')">Update Status</button>
+            </td>
+          </tr>
+        `);
+      });
+    });
+
+    tbody.innerHTML = rowsHTML.join('');
+  }
+
+  // Toggle Task Status Interactively
+  function toggleCrewTaskStatus(flightCode, memberId, taskId) {
+    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode);
+    if (!flightObj) return;
+
+    const member = flightObj.members.find(m => m.id === memberId);
+    if (!member) return;
+
+    const task = member.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const statusCycle = ['Pending', 'In Progress', 'Completed', 'Action Required'];
+    const nextIdx = (statusCycle.indexOf(task.status) + 1) % statusCycle.length;
+    task.status = statusCycle[nextIdx];
+
+    // Recalculate flight readiness %
+    let totalAllTasks = 0;
+    let completedAllTasks = 0;
+
+    flightObj.members.forEach(m => {
+      m.tasks.forEach(t => {
+        totalAllTasks++;
+        if (t.status === 'Completed') completedAllTasks++;
+      });
+    });
+
+    flightObj.readiness = Math.round((completedAllTasks / (totalAllTasks || 1)) * 100);
+    if (flightObj.readiness === 100) flightObj.status = 'Verified';
+    else if (flightObj.members.some(m => m.tasks.some(t => t.status === 'Action Required'))) flightObj.status = 'Action Required';
+    else flightObj.status = 'In Progress';
+
+    selectCrewFlight(flightCode);
+  }
+
+  function confirmFlightCrewManifest() {
+    alert(`✓ Flight Crew Manifest for ${currentCrewFlightCode} has been verified and signed off for departure!`);
+  }
+</script>
