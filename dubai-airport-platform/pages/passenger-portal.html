@@ -1,10 +1,116 @@
 <!-- Passenger Portal (Public) — Emirates–DXB Passenger Journey Module
-     Passenger-facing self-service flow: flight search, booking, One-ID auto check-in,
-     seat preference, and digital boarding pass.
+     Passenger-facing self-service flow: flight search, flight selection from multiple
+     results, booking, One-ID auto check-in seat preference, and digital boarding pass.
      Every completed booking / check-in is persisted to localStorage so the Passenger
      Journey admin module can display it in the OCC queue. -->
 
+<style>
+  /* Passenger Portal motion — scoped to #pp-wrapper so it never touches shared/team styles. */
+  #pp-wrapper .pp-view-enter {
+    animation: ppViewEnter 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes ppViewEnter {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #pp-wrapper .pp-card-enter {
+    opacity: 0;
+    animation: ppCardEnter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes ppCardEnter {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #pp-wrapper .card {
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+  }
+  #pp-wrapper .pp-flight-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    border-color: var(--color-gold);
+  }
+
+  #pp-wrapper .pp-seat-option {
+    border: 1px solid var(--border-color);
+    background-color: transparent;
+    transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.15s ease;
+  }
+  #pp-wrapper .pp-seat-option:has(input:checked) {
+    border-color: var(--color-primary);
+    background-color: rgba(215, 26, 33, 0.06);
+    transform: translateY(-1px);
+  }
+
+  #pp-wrapper .btn-primary,
+  #pp-wrapper .btn-secondary {
+    transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  }
+  #pp-wrapper .btn-primary:active,
+  #pp-wrapper .btn-secondary:active {
+    transform: scale(0.97);
+  }
+
+  #pp-wrapper .pp-spinner {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto;
+    border-radius: 999px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--color-gold);
+    animation: ppSpin 0.8s linear infinite;
+  }
+  @keyframes ppSpin {
+    to { transform: rotate(360deg); }
+  }
+
+  #pp-wrapper .pp-success-icon {
+    animation: ppPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes ppPop {
+    0% { opacity: 0; transform: scale(0.4); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  #pp-wrapper .pp-boarding-pass-reveal {
+    animation: ppBoardingReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes ppBoardingReveal {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  #pp-wrapper .pp-booking-row {
+    opacity: 0;
+    animation: ppCardEnter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #pp-wrapper .pp-view-enter,
+    #pp-wrapper .pp-card-enter,
+    #pp-wrapper .pp-success-icon,
+    #pp-wrapper .pp-boarding-pass-reveal,
+    #pp-wrapper .pp-booking-row,
+    #pp-wrapper .pp-spinner {
+      animation: none !important;
+    }
+  }
+</style>
+
 <div id="pp-wrapper" style="max-width: 640px; margin: 0 auto;">
+
+  <!-- Persistent auth status strip — visible above every view -->
+  <div id="pp-auth-status" class="card" style="margin-bottom: 20px; padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div id="pp-auth-icon" style="width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;"></div>
+      <div>
+        <p class="body-text" id="pp-auth-text" style="font-weight: 700; font-size: 14px;">Not signed in</p>
+        <p class="caption-text" id="pp-auth-subtext">Sign in to book flights and manage check-in</p>
+      </div>
+    </div>
+    <div id="pp-auth-actions" style="display: flex; gap: 8px;"></div>
+  </div>
 
   <!-- VIEW 1: HOME / FLIGHT SEARCH -->
   <section id="pp-view-home">
@@ -36,7 +142,7 @@
         </div>
       </div>
 
-      <button class="btn-primary" style="margin-top: 20px;" onclick="ppSwitchView('pp-view-booking')">
+      <button class="btn-primary" style="margin-top: 20px;" onclick="ppSearchFlights()">
         Search Flights →
       </button>
     </div>
@@ -51,25 +157,62 @@
     </div>
   </section>
 
-  <!-- VIEW 2: FLIGHT SELECTION & AUTO CHECK-IN PREFERENCES -->
-  <section id="pp-view-booking" style="display: none;">
+  <!-- VIEW 2: FLIGHT RESULTS (MULTIPLE OPTIONS TO CHOOSE FROM) -->
+  <section id="pp-view-results" style="display: none;">
     <button class="btn-secondary" style="width: auto; height: 36px; padding: 0 14px; font-size: 13px; margin-bottom: 16px;" onclick="ppSwitchView('pp-view-home')">
       ← Back to search
     </button>
 
-    <h2 class="section-title" style="margin-bottom: 16px;">Select Flight & Preferences</h2>
+    <h2 class="section-title" style="margin-bottom: 4px;">Flights to <span id="pp-results-city">London</span></h2>
+    <p class="supporting-text" style="margin-bottom: 16px;">All times shown are local — departure in Dubai time, arrival in destination time.</p>
+
+    <div id="pp-results-list" style="display: flex; flex-direction: column; gap: 12px;">
+      <!-- Injected by JS -->
+    </div>
+  </section>
+
+  <!-- VIEW 2b: SIGN-IN REQUIRED GATE (shown when a guest tries to book a selected flight) -->
+  <section id="pp-view-auth-required" style="display: none; text-align: center; padding: 40px 0;">
+    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-warning); color: var(--color-warning); margin-bottom: 20px;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+
+    <h2 class="section-title" style="margin-bottom: 12px;">Sign In Required</h2>
+    <p class="body-text" style="max-width: 440px; margin: 0 auto 8px; color: var(--text-secondary);">
+      To book <strong id="pp-auth-required-flight">this flight</strong> and set up automatic One-ID check-in, please sign in to your Emirates Skywards account first.
+    </p>
+    <p class="caption-text" style="margin-bottom: 28px;">Your flight selection will still be here when you come back — just search again and pick it once you're signed in.</p>
+
+    <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; max-width: 380px; margin: 0 auto;">
+      <button class="btn-primary" style="width: auto; padding: 0 28px;" onclick="switchRoute('signin')">Sign In →</button>
+      <button class="btn-secondary" style="width: auto; padding: 0 28px;" onclick="switchRoute('signup')">Create Account</button>
+    </div>
+
+    <button class="btn-secondary" style="width: auto; margin-top: 20px; padding: 0 18px; font-size: 13px; height: 36px;" onclick="ppSwitchView('pp-view-results')">
+      ← Back to flight results
+    </button>
+  </section>
+
+  <!-- VIEW 3: SELECTED FLIGHT — CABIN CLASS & AUTO CHECK-IN PREFERENCES -->
+  <section id="pp-view-booking" style="display: none;">
+    <button class="btn-secondary" style="width: auto; height: 36px; padding: 0 14px; font-size: 13px; margin-bottom: 16px;" onclick="ppSwitchView('pp-view-results')">
+      ← Back to flight results
+    </button>
+
+    <h2 class="section-title" style="margin-bottom: 16px;">Confirm Flight & Preferences</h2>
 
     <!-- Selected Flight Card -->
-    <div class="card" style="border-color: var(--color-gold); position: relative;">
-      <span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;">Fastest</span>
+    <div class="card pp-card-enter" style="border-color: var(--color-gold); position: relative;">
+      <span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;" id="pp-booking-tag">Selected</span>
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates <span id="pp-flight-no">EK 001</span></span>
         <span class="body-text" style="font-weight: 700; font-size: 18px;" id="pp-price">$450</span>
       </div>
       <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="text-align: center;">
-          <div style="font-size: 22px; font-weight: 800;">08:30</div>
+          <div style="font-size: 22px; font-weight: 800;" id="pp-depart-time">08:30</div>
           <div class="caption-text" id="pp-leg-from">DXB</div>
+          <div class="caption-text" style="color: var(--text-dim);">Local time in Dubai</div>
         </div>
         <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px;">
           <span class="caption-text" id="pp-duration">7h 20m</span>
@@ -81,6 +224,7 @@
         <div style="text-align: center;">
           <div style="font-size: 22px; font-weight: 800;" id="pp-arrive-time">12:50</div>
           <div class="caption-text" id="pp-leg-to">LHR</div>
+          <div class="caption-text" style="color: var(--text-dim);" id="pp-arrive-tz-note">Local time in London</div>
         </div>
       </div>
     </div>
@@ -110,11 +254,11 @@
 
       <label class="input-label" style="display: block; margin-bottom: 10px;">Select your seat preference for auto-assignment:</label>
       <div class="grid-2col" style="margin-bottom: 0;">
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+        <label class="pp-seat-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-input); cursor: pointer;">
           <input type="radio" name="pp-seat-pref" value="Window" checked style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Window Seat</span>
         </label>
-        <label style="display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--border-color); border-radius: var(--radius-input); cursor: pointer;">
+        <label class="pp-seat-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-input); cursor: pointer;">
           <input type="radio" name="pp-seat-pref" value="Aisle" style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Aisle Seat</span>
         </label>
@@ -126,9 +270,9 @@
     </button>
   </section>
 
-  <!-- VIEW 3: BOOKING CONFIRMED / WAITING FOR AUTO CHECK-IN -->
+  <!-- VIEW 4: BOOKING CONFIRMED / WAITING FOR AUTO CHECK-IN -->
   <section id="pp-view-success" style="display: none; text-align: center; padding: 40px 0;">
-    <div style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
+    <div class="pp-success-icon" style="display: inline-flex; align-items: center; justify-content: center; width: 88px; height: 88px; border-radius: 999px; background: var(--bg-success); color: var(--color-success); margin-bottom: 20px;">
       <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
 
@@ -147,20 +291,21 @@
       <button class="btn-secondary" id="pp-sim-btn" style="width: auto; padding: 0 22px;" onclick="ppSimulateCheckIn()">
         Fast Forward 24h →
       </button>
-      <div id="pp-loading" style="display: none; margin-top: 16px;">
-        <p class="supporting-text" style="color: var(--color-gold);">Processing biometric auto check-in…</p>
+      <div id="pp-loading" style="display: none; margin-top: 20px;">
+        <div class="pp-spinner"></div>
+        <p class="supporting-text" style="color: var(--color-gold); margin-top: 12px;">Processing biometric auto check-in…</p>
       </div>
     </div>
   </section>
 
-  <!-- VIEW 4: DIGITAL BOARDING PASS -->
+  <!-- VIEW 5: DIGITAL BOARDING PASS -->
   <section id="pp-view-boarding-pass" style="display: none;">
     <div style="text-align: center; margin-bottom: 24px;">
       <span class="chip chip-completed" style="margin-bottom: 12px;">Auto Check-in Complete</span>
       <h2 class="section-title">Your Digital Boarding Pass is Ready</h2>
     </div>
 
-    <div class="card" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
+    <div class="card pp-boarding-pass-reveal" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
       <!-- Injected by JS -->
     </div>
 
@@ -180,21 +325,81 @@
   (function () {
     const PP_STORE_KEY = 'DXB_PASSENGER_BOOKINGS';
 
-    const PP_ROUTES = {
-      LHR: { city: 'London', flight: 'EK 001', arrive: '12:50', duration: '7h 20m', gate: 'A12', boarding: '07:45' },
-      CDG: { city: 'Paris', flight: 'EK 073', arrive: '12:10', duration: '6h 40m', gate: 'B08', boarding: '08:15' },
-      JFK: { city: 'New York', flight: 'EK 201', arrive: '14:25', duration: '14h 05m', gate: 'A22', boarding: '09:30' },
-      RUH: { city: 'Riyadh', flight: 'EK 817', arrive: '10:05', duration: '2h 15m', gate: 'C03', boarding: '11:10' }
+    // Dubai (DXB) does not observe daylight saving — fixed UTC+4 year-round.
+    const DXB_UTC_OFFSET = 4;
+
+    // Destination UTC offsets reflect local time in August (northern-hemisphere summer / DST).
+    const PP_DESTINATIONS = {
+      LHR: { city: 'London', utcOffset: 1 },
+      CDG: { city: 'Paris', utcOffset: 2 },
+      JFK: { city: 'New York', utcOffset: -4 },
+      RUH: { city: 'Riyadh', utcOffset: 3 }
     };
 
-    const PP_FARES = {
-      'Economy': 450,
-      'Premium Economy': 780,
-      'Business': 1850,
-      'First': 3900
+    // Multiple selectable flights per destination — departure time (Dubai local) + flight duration.
+    // Arrival time is always derived from these two values plus the real UTC offset, never hand-typed.
+    const PP_FLIGHT_OPTIONS = {
+      LHR: [
+        { flightNo: 'EK 001', depTime: '08:30', durationMin: 440, tag: 'Fastest', baseFare: 450, gate: 'A12' },
+        { flightNo: 'EK 003', depTime: '21:35', durationMin: 445, tag: 'Cheapest', baseFare: 410, gate: 'A18' }
+      ],
+      CDG: [
+        { flightNo: 'EK 073', depTime: '08:15', durationMin: 400, tag: 'Fastest', baseFare: 420, gate: 'B08' },
+        { flightNo: 'EK 075', depTime: '14:45', durationMin: 405, tag: 'Cheapest', baseFare: 380, gate: 'B14' }
+      ],
+      JFK: [
+        { flightNo: 'EK 201', depTime: '08:40', durationMin: 845, tag: 'Fastest', baseFare: 980, gate: 'A22' },
+        { flightNo: 'EK 203', depTime: '21:20', durationMin: 850, tag: 'Cheapest', baseFare: 890, gate: 'A26' }
+      ],
+      RUH: [
+        { flightNo: 'EK 817', depTime: '09:15', durationMin: 135, tag: 'Fastest', baseFare: 210, gate: 'C03' },
+        { flightNo: 'EK 819', depTime: '18:30', durationMin: 140, tag: 'Cheapest', baseFare: 190, gate: 'C07' }
+      ]
     };
 
+    const PP_CLASS_MULTIPLIER = {
+      'Economy': 1,
+      'Premium Economy': 1.75,
+      'Business': 4,
+      'First': 8
+    };
+
+    let ppSelectedFlight = null;
     let ppActiveBookingRef = null;
+
+    /* ---------- Time math (all arrival times are computed, never hardcoded) ---------- */
+    function ppTimeToMinutes(time) {
+      const [h, m] = time.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function ppMinutesToTime(totalMin) {
+      const h = String(Math.floor(totalMin / 60)).padStart(2, '0');
+      const m = String(totalMin % 60).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    // Converts a Dubai-local departure time + flight duration into destination-local arrival time.
+    function ppComputeArrival(depTime, durationMin, destUtcOffset) {
+      const depUTCmin = ppTimeToMinutes(depTime) - DXB_UTC_OFFSET * 60;
+      const arrUTCmin = depUTCmin + durationMin;
+      let arrLocalMin = arrUTCmin + destUtcOffset * 60;
+      let dayOffset = 0;
+      while (arrLocalMin < 0) { arrLocalMin += 1440; dayOffset -= 1; }
+      while (arrLocalMin >= 1440) { arrLocalMin -= 1440; dayOffset += 1; }
+      return { time: ppMinutesToTime(arrLocalMin), dayOffset };
+    }
+
+    function ppFormatDuration(min) {
+      return `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+    }
+
+    // Boarding closes 45 minutes before scheduled departure, in Dubai local time.
+    function ppBoardingTime(depTime) {
+      let total = ppTimeToMinutes(depTime) - 45;
+      if (total < 0) total += 1440;
+      return ppMinutesToTime(total);
+    }
 
     /* ---------- Shared storage (read by the admin Passenger Journey module) ---------- */
     function ppLoadBookings() {
@@ -216,62 +421,194 @@
       return 'Guest Passenger';
     }
 
+    /* ---------- Auth status (reads/writes the shared `currentUser` global from app.js) ---------- */
+    function ppIsLoggedIn() {
+      return typeof currentUser !== 'undefined' && currentUser && currentUser.role !== 'guest';
+    }
+
+    function ppRenderAuthStatus() {
+      const icon = document.getElementById('pp-auth-icon');
+      const text = document.getElementById('pp-auth-text');
+      const subtext = document.getElementById('pp-auth-subtext');
+      const actions = document.getElementById('pp-auth-actions');
+      if (!icon) return;
+
+      if (ppIsLoggedIn()) {
+        icon.style.backgroundColor = 'var(--bg-success)';
+        icon.style.color = 'var(--color-success)';
+        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+        text.textContent = currentUser.name;
+        subtext.textContent = `Signed in${currentUser.email ? ' • ' + currentUser.email : ''}`;
+        actions.innerHTML = `
+          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="ppLogout()">
+            Log Out
+          </button>
+        `;
+      } else {
+        icon.style.backgroundColor = 'var(--bg-secondary)';
+        icon.style.color = 'var(--text-secondary)';
+        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+        text.textContent = 'Not signed in';
+        subtext.textContent = 'Sign in to book flights and manage check-in';
+        actions.innerHTML = `
+          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="switchRoute('signin')">
+            Sign In
+          </button>
+        `;
+      }
+    }
+
+    function ppLogout() {
+      currentUser = { name: 'Guest User', email: '', role: 'guest' };
+      document.getElementById('pp-greeting-name').textContent = ppPassengerName();
+      ppRenderAuthStatus();
+      ppSwitchView('pp-view-home');
+    }
+
     /* ---------- View router ---------- */
     function ppSwitchView(viewId) {
-      ['pp-view-home', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
+      ['pp-view-home', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
       const target = document.getElementById(viewId);
-      if (target) target.style.display = 'block';
+      if (target) {
+        target.style.display = 'block';
+        // Restart the entrance animation on every visit, not just the first paint.
+        target.classList.remove('pp-view-enter');
+        void target.offsetWidth; // force reflow so the class re-triggers
+        target.classList.add('pp-view-enter');
+      }
 
       if (viewId === 'pp-view-home') ppRenderMyBookings();
-      if (viewId === 'pp-view-booking') ppUpdateFlightPreview();
 
       window.scrollTo(0, 0);
     }
 
-    function ppUpdateFlightPreview() {
+    /* ---------- Flight results (multiple selectable flights) ---------- */
+    function ppSearchFlights() {
       const to = document.getElementById('pp-to').value;
-      const route = PP_ROUTES[to];
-      document.getElementById('pp-flight-no').textContent = route.flight;
-      document.getElementById('pp-leg-from').textContent = document.getElementById('pp-from').value;
-      document.getElementById('pp-leg-to').textContent = to;
-      document.getElementById('pp-arrive-time').textContent = route.arrive;
-      document.getElementById('pp-duration').textContent = route.duration;
+      const dest = PP_DESTINATIONS[to];
+      const options = PP_FLIGHT_OPTIONS[to];
+
+      document.getElementById('pp-results-city').textContent = dest.city;
+
+      document.getElementById('pp-results-list').innerHTML = options.map((opt, index) => {
+        const arrival = ppComputeArrival(opt.depTime, opt.durationMin, dest.utcOffset);
+        return `
+          <div class="card pp-flight-card pp-card-enter" style="margin-bottom: 0; position: relative; animation-delay: ${index * 90}ms;">
+            ${opt.tag ? `<span class="chip chip-completed" style="position: absolute; top: 16px; right: 16px;">${opt.tag}</span>` : ''}
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <span class="body-text" style="font-weight: 700; color: var(--color-primary);">Emirates ${opt.flightNo}</span>
+              <span class="body-text" style="font-weight: 700; font-size: 18px;">$${Math.round(opt.baseFare).toLocaleString('en-US')}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div style="text-align: center;">
+                <div style="font-size: 20px; font-weight: 800;">${opt.depTime}</div>
+                <div class="caption-text">DXB</div>
+                <div class="caption-text" style="color: var(--text-dim);">Local time in Dubai</div>
+              </div>
+              <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 16px;">
+                <span class="caption-text">${ppFormatDuration(opt.durationMin)}</span>
+                <div style="width: 100%; height: 1px; background: var(--border-color); margin: 8px 0;"></div>
+                <span class="caption-text">Direct</span>
+              </div>
+              <div style="text-align: center;">
+                <div style="font-size: 20px; font-weight: 800;">${arrival.time}${arrival.dayOffset > 0 ? '<span style="font-size:11px; color: var(--color-warning); vertical-align: top;"> +' + arrival.dayOffset + 'd</span>' : ''}</div>
+                <div class="caption-text">${to}</div>
+                <div class="caption-text" style="color: var(--text-dim);">Local time in ${dest.city}</div>
+              </div>
+            </div>
+            <button class="btn-primary" onclick="ppSelectFlight('${to}', ${index})">
+              Select This Flight →
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      ppSwitchView('pp-view-results');
+    }
+
+    function ppSelectFlight(to, index) {
+      const dest = PP_DESTINATIONS[to];
+      const opt = PP_FLIGHT_OPTIONS[to][index];
+      const arrival = ppComputeArrival(opt.depTime, opt.durationMin, dest.utcOffset);
+
+      ppSelectedFlight = {
+        to: to,
+        destCity: dest.city,
+        flightNo: opt.flightNo,
+        depTime: opt.depTime,
+        durationMin: opt.durationMin,
+        arriveTime: arrival.time,
+        arriveDayOffset: arrival.dayOffset,
+        tag: opt.tag,
+        baseFare: opt.baseFare,
+        gate: opt.gate,
+        boardingTime: ppBoardingTime(opt.depTime)
+      };
+
+      if (!ppIsLoggedIn()) {
+        document.getElementById('pp-auth-required-flight').textContent = `${opt.flightNo} to ${dest.city}`;
+        ppSwitchView('pp-view-auth-required');
+        return;
+      }
+
+      ppRenderBookingView();
+      ppSwitchView('pp-view-booking');
+    }
+
+    function ppRenderBookingView() {
+      const f = ppSelectedFlight;
+      document.getElementById('pp-booking-tag').textContent = f.tag || 'Selected';
+      document.getElementById('pp-flight-no').textContent = f.flightNo;
+      document.getElementById('pp-leg-from').textContent = 'DXB';
+      document.getElementById('pp-leg-to').textContent = f.to;
+      document.getElementById('pp-depart-time').textContent = f.depTime;
+      document.getElementById('pp-arrive-time').textContent =
+        f.arriveTime + (f.arriveDayOffset > 0 ? ` (+${f.arriveDayOffset}d)` : '');
+      document.getElementById('pp-arrive-tz-note').textContent = `Local time in ${f.destCity}`;
+      document.getElementById('pp-duration').textContent = ppFormatDuration(f.durationMin);
       ppUpdateFarePreview();
     }
 
     function ppUpdateFarePreview() {
+      if (!ppSelectedFlight) return;
       const cls = document.getElementById('pp-class').value;
-      document.getElementById('pp-price').textContent = '$' + PP_FARES[cls].toLocaleString('en-US');
+      const fare = Math.round(ppSelectedFlight.baseFare * PP_CLASS_MULTIPLIER[cls]);
+      document.getElementById('pp-price').textContent = '$' + fare.toLocaleString('en-US');
     }
 
     /* ---------- Booking ---------- */
     function ppConfirmBooking() {
-      const to = document.getElementById('pp-to').value;
-      const route = PP_ROUTES[to];
+      if (!ppIsLoggedIn()) {
+        ppSwitchView('pp-view-auth-required');
+        return;
+      }
+
+      const f = ppSelectedFlight;
       const cls = document.getElementById('pp-class').value;
       const seatPref = document.querySelector('input[name="pp-seat-pref"]:checked').value;
       const date = document.getElementById('pp-date').value;
+      const fare = Math.round(f.baseFare * PP_CLASS_MULTIPLIER[cls]);
 
       const ref = 'EK-' + Math.floor(10000 + Math.random() * 89999);
 
       const booking = {
         ref: ref,
         name: ppPassengerName(),
-        flight: route.flight,
+        flight: f.flightNo,
         from: 'DXB',
-        to: to,
-        route: 'DXB → ' + to,
-        destination: route.city,
+        to: f.to,
+        route: 'DXB → ' + f.to,
+        destination: f.destCity,
         date: date,
         cabinClass: cls,
-        fare: PP_FARES[cls],
+        fare: fare,
         seatPreference: seatPref,
         seat: '—',
-        gate: route.gate,
-        boarding: route.boarding,
+        gate: f.gate,
+        boarding: f.boardingTime,
         terminal: 'Terminal 3',
         status: 'Booked — Auto Check-in Pending',
         bookedAt: new Date().toISOString()
@@ -283,7 +620,7 @@
       ppActiveBookingRef = ref;
 
       document.getElementById('pp-success-summary').textContent =
-        `Your flight to ${route.city} has been successfully booked using your One-ID profile.`;
+        `Your flight to ${f.destCity} has been successfully booked using your One-ID profile.`;
       document.getElementById('pp-success-ref').textContent = ref;
 
       // Reset the simulate control in case the passenger books more than once per session
@@ -341,6 +678,7 @@
             <div style="text-align: center;">
               <span class="caption-text">Boarding Time</span>
               <p style="font-weight: 800; font-size: 24px;">${b.boarding}</p>
+              <span class="caption-text" style="color: var(--text-dim);">Local time in Dubai</span>
             </div>
             <div style="text-align: right;">
               <span class="caption-text">Seat</span>
@@ -357,11 +695,17 @@
       `;
     }
 
-    /* ---------- My bookings list on home ---------- */
+    /* ---------- My bookings list on home (only for the signed-in passenger) ---------- */
     function ppRenderMyBookings() {
-      const list = ppLoadBookings();
       const card = document.getElementById('pp-my-bookings-card');
       if (!card) return;
+
+      if (!ppIsLoggedIn()) {
+        card.style.display = 'none';
+        return;
+      }
+
+      const list = ppLoadBookings().filter(b => b.name === currentUser.name);
 
       if (list.length === 0) {
         card.style.display = 'none';
@@ -372,10 +716,10 @@
       document.getElementById('pp-my-bookings-count').textContent =
         `${list.length} Booking${list.length === 1 ? '' : 's'}`;
 
-      document.getElementById('pp-my-bookings-list').innerHTML = list.slice(0, 4).map(b => {
+      document.getElementById('pp-my-bookings-list').innerHTML = list.slice(0, 4).map((b, index) => {
         const issued = b.status.indexOf('Checked-In') === 0;
         return `
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; gap: 12px;">
+          <div class="pp-booking-row" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--bg-secondary); border-radius: 8px; gap: 12px; animation-delay: ${index * 70}ms;">
             <div>
               <p class="body-text" style="font-weight: 700; font-size: 14px;">${b.flight} • ${b.route}</p>
               <span class="caption-text">${b.ref} • ${b.cabinClass} • ${b.date}</span>
@@ -390,13 +734,17 @@
 
     function ppInit() {
       document.getElementById('pp-greeting-name').textContent = ppPassengerName();
+      ppRenderAuthStatus();
       ppRenderMyBookings();
     }
 
     window.ppSwitchView = ppSwitchView;
+    window.ppSearchFlights = ppSearchFlights;
+    window.ppSelectFlight = ppSelectFlight;
     window.ppConfirmBooking = ppConfirmBooking;
     window.ppSimulateCheckIn = ppSimulateCheckIn;
     window.ppUpdateFarePreview = ppUpdateFarePreview;
+    window.ppLogout = ppLogout;
 
     ppInit();
   })();
