@@ -38,6 +38,42 @@ const SHARED_SCENARIO = {
   aircraft: 'A380-800',
 }
 
+// Global Shared OCC Telemetry State across Turnaround, Gate Management & Tower Control
+window.OCC_SHARED_STATE = {
+  flights: [
+    { flight: 'EK 202', airline: 'Emirates', aircraft: 'Airbus A380', reg: 'A6-EOD', gate: 'A14', terminal: 'T3', arrival: '08:20', departure: '10:45', estDeparture: '10:45', status: 'On Time', delayMin: 0, runway: '12L', slot: '10:45Z', delayReason: 'On Schedule' },
+    { flight: 'EK 501', airline: 'Emirates', aircraft: 'Boeing 777', reg: 'A6-EBF', gate: 'B22', terminal: 'T3', arrival: '09:05', departure: '11:20', estDeparture: '11:29', status: 'At Risk', delayMin: 9, runway: '12R', slot: '11:29Z', delayReason: 'Baggage Loading (+8m)' },
+    { flight: 'EK 303', airline: 'Emirates', aircraft: 'Airbus A350', reg: 'A6-XAA', gate: 'B07', terminal: 'T3', arrival: '09:30', departure: '11:35', estDeparture: '11:50', status: 'Delayed', delayMin: 15, runway: '12L', slot: '11:50Z', delayReason: 'Refueling Hydrant (+15m)' },
+    { flight: 'FZ 812', airline: 'flydubai', aircraft: 'Boeing 737', reg: 'A6-FDB', gate: 'C12', terminal: 'T2', arrival: '10:00', departure: '12:00', estDeparture: '12:00', status: 'On Time', delayMin: 0, runway: '12R', slot: '12:00Z', delayReason: 'On Schedule' },
+    { flight: 'BA 107', airline: 'British Airways', aircraft: 'Boeing 787', reg: 'G-ZBJA', gate: 'D04', terminal: 'T1', arrival: '07:45', departure: '09:30', estDeparture: '09:30', status: 'Completed', delayMin: 0, runway: '12L', slot: '09:30Z', delayReason: 'Departed' },
+    { flight: 'LH 630', airline: 'Lufthansa', aircraft: 'Airbus A350', reg: 'D-AIXA', gate: 'D12', terminal: 'T1', arrival: '08:50', departure: '11:10', estDeparture: '11:10', status: 'On Time', delayMin: 0, runway: '12R', slot: '11:10Z', delayReason: 'On Schedule' }
+  ],
+
+  reassignGate(flightCode, newGate) {
+    const item = this.flights.find(f => f.flight === flightCode || f.flight.replace(' ', '') === flightCode.replace(' ', ''));
+    if (item) {
+      const oldGate = item.gate;
+      item.gate = newGate;
+      alert(`[OCC Dispatch] Gate Reassigned for ${item.flight}: Changed from Gate ${oldGate} ➔ Gate ${newGate} to prevent apron delay propagation!`);
+      this.notify();
+    }
+  },
+
+  reassignTowerSlot(flightCode, newRunway, newSlot) {
+    const item = this.flights.find(f => f.flight === flightCode || f.flight.replace(' ', '') === flightCode.replace(' ', ''));
+    if (item) {
+      item.runway = newRunway;
+      item.slot = newSlot;
+      alert(`[Tower Control] Departure Slot Reassigned for ${item.flight}: Moved to Runway ${newRunway} at ${newSlot} to bypass pushback congestion!`);
+      this.notify();
+    }
+  },
+
+  listeners: [],
+  onChange(fn) { this.listeners.push(fn); },
+  notify() { this.listeners.forEach(fn => fn()); }
+};
+
 /* —— Persistence —— */
 function initUserDatabase() {
   const stored = localStorage.getItem(STORAGE_USERS)

@@ -971,10 +971,11 @@
             </div>
           </div>
 
-          <!-- Actions based on RBAC -->
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-primary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Escalate', '${flight.flight}')">Escalate Delay</button>
-            <button class="btn-secondary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Reassign', '${flight.flight}')">Reassign Baggage Team</button>
+          <!-- Cross-module Action Controls -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-primary" style="height: 36px; font-size: 12px;" onclick="handleDelayAction('Escalate', '${flight.flight}')">Escalate Delay</button>
+            <button class="btn-secondary" style="height: 36px; font-size: 12px;" onclick="window.OCC_SHARED_STATE ? window.OCC_SHARED_STATE.reassignGate('${flight.flight}', 'A18') : alert('Gate reassigned')">Reassign Gate ➔ A18</button>
+            <button class="btn-primary" style="height: 36px; font-size: 12px; background-color: var(--color-warning); border: none;" onclick="window.OCC_SHARED_STATE ? window.OCC_SHARED_STATE.reassignTowerSlot('${flight.flight}', '12R', '11:29Z') : alert('Slot reassigned')">Reassign Tower Slot ➔ 12R</button>
           </div>
         `;
       }
