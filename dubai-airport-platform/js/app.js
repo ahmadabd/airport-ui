@@ -363,11 +363,11 @@ function renderSignInView(banner) {
       <form onsubmit="event.preventDefault(); handleCustomerLogin();">
         <div class="input-group">
           <label class="input-label">Email</label>
-          <input type="email" id="signin-email" class="input-field" value="passenger@emirates.com" required>
+          <input type="email" id="signin-email" class="input-field" placeholder="name@example.com" required>
         </div>
         <div class="input-group">
           <label class="input-label">Password</label>
-          <input type="password" id="signin-password" class="input-field" value="123" required>
+          <input type="password" id="signin-password" class="input-field" placeholder="••••••••" required>
         </div>
         <button class="btn-primary" type="submit" style="width:100%; margin-top:8px;">Sign in →</button>
       </form>
@@ -375,10 +375,6 @@ function renderSignInView(banner) {
         No account? <a href="#signup" onclick="switchRoute('signup')" style="color: var(--color-primary); font-weight:700;">Sign up</a>
         · Staff? <a href="#staff-login" onclick="switchRoute('staff-login')" style="color: var(--color-primary); font-weight:700;">OCC login</a>
       </p>
-      <div class="staff-login-hint">
-        Demo customer: <code>passenger@emirates.com</code> / <code>123</code><br>
-        Demo crew: <code>crew@dxb.gov.ae</code> / <code>Crew123!</code>
-      </div>
     </div>
   `
 }
@@ -566,19 +562,14 @@ function renderStaffLogin() {
       <form onsubmit="event.preventDefault(); handleStaffLogin();">
         <div class="input-group">
           <label class="input-label">Staff email</label>
-          <input type="email" id="staff-email" class="input-field" value="admin@dxb.gov.ae" required>
+          <input type="email" id="staff-email" class="input-field" placeholder="staff@dxb.gov.ae" required>
         </div>
         <div class="input-group">
           <label class="input-label">Password</label>
-          <input type="password" id="staff-password" class="input-field" value="admin" required>
+          <input type="password" id="staff-password" class="input-field" placeholder="••••••••" required>
         </div>
         <button class="btn-primary" type="submit" style="width:100%;">Authenticate →</button>
       </form>
-      <div class="staff-login-hint">
-        <div>Admin: <code>admin@dxb.gov.ae</code> / <code>admin</code></div>
-        <div>Tower: <code>tower@dxb.gov.ae</code> / <code>tower</code></div>
-        <div>Ops: <code>ops@dxb.gov.ae</code> / <code>ops</code></div>
-      </div>
       <p style="margin-top:16px; text-align:center;">
         <a href="#landing" onclick="event.preventDefault(); applyThemeForRole('guest'); switchRoute('landing')" style="color: var(--text-secondary);">← Back to customer site</a>
       </p>
@@ -670,27 +661,17 @@ function renderAdminDashboard(host) {
     .join('')
 
   host.innerHTML = `
-    <div class="grid-2col" style="margin-bottom: 16px;">
-      <div class="card" style="margin-bottom:0;">
-        <div class="card-header">
-          <div>
-            <span class="caption-text">Live scenario</span>
-            <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
-          </div>
-          <span class="chip chip-completed">Scheduled</span>
+    <div class="card" style="margin-bottom: 16px;">
+      <div class="card-header">
+        <div>
+          <span class="caption-text">Live scenario</span>
+          <h2 class="card-title" style="color: var(--color-primary);">${SHARED_SCENARIO.flight}</h2>
         </div>
-        <p class="supporting-text">${SHARED_SCENARIO.route} · ${SHARED_SCENARIO.terminal} · Boarding ${SHARED_SCENARIO.boarding}</p>
-        <div style="margin-top:12px;">${moduleChips}</div>
+        <span class="chip chip-completed">Scheduled</span>
       </div>
-      <div class="card" style="margin-bottom:0;">
-        <h3 class="card-title">Your access</h3>
-        <p class="supporting-text" style="margin: 8px 0 12px;">${access.description}</p>
-        <p class="body-text" style="font-family: var(--font-mono); font-size: 0.8rem;">
-          Modules: ${access.modules.join(' · ')}
-        </p>
-      </div>
+      <p class="supporting-text">${SHARED_SCENARIO.route} · ${SHARED_SCENARIO.terminal} · Boarding ${SHARED_SCENARIO.boarding}</p>
+      <div style="margin-top:12px;">${moduleChips}</div>
     </div>
-    ${role === 'admin' ? renderRoleMatrixHTML() : ''}
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">Operational snapshot</h3>
