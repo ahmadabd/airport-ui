@@ -169,10 +169,31 @@ function buildOpsNav() {
 }
 
 function updateOpsClock() {
-  const el = document.getElementById('ops-clock')
-  if (!el || !document.body.classList.contains('ops-active')) return
   const now = new Date()
-  el.textContent = `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}:${String(now.getUTCSeconds()).padStart(2, '0')}Z`
+  const hours = String(now.getUTCHours()).padStart(2, '0')
+  const minutes = String(now.getUTCMinutes()).padStart(2, '0')
+  const seconds = String(now.getUTCSeconds()).padStart(2, '0')
+  const timeStringZ = `${hours}:${minutes}:${seconds}Z`
+  const chipTimeString = `Tue, 11 Aug • ${hours}:${minutes}:${seconds}Z`
+
+  const clockMap = {
+    'ops-clock': timeStringZ,
+    'th-clock': timeStringZ,
+    'live-turnaround-clock': chipTimeString,
+    'crew-ops-clock': chipTimeString,
+    'gate-clock': timeStringZ,
+    'gate-ops-clock': timeStringZ,
+    'ops-clock-header': timeStringZ
+  }
+
+  Object.entries(clockMap).forEach(([id, text]) => {
+    const el = document.getElementById(id)
+    if (el) el.textContent = text
+  })
+
+  document.querySelectorAll('.ops-live-clock, .admin-clock, [data-live-clock]').forEach((el) => {
+    el.textContent = timeStringZ
+  })
 }
 
 /* —— Router —— */
