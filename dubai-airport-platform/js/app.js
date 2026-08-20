@@ -13,7 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 const STORAGE_USERS = 'EMIRATES_DXB_USERS_V2'
-const STORAGE_SESSION = 'EMIRATES_DXB_SESSION_V2'
+
+// The passenger site and the OCC keep completely separate sessions, so signing
+// in as staff never takes over the public site (and vice versa). A person can
+// be signed in on both surfaces at once without either one affecting the other.
+const STORAGE_SESSION_CUSTOMER = 'EMIRATES_DXB_SESSION_CUSTOMER'
+const STORAGE_SESSION_STAFF = 'EMIRATES_DXB_SESSION_STAFF'
 
 const DEFAULT_USERS = [
   { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '11 Aug 2026' },
@@ -24,9 +29,21 @@ const DEFAULT_USERS = [
 ]
 
 let USERS_DB = []
-let currentUser = { name: 'Guest User', email: '', role: 'guest' }
+
+const GUEST_USER = { name: 'Guest User', email: '', role: 'guest' }
+
+// Two independent sessions. `currentUser` is whichever one belongs to the
+// surface being viewed — it is swapped by switchRoute(), so every module can
+// keep reading `currentUser` without knowing which surface it is on.
+let customerUser = { ...GUEST_USER }
+let staffUser = { ...GUEST_USER }
+let currentUser = { ...GUEST_USER }
+
 let currentRoute = 'landing'
 let currentAdminModule = 'dashboard'
+
+// Routes that belong to the OCC surface; everything else is the passenger site.
+const STAFF_ROUTES = ['admin', 'staff-login']
 
 const SHARED_SCENARIO = {
   flight: 'EK 001',
@@ -108,27 +125,46 @@ function saveUserDatabase() {
   localStorage.setItem(STORAGE_USERS, JSON.stringify(USERS_DB))
 }
 
-function restoreSession() {
-  const raw = localStorage.getItem(STORAGE_SESSION)
-  if (!raw) return
+function readSession(storageKey) {
+  const raw = localStorage.getItem(storageKey)
+  if (!raw) return { ...GUEST_USER }
   try {
     const session = JSON.parse(raw)
     const user = USERS_DB.find((u) => u.email === session.email)
-    if (user) currentUser = { ...user, role: normalizeRole(user.role) }
+    if (user) return { ...user, role: normalizeRole(user.role) }
   } catch {
     /* ignore */
   }
+  return { ...GUEST_USER }
 }
 
-function persistSession() {
-  if (currentUser.role === 'guest') {
-    localStorage.removeItem(STORAGE_SESSION)
+function restoreSession() {
+  customerUser = readSession(STORAGE_SESSION_CUSTOMER)
+  staffUser = readSession(STORAGE_SESSION_STAFF)
+
+  // A staff account must never occupy the customer session, and vice versa —
+  // guards against a stale or hand-edited storage entry.
+  if (isStaffRole(customerUser.role)) customerUser = { ...GUEST_USER }
+  if (customerUser.role !== 'guest') customerUser.role = 'customer'
+  if (staffUser.role !== 'guest' && !isStaffRole(staffUser.role)) staffUser = { ...GUEST_USER }
+
+  currentUser = { ...customerUser }
+}
+
+function writeSession(storageKey, user) {
+  if (!user || user.role === 'guest') {
+    localStorage.removeItem(storageKey)
     return
   }
-  localStorage.setItem(
-    STORAGE_SESSION,
-    JSON.stringify({ email: currentUser.email, role: currentUser.role })
-  )
+  localStorage.setItem(storageKey, JSON.stringify({ email: user.email, role: user.role }))
+}
+
+function persistCustomerSession() {
+  writeSession(STORAGE_SESSION_CUSTOMER, customerUser)
+}
+
+function persistStaffSession() {
+  writeSession(STORAGE_SESSION_STAFF, staffUser)
 }
 
 /* —— Shell visibility —— */
@@ -161,7 +197,26 @@ function updateChrome() {
 
   const isStaff = isStaffRole(role) && currentRoute === 'admin'
   setOpsShellVisible(isStaff)
-  setCustomerPortalVisible(role === 'customer' && !isStaff)
+  // The passenger side is navigated entirely from the app tab bar, so the older
+  // customer strip (Book | My Trips | Manage booking | Flight status | Sign out)
+  // is not shown — it duplicated those destinations and cost ~117px of a phone
+  // screen. Account and sign-out live in the Account tab instead.
+  setCustomerPortalVisible(false)
+
+  // Sign In / Sign Up are only offered to a signed-out visitor; a signed-in
+  // passenger gets a compact account chip instead. Showing both at once (the
+  // previous behaviour) offered a signed-in user a "Sign Up" button.
+  const signedIn = !isStaff && role !== 'guest'
+  const signInButtons = document.getElementById('user-actions-container')
+  const accountChip = document.getElementById('user-account-chip')
+  if (signInButtons) signInButtons.style.display = isStaff || signedIn ? 'none' : 'flex'
+  if (accountChip) {
+    accountChip.style.display = signedIn ? 'flex' : 'none'
+    const initial = document.getElementById('app-account-initial')
+    const nameEl = document.getElementById('app-account-name')
+    if (initial) initial.textContent = (currentUser.name || '?').charAt(0).toUpperCase()
+    if (nameEl) nameEl.textContent = (currentUser.name || 'Account').split(' ')[0]
+  }
 
   const publicBits = [
     document.getElementById('public-top-strip'),
@@ -255,6 +310,11 @@ function handleHashRoute() {
 }
 
 function switchRoute(route) {
+  // Activate the session that belongs to this surface. The passenger site and
+  // the OCC are fully independent: being signed in to one has no effect on the
+  // other, and a staff member can browse the public site as a normal visitor.
+  currentUser = STAFF_ROUTES.includes(route) ? staffUser : customerUser
+
   const role = normalizeRole(currentUser.role)
 
   // Guards
@@ -274,17 +334,6 @@ function switchRoute(route) {
     return
   }
 
-  if (isStaffRole(role) && ['landing', 'signin', 'signup', 'my-trips', 'manage', 'flight-status'].includes(route)) {
-    // staff stay in OCC unless logging out
-    if (route !== 'staff-login') {
-      currentRoute = 'admin'
-      window.location.hash = 'admin'
-      updateChrome()
-      loadAdminModule(getDefaultModule(role) || 'dashboard')
-      return
-    }
-  }
-
   currentRoute = route
   window.location.hash = route
   updateChrome()
@@ -297,7 +346,10 @@ function switchRoute(route) {
     return
   }
 
-  if (route === 'landing') renderLandingView()
+  // The passenger landing experience IS the Passenger Portal — booking and
+  // check-in are the whole passenger product, so there is no separate marketing
+  // page in front of them.
+  if (route === 'landing') renderPassengerPortalView()
   else if (route === 'signin') renderSignInView()
   else if (route === 'signup') renderSignUpView()
   else if (route === 'staff-login') renderStaffLogin()
@@ -315,26 +367,69 @@ function initCustomerPortalLinks() {
   if (logout) logout.addEventListener('click', handleCustomerLogout)
 }
 
-function initBottomNav() {
-  document.querySelectorAll('.bottom-nav-item').forEach((item) => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault()
-      const target = item.getAttribute('data-nav')
-      switchRoute(target === 'home' ? 'landing' : 'signin')
-    })
+/* —— Passenger app tab bar ——
+   The passenger side is a single app: Book, My Trips, Pass, and Account are
+   views of the Passenger Portal rather than separate pages. The tab bar and the
+   header nav both route through here so they can never disagree. */
+let currentAppTab = 'book'
+
+const APP_TAB_VIEWS = {
+  book: 'pp-view-home',
+  trips: 'pp-view-home',
+  pass: 'pp-view-boarding-pass',
+}
+
+function goToAppTab(tab) {
+  currentAppTab = tab
+
+  // A signed-out visitor tapping Account goes straight to sign-in; everything
+  // else is a view inside the portal.
+  if (tab === 'account' && normalizeRole(customerUser.role) === 'guest') {
+    syncAppTabHighlight(tab)
+    switchRoute('signin')
+    return
+  }
+
+  if (currentRoute !== 'landing') {
+    switchRoute('landing')
+    // The portal is fetched asynchronously; apply the tab once it has mounted.
+    window.setTimeout(() => applyAppTab(tab), 260)
+    return
+  }
+  applyAppTab(tab)
+}
+
+function applyAppTab(tab) {
+  syncAppTabHighlight(tab)
+
+  if (typeof window.ppShowAppTab === 'function') {
+    window.ppShowAppTab(tab)
+  }
+}
+
+function syncAppTabHighlight(tab) {
+  document.querySelectorAll('[data-app-tab]').forEach((el) => {
+    el.classList.toggle('active', el.getAttribute('data-app-tab') === tab)
   })
 }
 
+function initBottomNav() {
+  // Tab bar items call goToAppTab() directly from their onclick handlers.
+  syncAppTabHighlight(currentAppTab)
+}
+
 /* —— Auth —— */
+// Signing out of the passenger site leaves any OCC session untouched.
 function handleCustomerLogout() {
-  currentUser = { name: 'Guest User', email: '', role: 'guest' }
-  persistSession()
+  customerUser = { ...GUEST_USER }
+  persistCustomerSession()
   switchRoute('landing')
 }
 
+// Signing out of the OCC leaves any passenger session untouched.
 function handleStaffLogout() {
-  currentUser = { name: 'Guest User', email: '', role: 'guest' }
-  persistSession()
+  staffUser = { ...GUEST_USER }
+  persistStaffSession()
   applyThemeForRole('guest')
   setOpsShellVisible(false)
   switchRoute('staff-login')
@@ -466,8 +561,8 @@ function handleCustomerLogin() {
     switchRoute('staff-login')
     return
   }
-  currentUser = { ...user, role: 'customer' }
-  persistSession()
+  customerUser = { ...user, role: 'customer' }
+  persistCustomerSession()
   switchRoute('my-trips')
 }
 
@@ -499,8 +594,8 @@ function handleSignUp() {
   const newUser = { name, email, password, role: 'customer', date: '11 Aug 2026' }
   USERS_DB.push(newUser)
   saveUserDatabase()
-  currentUser = newUser
-  persistSession()
+  customerUser = { ...newUser }
+  persistCustomerSession()
   switchRoute('my-trips')
 }
 
@@ -642,9 +737,9 @@ function handleStaffLogin() {
     alert('Access denied. Use a staff account (admin / tower / ops).')
     return
   }
-  currentUser = { ...user, role: normalizeRole(user.role) }
-  persistSession()
-  currentAdminModule = getDefaultModule(currentUser.role) || 'dashboard'
+  staffUser = { ...user, role: normalizeRole(user.role) }
+  persistStaffSession()
+  currentAdminModule = getDefaultModule(staffUser.role) || 'dashboard'
   switchRoute('admin')
 }
 

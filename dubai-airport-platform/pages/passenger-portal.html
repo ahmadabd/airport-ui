@@ -119,6 +119,83 @@
       <p class="supporting-text" style="margin-top: 6px;">Your One-ID biometric profile is verified. Where are you flying next?</p>
     </div>
 
+    <!-- Smart Passenger Dashboard — next upcoming flight: countdown, live status, gate, destination weather -->
+    <div class="card pp-dashboard" id="pp-dashboard" style="display: none; border-top: 4px solid var(--color-gold); padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div>
+          <span class="caption-text" style="text-transform: uppercase; font-weight: 700; letter-spacing: 0.04em;">Your next flight</span>
+          <h3 class="card-title" style="font-size: 18px; margin-top: 2px;">
+            <span id="pp-dash-flight">EK 001</span>
+            <span style="color: var(--text-secondary); font-weight: 500;"> · <span id="pp-dash-route">DXB → LHR</span></span>
+          </h3>
+        </div>
+        <span class="chip" id="pp-dash-status">On Time</span>
+      </div>
+
+      <div style="padding: 20px;">
+        <!-- Countdown to departure -->
+        <div style="text-align: center; margin-bottom: 20px;">
+          <span class="caption-text" style="text-transform: uppercase; font-weight: 700;">Departs in</span>
+          <div id="pp-countdown" style="display: flex; justify-content: center; gap: 10px; margin-top: 8px;">
+            <!-- Injected by JS -->
+          </div>
+          <p class="caption-text" id="pp-countdown-note" style="margin-top: 8px;"></p>
+        </div>
+
+        <!-- Terminal / gate / boarding / seat -->
+        <div class="grid-4col" style="gap: 10px; margin-bottom: 16px;">
+          <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 8px;">
+            <span class="caption-text">Terminal</span>
+            <p class="body-text" style="font-weight: 700; font-size: 15px;" id="pp-dash-terminal">Terminal 3</p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 8px;">
+            <span class="caption-text">Gate</span>
+            <p class="body-text" style="font-weight: 700; font-size: 15px; color: var(--color-primary);" id="pp-dash-gate">A12</p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 8px;">
+            <span class="caption-text">Boarding</span>
+            <p class="body-text" style="font-weight: 700; font-size: 15px;" id="pp-dash-boarding">07:45</p>
+          </div>
+          <div style="background: var(--bg-secondary); padding: 10px 12px; border-radius: 8px;">
+            <span class="caption-text">Seat</span>
+            <p class="body-text" style="font-weight: 700; font-size: 15px;" id="pp-dash-seat">—</p>
+          </div>
+        </div>
+
+        <!-- Destination weather forecast -->
+        <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; background: var(--bg-info); border: 1px solid var(--border-info); border-radius: 8px; margin-bottom: 16px;">
+          <span id="pp-dash-weather-icon" style="font-size: 30px; line-height: 1;">☁️</span>
+          <div style="flex-grow: 1;">
+            <span class="caption-text" style="color: var(--color-info); font-weight: 700;">Weather on arrival · <span id="pp-dash-weather-city">London</span></span>
+            <p class="body-text" style="font-weight: 600; font-size: 14px;">
+              <span id="pp-dash-weather-temp">18°C</span> · <span id="pp-dash-weather-desc">Cloudy</span>
+            </p>
+          </div>
+          <span class="caption-text" style="text-align: right; color: var(--color-info);" id="pp-dash-weather-tip">Pack a light jacket</span>
+        </div>
+
+        <!-- Auto check-in progress tracker -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span class="caption-text" style="font-weight: 700;">Auto check-in progress</span>
+            <span class="caption-text" id="pp-dash-checkin-label">Scheduled for T-24h</span>
+          </div>
+          <div style="height: 6px; background: var(--bg-secondary); border-radius: 999px; overflow: hidden;">
+            <div id="pp-dash-checkin-bar" style="height: 100%; width: 33%; background: var(--color-gold); border-radius: 999px; transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-top: 6px;">
+            <span class="caption-text">Booked</span>
+            <span class="caption-text">Checked in</span>
+            <span class="caption-text">Boarding pass</span>
+          </div>
+        </div>
+
+        <button class="btn-secondary" style="margin-top: 16px;" id="pp-dash-open-pass" onclick="ppOpenBoardingPassFromDashboard()">
+          View Boarding Pass →
+        </button>
+      </div>
+    </div>
+
     <div class="card">
       <div class="grid-3col" style="margin-bottom: 0;">
         <div class="input-group" style="margin-bottom: 0;">
@@ -155,6 +232,60 @@
       </div>
       <div id="pp-my-bookings-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
     </div>
+  </section>
+
+  <!-- ACCOUNT TAB: profile, saved One-ID preferences, sign out -->
+  <section id="pp-view-account" style="display: none;">
+    <h2 class="section-title" style="margin-bottom: 16px;">Account</h2>
+
+    <div class="card" style="display: flex; align-items: center; gap: 14px;">
+      <div id="pp-account-avatar" style="width: 52px; height: 52px; border-radius: 999px; background: var(--color-primary); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0;">S</div>
+      <div style="flex-grow: 1; min-width: 0;">
+        <p class="body-text" style="font-weight: 700;" id="pp-account-name">—</p>
+        <span class="caption-text" id="pp-account-email" style="word-break: break-all;">—</span>
+      </div>
+      <span class="chip chip-completed" style="flex-shrink: 0;">One-ID</span>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="font-size: 15px; margin-bottom: 12px;">Verified identity</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Passport</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">P‑A•••••42</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Nationality</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">United Arab Emirates</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Skywards</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">EK•••••8821</span>
+        </div>
+      </div>
+      <p class="caption-text" style="margin-top: 12px;">These details are reused on every booking, so you never type them again.</p>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="font-size: 15px; margin-bottom: 12px;">Saved travel preferences</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Seat</span>
+          <span class="chip chip-info" id="pp-account-seat-pref">Window</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Meal</span>
+          <span class="chip chip-info" id="pp-account-meal-pref">Standard</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Auto check-in</span>
+          <span class="chip chip-completed">On · T-24h</span>
+        </div>
+      </div>
+      <p class="caption-text" style="margin-top: 12px;">Applied automatically to every booking. Change them during your next booking.</p>
+    </div>
+
+    <button class="btn-secondary" onclick="ppLogout()">Log Out</button>
   </section>
 
   <!-- VIEW 2: FLIGHT RESULTS (MULTIPLE OPTIONS TO CHOOSE FROM) -->
@@ -253,7 +384,7 @@
       </div>
 
       <label class="input-label" style="display: block; margin-bottom: 10px;">Select your seat preference for auto-assignment:</label>
-      <div class="grid-2col" style="margin-bottom: 0;">
+      <div class="grid-2col" style="margin-bottom: 20px;">
         <label class="pp-seat-option" style="display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: var(--radius-input); cursor: pointer;">
           <input type="radio" name="pp-seat-pref" value="Window" checked style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Window Seat</span>
@@ -262,6 +393,43 @@
           <input type="radio" name="pp-seat-pref" value="Aisle" style="accent-color: var(--color-primary); width: 16px; height: 16px;">
           <span class="body-text" style="font-size: 14px;">Aisle Seat</span>
         </label>
+      </div>
+
+      <label class="input-label" style="display: block; margin-bottom: 10px;">Dietary requirement for your in-flight meal:</label>
+      <select class="input-field" id="pp-meal-pref">
+        <option value="Standard">Standard meal</option>
+        <option value="Vegetarian">Vegetarian</option>
+        <option value="Vegan">Vegan</option>
+        <option value="Halal">Halal</option>
+        <option value="Gluten-Free">Gluten-free</option>
+        <option value="Diabetic">Diabetic</option>
+      </select>
+      <p class="caption-text" style="margin-top: 6px;">Saved to your One-ID profile and applied automatically to every future booking.</p>
+    </div>
+
+    <!-- Zero-form proof: identity data reused from the One-ID profile, never re-typed -->
+    <div class="card" style="background: var(--bg-secondary);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h3 class="card-title" style="font-size: 15px;">Passenger details — auto-filled from One-ID</h3>
+        <span class="chip chip-completed">0 forms to fill</span>
+      </div>
+      <div class="grid-2col" style="gap: 10px; margin-bottom: 0;">
+        <div>
+          <span class="caption-text">Full name</span>
+          <p class="body-text" style="font-weight: 600; font-size: 14px;" id="pp-oneid-name">—</p>
+        </div>
+        <div>
+          <span class="caption-text">Passport</span>
+          <p class="body-text" style="font-weight: 600; font-size: 14px;">P‑A•••••42 <span class="caption-text">(verified)</span></p>
+        </div>
+        <div>
+          <span class="caption-text">Nationality</span>
+          <p class="body-text" style="font-weight: 600; font-size: 14px;">United Arab Emirates</p>
+        </div>
+        <div>
+          <span class="caption-text">Skywards number</span>
+          <p class="body-text" style="font-weight: 600; font-size: 14px;">EK•••••8821</p>
+        </div>
       </div>
     </div>
 
@@ -286,6 +454,34 @@
       We will automatically check you in and issue your boarding pass exactly 24 hours before departure. Relax!
     </div>
 
+    <!-- Delivery channels for the automated boarding pass -->
+    <div class="card" style="max-width: 440px; margin: 24px auto 0; text-align: left;">
+      <h3 class="card-title" style="font-size: 15px; margin-bottom: 12px;">How you'll receive your boarding pass</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 32px; height: 32px; border-radius: 999px; background: var(--bg-info); color: var(--color-info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </span>
+          <div style="flex-grow: 1;">
+            <p class="body-text" style="font-weight: 600; font-size: 14px;">Push notification</p>
+            <span class="caption-text">Sent to your DXB app the moment check-in completes</span>
+          </div>
+          <span class="chip chip-completed" style="flex-shrink: 0;">On</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="width: 32px; height: 32px; border-radius: 999px; background: var(--bg-info); color: var(--color-info); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+          </span>
+          <div style="flex-grow: 1;">
+            <p class="body-text" style="font-weight: 600; font-size: 14px;">Email</p>
+            <span class="caption-text" id="pp-delivery-email">—</span>
+          </div>
+          <span class="chip chip-completed" style="flex-shrink: 0;">On</span>
+        </div>
+      </div>
+    </div>
+
     <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border-color);">
       <p class="caption-text" style="margin-bottom: 12px;">(Demo Action: Simulate time passing to T-24 hours)</p>
       <button class="btn-secondary" id="pp-sim-btn" style="width: auto; padding: 0 22px;" onclick="ppSimulateCheckIn()">
@@ -305,11 +501,28 @@
       <h2 class="section-title">Your Digital Boarding Pass is Ready</h2>
     </div>
 
+    <!-- Live gate-change banner (appears when the airport pushes a gate reassignment) -->
+    <div id="pp-gate-alert" class="card" style="display: none; max-width: 420px; margin: 0 auto 12px; padding: 14px 16px; background: var(--bg-warning); border-color: var(--border-warning);">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <span style="width: 32px; height: 32px; border-radius: 999px; background: var(--color-warning); color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </span>
+        <div>
+          <p class="body-text" style="font-weight: 700; font-size: 14px; color: var(--color-warning);">Gate changed</p>
+          <span class="caption-text" id="pp-gate-alert-text">Your gate has moved.</span>
+        </div>
+      </div>
+    </div>
+
     <div class="card pp-boarding-pass-reveal" id="pp-boarding-pass-card" style="max-width: 420px; margin: 0 auto; padding: 0; overflow: hidden;">
       <!-- Injected by JS -->
     </div>
 
     <div style="max-width: 420px; margin: 20px auto 0; display: flex; flex-direction: column; gap: 10px;">
+      <p class="caption-text" style="text-align: center;">This pass updates itself — gate changes and delays appear here automatically.</p>
+      <button class="btn-secondary" id="pp-sim-gate-btn" style="font-size: 13px;" onclick="ppSimulateGateChange()">
+        (Demo Action: Simulate a live gate change)
+      </button>
       <button class="btn-secondary" onclick="alert('Digital boarding pass saved to Wallet!')">
         Add to Wallet
       </button>
@@ -329,11 +542,12 @@
     const DXB_UTC_OFFSET = 4;
 
     // Destination UTC offsets reflect local time in August (northern-hemisphere summer / DST).
+    // Weather is a static seasonal forecast stand-in for a real weather API.
     const PP_DESTINATIONS = {
-      LHR: { city: 'London', utcOffset: 1 },
-      CDG: { city: 'Paris', utcOffset: 2 },
-      JFK: { city: 'New York', utcOffset: -4 },
-      RUH: { city: 'Riyadh', utcOffset: 3 }
+      LHR: { city: 'London', utcOffset: 1, weather: { icon: '🌧️', temp: '18°C', desc: 'Light rain', tip: 'Pack an umbrella' } },
+      CDG: { city: 'Paris', utcOffset: 2, weather: { icon: '⛅', temp: '24°C', desc: 'Partly cloudy', tip: 'Light jacket at night' } },
+      JFK: { city: 'New York', utcOffset: -4, weather: { icon: '☀️', temp: '29°C', desc: 'Sunny', tip: 'Stay hydrated' } },
+      RUH: { city: 'Riyadh', utcOffset: 3, weather: { icon: '🔥', temp: '43°C', desc: 'Very hot', tip: 'Avoid midday sun' } }
     };
 
     // Multiple selectable flights per destination — departure time (Dubai local) + flight duration.
@@ -427,24 +641,25 @@
     }
 
     function ppRenderAuthStatus() {
+      const strip = document.getElementById('pp-auth-status');
       const icon = document.getElementById('pp-auth-icon');
       const text = document.getElementById('pp-auth-text');
       const subtext = document.getElementById('pp-auth-subtext');
       const actions = document.getElementById('pp-auth-actions');
       if (!icon) return;
 
+      // When signed in, the shared customer portal bar in index.html already
+      // shows the name and a sign-out control. Repeating it here costs ~115px
+      // of a 812px phone screen for no new information, so this strip is only
+      // rendered in the signed-out state, where it prompts the sign-in the
+      // booking flow will require.
       if (ppIsLoggedIn()) {
-        icon.style.backgroundColor = 'var(--bg-success)';
-        icon.style.color = 'var(--color-success)';
-        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-        text.textContent = currentUser.name;
-        subtext.textContent = `Signed in${currentUser.email ? ' • ' + currentUser.email : ''}`;
-        actions.innerHTML = `
-          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="ppLogout()">
-            Log Out
-          </button>
-        `;
-      } else {
+        if (strip) strip.style.display = 'none';
+        return;
+      }
+      if (strip) strip.style.display = 'flex';
+
+      {
         icon.style.backgroundColor = 'var(--bg-secondary)';
         icon.style.color = 'var(--text-secondary)';
         icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
@@ -459,15 +674,81 @@
     }
 
     function ppLogout() {
+      // Clear the passenger session through app.js so it is also removed from
+      // storage. The OCC session is separate and deliberately left untouched.
+      if (typeof handleCustomerLogout === 'function') {
+        handleCustomerLogout();
+        switchRoute('portal');
+        return;
+      }
       currentUser = { name: 'Guest User', email: '', role: 'guest' };
       document.getElementById('pp-greeting-name').textContent = ppPassengerName();
       ppRenderAuthStatus();
       ppSwitchView('pp-view-home');
     }
 
+    /* ---------- App tab bar bridge (called by goToAppTab in app.js) ---------- */
+    function ppShowAppTab(tab) {
+      if (tab === 'account') {
+        ppRenderAccount();
+        ppSwitchView('pp-view-account');
+        return;
+      }
+
+      if (tab === 'pass') {
+        const b = ppDashboardBooking();
+        if (b && b.status.indexOf('Checked-In') === 0) {
+          ppActiveBookingRef = b.ref;
+          ppRenderBoardingPass(b);
+          ppSwitchView('pp-view-boarding-pass');
+        } else {
+          // No pass issued yet — the dashboard explains where they are in the flow.
+          ppSwitchView('pp-view-home');
+          ppScrollToDashboard();
+        }
+        return;
+      }
+
+      if (tab === 'trips') {
+        ppSwitchView('pp-view-home');
+        ppScrollToBookings();
+        return;
+      }
+
+      ppSwitchView('pp-view-home');
+    }
+
+    function ppScrollToBookings() {
+      const card = document.getElementById('pp-my-bookings-card');
+      if (card && card.style.display !== 'none') {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function ppScrollToDashboard() {
+      const dash = document.getElementById('pp-dashboard');
+      if (dash && dash.style.display !== 'none') {
+        dash.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function ppRenderAccount() {
+      const name = ppPassengerName();
+      document.getElementById('pp-account-name').textContent = name;
+      document.getElementById('pp-account-email').textContent =
+        (typeof currentUser !== 'undefined' && currentUser.email) || '—';
+      document.getElementById('pp-account-avatar').textContent = name.charAt(0).toUpperCase();
+
+      // Reflect the preferences saved on the most recent booking.
+      const b = ppDashboardBooking();
+      document.getElementById('pp-account-seat-pref').textContent = b ? b.seatPreference : 'Window';
+      document.getElementById('pp-account-meal-pref').textContent =
+        b ? (b.mealPreference || 'Standard') : 'Standard';
+    }
+
     /* ---------- View router ---------- */
     function ppSwitchView(viewId) {
-      ['pp-view-home', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
+      ['pp-view-home', 'pp-view-account', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -480,7 +761,14 @@
         target.classList.add('pp-view-enter');
       }
 
-      if (viewId === 'pp-view-home') ppRenderMyBookings();
+      if (viewId === 'pp-view-home') {
+        ppRenderMyBookings();
+        ppRenderDashboard();
+      }
+      if (viewId === 'pp-view-booking') {
+        const nameEl = document.getElementById('pp-oneid-name');
+        if (nameEl) nameEl.textContent = ppPassengerName();
+      }
 
       window.scrollTo(0, 0);
     }
@@ -589,6 +877,7 @@
       const f = ppSelectedFlight;
       const cls = document.getElementById('pp-class').value;
       const seatPref = document.querySelector('input[name="pp-seat-pref"]:checked').value;
+      const mealPref = document.getElementById('pp-meal-pref').value;
       const date = document.getElementById('pp-date').value;
       const fare = Math.round(f.baseFare * PP_CLASS_MULTIPLIER[cls]);
 
@@ -606,10 +895,12 @@
         cabinClass: cls,
         fare: fare,
         seatPreference: seatPref,
+        mealPreference: mealPref,
         seat: '—',
         gate: f.gate,
         boarding: f.boardingTime,
         terminal: 'Terminal 3',
+        flightStatus: 'On Time',
         status: 'Booked — Auto Check-in Pending',
         bookedAt: new Date().toISOString()
       };
@@ -622,6 +913,8 @@
       document.getElementById('pp-success-summary').textContent =
         `Your flight to ${f.destCity} has been successfully booked using your One-ID profile.`;
       document.getElementById('pp-success-ref').textContent = ref;
+      document.getElementById('pp-delivery-email').textContent =
+        currentUser.email || 'your registered email address';
 
       // Reset the simulate control in case the passenger books more than once per session
       document.getElementById('pp-sim-btn').style.display = 'inline-flex';
@@ -645,6 +938,9 @@
           ppSaveBookings(list);
           ppRenderBoardingPass(booking);
         }
+        // Fresh pass: clear any gate alert from a previous booking in this session
+        document.getElementById('pp-gate-alert').style.display = 'none';
+        document.getElementById('pp-sim-gate-btn').style.display = 'inline-flex';
         ppSwitchView('pp-view-boarding-pass');
       }, 2000);
     }
@@ -687,12 +983,155 @@
             </div>
           </div>
 
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px dashed var(--border-color);">
+            <div>
+              <span class="caption-text">In-flight meal</span>
+              <p class="body-text" style="font-weight: 600; font-size: 14px;">${b.mealPreference || 'Standard'}</p>
+            </div>
+            <span class="chip chip-completed">Pre-ordered</span>
+          </div>
+
           <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${qrData}" alt="Boarding pass QR code" width="140" height="140">
             <span class="caption-text">Scan at Smart Gate • ${b.ref}</span>
           </div>
         </div>
       `;
+    }
+
+    /* ---------- Smart Passenger Dashboard (next upcoming flight) ---------- */
+
+    // Demo departure horizon: the next flight is treated as ~26h away so the
+    // countdown sits just before the T-24h auto check-in window opens.
+    const PP_DEMO_HOURS_TO_DEPARTURE = 26;
+
+    function ppDashboardBooking() {
+      if (!ppIsLoggedIn()) return null;
+      const mine = ppLoadBookings().filter(b => b.name === currentUser.name);
+      return mine.length ? mine[0] : null;
+    }
+
+    function ppRenderDashboard() {
+      const dash = document.getElementById('pp-dashboard');
+      if (!dash) return;
+
+      const b = ppDashboardBooking();
+      if (!b) {
+        dash.style.display = 'none';
+        return;
+      }
+      dash.style.display = 'block';
+
+      const checkedIn = b.status.indexOf('Checked-In') === 0;
+
+      document.getElementById('pp-dash-flight').textContent = b.flight;
+      document.getElementById('pp-dash-route').textContent = b.route;
+      document.getElementById('pp-dash-terminal').textContent = b.terminal;
+      document.getElementById('pp-dash-gate').textContent = b.gate;
+      document.getElementById('pp-dash-boarding').textContent = b.boarding;
+      document.getElementById('pp-dash-seat').textContent = b.seat;
+
+      const statusChip = document.getElementById('pp-dash-status');
+      statusChip.textContent = b.flightStatus || 'On Time';
+      statusChip.className = 'chip ' + (b.flightStatus === 'Delayed' ? 'chip-warning' : 'chip-completed');
+
+      // Destination weather
+      const dest = PP_DESTINATIONS[b.to];
+      if (dest && dest.weather) {
+        document.getElementById('pp-dash-weather-icon').textContent = dest.weather.icon;
+        document.getElementById('pp-dash-weather-city').textContent = dest.city;
+        document.getElementById('pp-dash-weather-temp').textContent = dest.weather.temp;
+        document.getElementById('pp-dash-weather-desc').textContent = dest.weather.desc;
+        document.getElementById('pp-dash-weather-tip').textContent = dest.weather.tip;
+      }
+
+      // Auto check-in progress tracker
+      const bar = document.getElementById('pp-dash-checkin-bar');
+      const label = document.getElementById('pp-dash-checkin-label');
+      if (checkedIn) {
+        bar.style.width = '100%';
+        bar.style.background = 'var(--color-success)';
+        label.textContent = 'Boarding pass issued';
+      } else {
+        bar.style.width = '33%';
+        bar.style.background = 'var(--color-gold)';
+        label.textContent = 'Scheduled for T-24h';
+      }
+
+      document.getElementById('pp-dash-open-pass').style.display = checkedIn ? 'inline-flex' : 'none';
+
+      ppRenderCountdown(b);
+    }
+
+    function ppRenderCountdown(b) {
+      const container = document.getElementById('pp-countdown');
+      if (!container) return;
+
+      // Departure is anchored to when the booking was made, so the countdown ticks live.
+      const departsAt = new Date(new Date(b.bookedAt).getTime() + PP_DEMO_HOURS_TO_DEPARTURE * 3600 * 1000);
+      let diffMs = departsAt - new Date();
+      if (diffMs < 0) diffMs = 0;
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      const seconds = Math.floor((diffMs % 60000) / 1000);
+
+      const unit = (value, name) => `
+        <div style="background: var(--bg-secondary); border-radius: 8px; padding: 8px 14px; min-width: 62px;">
+          <div style="font-size: 24px; font-weight: 800; line-height: 1.1;">${String(value).padStart(2, '0')}</div>
+          <span class="caption-text">${name}</span>
+        </div>`;
+
+      container.innerHTML = unit(hours, 'hours') + unit(minutes, 'min') + unit(seconds, 'sec');
+
+      const note = document.getElementById('pp-countdown-note');
+      const checkedIn = b.status.indexOf('Checked-In') === 0;
+      if (checkedIn) {
+        note.textContent = 'You are checked in — head to the gate when boarding opens.';
+      } else if (hours >= 24) {
+        const untilWindow = hours - 24;
+        note.textContent = `Auto check-in opens in ${untilWindow}h ${minutes}m — nothing for you to do.`;
+      } else {
+        note.textContent = 'Check-in window is open — auto check-in running.';
+      }
+    }
+
+    function ppOpenBoardingPassFromDashboard() {
+      const b = ppDashboardBooking();
+      if (!b || b.status.indexOf('Checked-In') !== 0) return;
+      ppActiveBookingRef = b.ref;
+      ppRenderBoardingPass(b);
+      ppSwitchView('pp-view-boarding-pass');
+    }
+
+    /* ---------- Live gate change (dynamic boarding pass) ---------- */
+    function ppSimulateGateChange() {
+      const list = ppLoadBookings();
+      const booking = list.find(b => b.ref === ppActiveBookingRef);
+      if (!booking) return;
+
+      const oldGate = booking.gate;
+      // Reassign to a different gate in the same concourse.
+      const letter = oldGate.charAt(0);
+      let newNumber = (parseInt(oldGate.slice(1), 10) + 9) % 30;
+      if (newNumber < 1) newNumber = 21;
+      const newGate = letter + String(newNumber).padStart(2, '0');
+
+      booking.gate = newGate;
+      booking.gateChangedFrom = oldGate;
+      ppSaveBookings(list);
+
+      const alertBox = document.getElementById('pp-gate-alert');
+      document.getElementById('pp-gate-alert-text').textContent =
+        `${booking.flight} has moved from Gate ${oldGate} to Gate ${newGate}. Your pass is already updated.`;
+      alertBox.style.display = 'block';
+      alertBox.classList.remove('pp-card-enter');
+      void alertBox.offsetWidth;
+      alertBox.classList.add('pp-card-enter');
+
+      document.getElementById('pp-sim-gate-btn').style.display = 'none';
+      ppRenderBoardingPass(booking);
     }
 
     /* ---------- My bookings list on home (only for the signed-in passenger) ---------- */
@@ -736,6 +1175,23 @@
       document.getElementById('pp-greeting-name').textContent = ppPassengerName();
       ppRenderAuthStatus();
       ppRenderMyBookings();
+      ppRenderDashboard();
+
+      // Live countdown tick. Cleared and restarted if the module is re-fetched
+      // (the router re-runs this script each time the portal route is opened).
+      if (window.ppCountdownTimer) clearInterval(window.ppCountdownTimer);
+      window.ppCountdownTimer = setInterval(() => {
+        const home = document.getElementById('pp-view-home');
+        const dash = document.getElementById('pp-dashboard');
+        if (!home || !dash) {
+          clearInterval(window.ppCountdownTimer);
+          return;
+        }
+        if (home.style.display !== 'none' && dash.style.display !== 'none') {
+          const b = ppDashboardBooking();
+          if (b) ppRenderCountdown(b);
+        }
+      }, 1000);
     }
 
     window.ppSwitchView = ppSwitchView;
@@ -745,6 +1201,9 @@
     window.ppSimulateCheckIn = ppSimulateCheckIn;
     window.ppUpdateFarePreview = ppUpdateFarePreview;
     window.ppLogout = ppLogout;
+    window.ppSimulateGateChange = ppSimulateGateChange;
+    window.ppOpenBoardingPassFromDashboard = ppOpenBoardingPassFromDashboard;
+    window.ppShowAppTab = ppShowAppTab;
 
     ppInit();
   })();
