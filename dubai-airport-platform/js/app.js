@@ -13,7 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
 })
 
 const STORAGE_USERS = 'EMIRATES_DXB_USERS_V2'
-const STORAGE_SESSION = 'EMIRATES_DXB_SESSION_V2'
+
+// The passenger site and the OCC keep completely separate sessions, so signing
+// in as staff never takes over the public site (and vice versa). A person can
+// be signed in on both surfaces at once without either one affecting the other.
+const STORAGE_SESSION_CUSTOMER = 'EMIRATES_DXB_SESSION_CUSTOMER'
+const STORAGE_SESSION_STAFF = 'EMIRATES_DXB_SESSION_STAFF'
 
 const DEFAULT_USERS = [
   { name: 'Duty Commander', email: 'admin@dxb.gov.ae', password: 'admin', role: 'admin', date: '11 Aug 2026' },
@@ -24,9 +29,21 @@ const DEFAULT_USERS = [
 ]
 
 let USERS_DB = []
-let currentUser = { name: 'Guest User', email: '', role: 'guest' }
+
+const GUEST_USER = { name: 'Guest User', email: '', role: 'guest' }
+
+// Two independent sessions. `currentUser` is whichever one belongs to the
+// surface being viewed — it is swapped by switchRoute(), so every module can
+// keep reading `currentUser` without knowing which surface it is on.
+let customerUser = { ...GUEST_USER }
+let staffUser = { ...GUEST_USER }
+let currentUser = { ...GUEST_USER }
+
 let currentRoute = 'landing'
 let currentAdminModule = 'dashboard'
+
+// Routes that belong to the OCC surface; everything else is the passenger site.
+const STAFF_ROUTES = ['admin', 'staff-login']
 
 const SHARED_SCENARIO = {
   flight: 'EK 001',
@@ -108,27 +125,46 @@ function saveUserDatabase() {
   localStorage.setItem(STORAGE_USERS, JSON.stringify(USERS_DB))
 }
 
-function restoreSession() {
-  const raw = localStorage.getItem(STORAGE_SESSION)
-  if (!raw) return
+function readSession(storageKey) {
+  const raw = localStorage.getItem(storageKey)
+  if (!raw) return { ...GUEST_USER }
   try {
     const session = JSON.parse(raw)
     const user = USERS_DB.find((u) => u.email === session.email)
-    if (user) currentUser = { ...user, role: normalizeRole(user.role) }
+    if (user) return { ...user, role: normalizeRole(user.role) }
   } catch {
     /* ignore */
   }
+  return { ...GUEST_USER }
 }
 
-function persistSession() {
-  if (currentUser.role === 'guest') {
-    localStorage.removeItem(STORAGE_SESSION)
+function restoreSession() {
+  customerUser = readSession(STORAGE_SESSION_CUSTOMER)
+  staffUser = readSession(STORAGE_SESSION_STAFF)
+
+  // A staff account must never occupy the customer session, and vice versa —
+  // guards against a stale or hand-edited storage entry.
+  if (isStaffRole(customerUser.role)) customerUser = { ...GUEST_USER }
+  if (customerUser.role !== 'guest') customerUser.role = 'customer'
+  if (staffUser.role !== 'guest' && !isStaffRole(staffUser.role)) staffUser = { ...GUEST_USER }
+
+  currentUser = { ...customerUser }
+}
+
+function writeSession(storageKey, user) {
+  if (!user || user.role === 'guest') {
+    localStorage.removeItem(storageKey)
     return
   }
-  localStorage.setItem(
-    STORAGE_SESSION,
-    JSON.stringify({ email: currentUser.email, role: currentUser.role })
-  )
+  localStorage.setItem(storageKey, JSON.stringify({ email: user.email, role: user.role }))
+}
+
+function persistCustomerSession() {
+  writeSession(STORAGE_SESSION_CUSTOMER, customerUser)
+}
+
+function persistStaffSession() {
+  writeSession(STORAGE_SESSION_STAFF, staffUser)
 }
 
 /* —— Shell visibility —— */
@@ -255,6 +291,11 @@ function handleHashRoute() {
 }
 
 function switchRoute(route) {
+  // Activate the session that belongs to this surface. The passenger site and
+  // the OCC are fully independent: being signed in to one has no effect on the
+  // other, and a staff member can browse the public site as a normal visitor.
+  currentUser = STAFF_ROUTES.includes(route) ? staffUser : customerUser
+
   const role = normalizeRole(currentUser.role)
 
   // Guards
@@ -272,17 +313,6 @@ function switchRoute(route) {
     updateChrome()
     renderSignInView(`Sign in to access ${route.replace('-', ' ')}.`)
     return
-  }
-
-  if (isStaffRole(role) && ['landing', 'signin', 'signup', 'my-trips', 'manage', 'flight-status'].includes(route)) {
-    // staff stay in OCC unless logging out
-    if (route !== 'staff-login') {
-      currentRoute = 'admin'
-      window.location.hash = 'admin'
-      updateChrome()
-      loadAdminModule(getDefaultModule(role) || 'dashboard')
-      return
-    }
   }
 
   currentRoute = route
@@ -326,15 +356,17 @@ function initBottomNav() {
 }
 
 /* —— Auth —— */
+// Signing out of the passenger site leaves any OCC session untouched.
 function handleCustomerLogout() {
-  currentUser = { name: 'Guest User', email: '', role: 'guest' }
-  persistSession()
+  customerUser = { ...GUEST_USER }
+  persistCustomerSession()
   switchRoute('landing')
 }
 
+// Signing out of the OCC leaves any passenger session untouched.
 function handleStaffLogout() {
-  currentUser = { name: 'Guest User', email: '', role: 'guest' }
-  persistSession()
+  staffUser = { ...GUEST_USER }
+  persistStaffSession()
   applyThemeForRole('guest')
   setOpsShellVisible(false)
   switchRoute('staff-login')
@@ -466,8 +498,8 @@ function handleCustomerLogin() {
     switchRoute('staff-login')
     return
   }
-  currentUser = { ...user, role: 'customer' }
-  persistSession()
+  customerUser = { ...user, role: 'customer' }
+  persistCustomerSession()
   switchRoute('my-trips')
 }
 
@@ -499,8 +531,8 @@ function handleSignUp() {
   const newUser = { name, email, password, role: 'customer', date: '11 Aug 2026' }
   USERS_DB.push(newUser)
   saveUserDatabase()
-  currentUser = newUser
-  persistSession()
+  customerUser = { ...newUser }
+  persistCustomerSession()
   switchRoute('my-trips')
 }
 
@@ -642,9 +674,9 @@ function handleStaffLogin() {
     alert('Access denied. Use a staff account (admin / tower / ops).')
     return
   }
-  currentUser = { ...user, role: normalizeRole(user.role) }
-  persistSession()
-  currentAdminModule = getDefaultModule(currentUser.role) || 'dashboard'
+  staffUser = { ...user, role: normalizeRole(user.role) }
+  persistStaffSession()
+  currentAdminModule = getDefaultModule(staffUser.role) || 'dashboard'
   switchRoute('admin')
 }
 

@@ -619,6 +619,13 @@
     }
 
     function ppLogout() {
+      // Clear the passenger session through app.js so it is also removed from
+      // storage. The OCC session is separate and deliberately left untouched.
+      if (typeof handleCustomerLogout === 'function') {
+        handleCustomerLogout();
+        switchRoute('portal');
+        return;
+      }
       currentUser = { name: 'Guest User', email: '', role: 'guest' };
       document.getElementById('pp-greeting-name').textContent = ppPassengerName();
       ppRenderAuthStatus();
