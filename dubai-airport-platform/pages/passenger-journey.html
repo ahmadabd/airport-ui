@@ -152,6 +152,7 @@
             <th style="padding: 12px 16px; text-align: left;">Route</th>
             <th style="padding: 12px 16px; text-align: left;">Class</th>
             <th style="padding: 12px 16px; text-align: left;">Seat</th>
+            <th style="padding: 12px 16px; text-align: left;">Meal</th>
             <th style="padding: 12px 16px; text-align: left;">Gate</th>
             <th style="padding: 12px 16px; text-align: left;">Boarding</th>
             <th style="padding: 12px 16px; text-align: left;">Status</th>
@@ -234,7 +235,7 @@
       if (rows.length === 0) {
         body.innerHTML = `
           <tr>
-            <td colspan="9" style="padding: 32px; text-align: center;">
+            <td colspan="10" style="padding: 32px; text-align: center;">
               <p class="supporting-text" style="margin-bottom: 12px;">
                 No passenger bookings yet. Records appear here as soon as a passenger books a flight
                 or completes online check-in in the public Passenger Portal.
@@ -258,6 +259,7 @@
             <td style="padding: 12px 16px;">${b.route}</td>
             <td style="padding: 12px 16px;">${b.cabinClass}</td>
             <td style="padding: 12px 16px;">${b.seat}${b.seat === '—' ? '' : ' <span class="caption-text">(' + b.seatPreference + ')</span>'}</td>
+            <td style="padding: 12px 16px;">${b.mealPreference || 'Standard'}</td>
             <td style="padding: 12px 16px;">${b.gate}</td>
             <td style="padding: 12px 16px;">${b.boarding}</td>
             <td style="padding: 12px 16px;">
