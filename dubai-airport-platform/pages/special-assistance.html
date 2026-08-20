@@ -1,0 +1,657 @@
+<!-- Special Assistance — OCC Coordinator module (ops / admin)
+     Reads & writes the shared AssistStore (localStorage: DXB_ASSIST_REQUESTS),
+     the SAME requests created by the Passenger surface. Renders inside the
+     existing OCC shell (#ops-content). Self-contained: scoped #sa-wrapper,
+     scoped styles, sa-prefixed inline script. No shell/sidebar/design-system
+     changes. -->
+
+<div id="sa-wrapper">
+  <style>
+    /* Scoped to #sa-wrapper — reuses shared tokens from css/design-system.css */
+    #sa-wrapper { display: block; }
+
+    /* Header */
+    #sa-wrapper .sa-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    #sa-wrapper .sa-head h1 { font-size: 24px; line-height: 30px; }
+    #sa-wrapper .sa-head .sa-sub { color: var(--text-secondary); font-size: 14px; margin-top: 2px; max-width: 60ch; }
+
+    /* Attention lanes — compact pill filters */
+    #sa-wrapper .sa-lanes { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    #sa-wrapper .sa-lane {
+      appearance: none; cursor: pointer; font-family: var(--font-family);
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--bg-surface); border: var(--border-standard);
+      border-radius: var(--radius-chip); padding: 7px 14px; min-height: 38px;
+      transition: border-color .12s ease, background .12s ease;
+    }
+    #sa-wrapper .sa-lane:hover { border-color: #C9C3BB; }
+    #sa-wrapper .sa-lane.is-active { border-color: var(--color-primary); background: #FDF3F3; box-shadow: 0 0 0 1px var(--color-primary) inset; }
+    #sa-wrapper .sa-lane.is-empty { opacity: .5; }
+    #sa-wrapper .sa-lane .sa-lane-n { font-size: 15px; font-weight: 700; line-height: 1; color: var(--text-main); }
+    #sa-wrapper .sa-lane .sa-lane-l { font-size: 13px; color: var(--text-secondary); font-weight: 600; text-align: left; }
+    #sa-wrapper .sa-lane .sa-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+    #sa-wrapper .sa-lane.sa-lane-clear .sa-lane-l { color: var(--color-primary); font-weight: 700; }
+    #sa-wrapper .sa-dot-new { background: var(--color-info); }
+    #sa-wrapper .sa-dot-sla { background: var(--color-warning); }
+    #sa-wrapper .sa-dot-exc { background: var(--color-error); }
+    #sa-wrapper .sa-dot-act { background: var(--color-success); }
+
+    /* Master–detail */
+    #sa-wrapper .sa-split { display: grid; grid-template-columns: 372px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1080px) { #sa-wrapper .sa-split { grid-template-columns: 1fr; } }
+
+    /* Queue */
+    #sa-wrapper .sa-queue-h { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
+    #sa-wrapper .sa-queue-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    #sa-wrapper .sa-queue-h .sa-count { font-size: 12px; color: var(--text-dim); font-weight: 600; }
+    #sa-wrapper .sa-queue { display: flex; flex-direction: column; gap: 8px; }
+    #sa-wrapper .sa-row {
+      text-align: left; width: 100%; cursor: pointer; font-family: var(--font-family);
+      display: flex; flex-direction: column; gap: 7px;
+      background: var(--bg-surface); border: var(--border-standard);
+      border-left: 3px solid var(--border-color);
+      border-radius: var(--radius-card); padding: 12px 14px; box-shadow: var(--shadow-subtle);
+      transition: box-shadow .12s ease, border-color .12s ease, background .12s ease;
+    }
+    #sa-wrapper .sa-row:hover { box-shadow: var(--shadow-emirates); }
+    #sa-wrapper .sa-row.lane-new { border-left-color: var(--color-info); }
+    #sa-wrapper .sa-row.lane-sla { border-left-color: var(--color-warning); }
+    #sa-wrapper .sa-row.lane-exception { border-left-color: var(--color-error); }
+    #sa-wrapper .sa-row.lane-active { border-left-color: var(--color-success); }
+    #sa-wrapper .sa-row.lane-done { border-left-color: var(--border-color); opacity: .68; }
+    /* Selected: strong primary ring, lane accent preserved outside the inset ring */
+    #sa-wrapper .sa-row.is-selected {
+      background: #FDF9F9;
+      box-shadow: 0 0 0 2px var(--color-primary) inset, var(--shadow-emirates);
+    }
+    #sa-wrapper .sa-row-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #sa-wrapper .sa-row-idl { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    #sa-wrapper .sa-row-pax { font-size: 15px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #sa-wrapper .sa-row-meta { font-size: 12.5px; color: var(--text-secondary); }
+    #sa-wrapper .sa-row-meta .sa-id { font-weight: 700; color: var(--text-dim); }
+    #sa-wrapper .sa-row-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    #sa-wrapper .sa-row-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    #sa-wrapper .sa-row .chip { font-size: 12px; padding: 3px 10px; }
+
+    /* Priority badge (queue + detail signal) */
+    #sa-wrapper .sa-prio-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: 20px; min-width: 26px; padding: 0 6px; border-radius: 6px;
+      font-size: 11px; font-weight: 700; letter-spacing: .02em; flex: 0 0 auto;
+      border: 1px solid transparent;
+    }
+    #sa-wrapper .sa-prio-badge.p1 { background: var(--color-error); color: #fff; }
+    #sa-wrapper .sa-prio-badge.p2 { background: var(--bg-warning); color: var(--color-warning); border-color: var(--border-warning); }
+    #sa-wrapper .sa-prio-badge.p3 { background: var(--bg-secondary); color: var(--text-secondary); border-color: var(--border-color); }
+    #sa-wrapper .sa-prio-badge.p4 { background: var(--bg-secondary); color: var(--text-dim); border-color: var(--border-color); }
+
+    /* Assignee + SLA (card footer) */
+    #sa-wrapper .sa-assignee { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--text-main); min-width: 0; }
+    #sa-wrapper .sa-assignee .sa-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #sa-wrapper .sa-ava { width: 18px; height: 18px; border-radius: 50%; background: var(--color-success); color: #fff; font-size: 9px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+    #sa-wrapper .sa-unassigned { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
+    #sa-wrapper .sa-sla-due { font-size: 12.5px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+    #sa-wrapper .sa-sla-due.is-risk { color: var(--color-warning); }
+    #sa-wrapper .sa-sla-due.is-breach { color: var(--color-error); }
+
+    /* Quiet need tags */
+    #sa-wrapper .sa-tag {
+      display: inline-flex; align-items: center; background: var(--bg-secondary);
+      color: var(--text-secondary); border: 1px solid var(--border-color);
+      border-radius: var(--radius-chip); padding: 2px 9px; font-size: 12px; font-weight: 500; line-height: 16px;
+    }
+
+    /* Detail: overview header */
+    #sa-wrapper .sa-detail .card { margin-bottom: 16px; }
+    #sa-wrapper .sa-card-t { font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 12px; }
+    #sa-wrapper .sa-dh-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    #sa-wrapper .sa-dh-name { font-size: 22px; line-height: 28px; font-weight: 700; color: var(--text-main); margin-top: 2px; }
+    #sa-wrapper .sa-dh-flight { font-size: 13.5px; color: var(--text-secondary); margin-top: 3px; }
+
+    /* Signal tiles — the operational readout */
+    #sa-wrapper .sa-signals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+    #sa-wrapper .sa-signal { background: var(--bg-secondary); border: var(--border-standard); border-radius: var(--radius-button); padding: 10px 12px; min-width: 0; }
+    #sa-wrapper .sa-signal-k { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; margin-bottom: 4px; }
+    #sa-wrapper .sa-signal-v { font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 6px; min-width: 0; }
+    #sa-wrapper .sa-signal-v .sa-nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #sa-wrapper .sa-signal-v.is-risk { color: var(--color-warning); }
+    #sa-wrapper .sa-signal-v.is-breach, #sa-wrapper .sa-signal-v.p1 { color: var(--color-error); }
+    #sa-wrapper .sa-signal-v .sa-sub2 { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+
+    /* Detail: sections + KV */
+    #sa-wrapper .sa-section-t { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; margin: 18px 0 10px; }
+    #sa-wrapper .sa-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+    #sa-wrapper .sa-k { font-size: 12px; color: var(--text-secondary); font-weight: 500; display: block; }
+    #sa-wrapper .sa-v { font-size: 14.5px; color: var(--text-main); font-weight: 600; }
+    #sa-wrapper .sa-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    #sa-wrapper .sa-note { color: var(--text-secondary); font-size: 14px; margin-top: 10px; font-style: italic; }
+
+    /* Exception banner */
+    #sa-wrapper .sa-exc-banner {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: var(--bg-error); border: 1px solid var(--border-error);
+      color: var(--color-error); border-radius: var(--radius-card); padding: 12px 14px; margin-bottom: 14px;
+    }
+    #sa-wrapper .sa-exc-banner .sa-exc-t { font-weight: 700; }
+
+    /* Actions — one prominent primary step, quiet utilities */
+    #sa-wrapper .sa-actions { display: block; }
+    #sa-wrapper .sa-primary {
+      background: var(--bg-secondary); border: var(--border-standard);
+      border-radius: var(--radius-button); padding: 14px;
+    }
+    #sa-wrapper .sa-primary-label { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+    #sa-wrapper .sa-primary .sa-note { margin-top: 10px; font-style: normal; }
+    #sa-wrapper .sa-assigned-strip { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    #sa-wrapper .sa-assigned-strip .sa-ava { width: 30px; height: 30px; font-size: 12px; }
+    #sa-wrapper .sa-assigned-strip .sa-nm2 { font-weight: 700; font-size: 15px; line-height: 18px; }
+    #sa-wrapper .sa-assigned-strip .sa-zone { font-size: 12.5px; color: var(--text-secondary); }
+    #sa-wrapper .sa-more { margin-top: 16px; }
+    #sa-wrapper .sa-more-title { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; margin-bottom: 10px; }
+    #sa-wrapper .sa-more-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+    #sa-wrapper .sa-inline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
+    #sa-wrapper .sa-inline .input-field { flex: 1 1 170px; margin: 0; height: 44px; }
+    #sa-wrapper .sa-inline .input-group { flex: 1 1 170px; margin: 0; }
+    #sa-wrapper .sa-actions .btn-primary, #sa-wrapper .sa-actions .btn-secondary { width: auto; padding: 0 18px; height: 44px; font-size: 15px; }
+    #sa-wrapper .btn-ghost {
+      appearance: none; font-family: var(--font-family); cursor: pointer;
+      height: 44px; padding: 0 16px; border-radius: var(--radius-button);
+      background: var(--bg-surface); border: var(--border-standard);
+      color: var(--text-main); font-weight: 600; font-size: 14px;
+    }
+    #sa-wrapper .btn-ghost:hover { border-color: #C9C3BB; }
+    #sa-wrapper .btn-ghost.sa-danger { color: var(--color-error); border-color: var(--border-error); }
+    #sa-wrapper .btn-ghost.sa-danger:hover { background: var(--bg-error); }
+    #sa-wrapper input:focus-visible, #sa-wrapper select:focus-visible,
+    #sa-wrapper textarea:focus-visible, #sa-wrapper button:focus-visible {
+      outline: 3px solid rgba(215,26,33,0.45); outline-offset: 2px;
+    }
+
+    /* Activity timeline */
+    #sa-wrapper .sa-timeline { list-style: none; margin: 4px 0 0; padding: 0; }
+    #sa-wrapper .sa-tl { display: flex; gap: 10px; padding: 6px 0; font-size: 13px; }
+    #sa-wrapper .sa-tl .sa-tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-info); margin-top: 5px; flex: 0 0 auto; }
+    #sa-wrapper .sa-tl:first-child .sa-tl-dot { background: var(--color-primary); }
+    #sa-wrapper .sa-tl .sa-tl-actor { color: var(--text-dim); }
+    #sa-wrapper .sa-tl-more { font-size: 12.5px; color: var(--text-dim); margin-top: 8px; }
+
+    #sa-wrapper .sa-empty { text-align: center; color: var(--text-secondary); padding: 40px 16px; }
+    #sa-wrapper .sa-detail .sa-empty-card { display: flex; align-items: center; justify-content: center; min-height: 320px; }
+    #sa-wrapper .sa-toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      background: var(--text-main); color: #fff; padding: 10px 16px; border-radius: 999px;
+      font-size: 14px; font-weight: 600; box-shadow: var(--shadow-emirates); z-index: 50; opacity: 0;
+      transition: opacity .2s ease; pointer-events: none;
+    }
+    #sa-wrapper .sa-toast.is-show { opacity: 1; }
+    #sa-wrapper .visually-hidden {
+      position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+    }
+  </style>
+
+  <div class="sa-head">
+    <div>
+      <h1>Special assistance</h1>
+      <div class="sa-sub">Coordinate passenger assistance requests — assign agents, track progress, handle exceptions.</div>
+    </div>
+    <div class="sa-lanes" id="sa-lanes" role="group" aria-label="Filter by attention lane"></div>
+  </div>
+
+  <div class="sa-split">
+    <section aria-label="Assistance queue">
+      <div class="sa-queue-h">
+        <span class="sa-queue-title">Queue</span>
+        <span class="sa-count" id="sa-queue-count"></span>
+      </div>
+      <div class="sa-queue" id="sa-queue"></div>
+    </section>
+    <section class="sa-detail" id="sa-detail" aria-label="Request detail"></section>
+  </div>
+
+  <div class="sa-toast" id="sa-toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ---- Bootstrap the shared store (module pages can't load external
+    //      <script src>, so inject it if it isn't already present) ----------
+    function boot() {
+      if (window.AssistStore) return init();
+      var existing = document.getElementById('sa-store-script');
+      if (existing) { existing.addEventListener('load', init); return; }
+      var s = document.createElement('script');
+      s.id = 'sa-store-script';
+      s.src = 'shared/assist-store.js';   // relative to index.html (shell root)
+      s.onload = init;
+      document.head.appendChild(s);
+    }
+
+    var CURRENT = 'coordinator'; // actor label for audit
+    var state = { filter: 'all', selectedId: null };
+
+    var EXC_TYPES = [
+      { v: 'passenger_not_found', l: 'Passenger not found' },
+      { v: 'sla_risk',            l: 'SLA at risk' },
+      { v: 'gate_changed',        l: 'Gate / flight changed' },
+      { v: 'staff_unavailable',   l: 'Staff unavailable' },
+      { v: 'assistance_changed',  l: 'Assistance needs changed' },
+      { v: 'handoff_failed',      l: 'Handoff failed' }
+    ];
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+      });
+    }
+
+    // ---- Lane classification -------------------------------------------
+    function laneOf(r) {
+      if (r.status === 'COMPLETED' || r.status === 'CANCELLED') return 'done';
+      var excOpen = r.exception && r.exception.status !== 'resolved';
+      var slaRisk = (r.exception && r.exception.type === 'sla_risk') || (r.sla && r.sla.state === 'at_risk');
+      // SLA risk and exceptions take precedence so they are never hidden
+      // inside the "new/unassigned" bucket.
+      if (slaRisk) return 'sla';
+      if (excOpen) return 'exception';
+      if (!r.agentId && (r.status === 'REQUESTED' || r.status === 'CONFIRMED')) return 'new';
+      return 'active';
+    }
+    var LANE_RANK = { new: 0, sla: 1, exception: 2, active: 3, done: 5 };
+    var PRIO_RANK = { P1: 0, P2: 1, P3: 2, P4: 3 };
+
+    function statusChip(status) {
+      // Semantic colours so status reads at a glance: amber = awaiting triage,
+      // blue = in the coordinator/agent pipeline, green = done, red = cancelled.
+      var map = {
+        REQUESTED:        ['chip-warning', '◷', 'Requested'],
+        CONFIRMED:        ['chip-info', '✓', 'Confirmed'],
+        ASSIGNED:         ['chip-info', '👤', 'Assigned'],
+        ACCEPTED:         ['chip-info', '👤', 'Accepted'],
+        EN_ROUTE:         ['chip-in-progress', '→', 'En route'],
+        PASSENGER_LOCATED:['chip-in-progress', '📍', 'Located'],
+        IN_PROGRESS:      ['chip-in-progress', '⧗', 'In progress'],
+        COMPLETED:        ['chip-completed', '✓', 'Completed'],
+        CANCELLED:        ['chip-blocked', '✕', 'Cancelled']
+      };
+      var m = map[status] || ['chip-info', '•', status];
+      return '<span class="chip ' + m[0] + '"><span aria-hidden="true">' + m[1] + '</span> ' + esc(m[2]) + '</span>';
+    }
+
+    // ---- small presentational helpers ----------------------------------
+    function initials(name) {
+      return String(name || '?').trim().split(/\s+/).slice(0, 2)
+        .map(function (w) { return w.charAt(0) || ''; }).join('').toUpperCase() || '?';
+    }
+    function prioClass(p) { return String(p || 'P3').toLowerCase(); }
+    function slaState(r) { return (r.sla && r.sla.state) || 'on_track'; }
+    function slaClass(st) { return st === 'at_risk' ? ' is-risk' : (st === 'breached' ? ' is-breach' : ''); }
+
+    function laneMeta() {
+      return [
+        { key: 'new',       label: 'New / unassigned', dot: 'sa-dot-new' },
+        { key: 'sla',       label: 'SLA at risk',      dot: 'sa-dot-sla' },
+        { key: 'exception', label: 'Exceptions',       dot: 'sa-dot-exc' },
+        { key: 'active',    label: 'Active',           dot: 'sa-dot-act' }
+      ];
+    }
+
+    // ---- Render: attention lanes (filters) -----------------------------
+    function renderLanes(reqs) {
+      var counts = { new: 0, sla: 0, exception: 0, active: 0, done: 0 };
+      reqs.forEach(function (r) { counts[laneOf(r)]++; });
+      var host = document.getElementById('sa-lanes');
+      host.innerHTML = laneMeta().map(function (m) {
+        var active = state.filter === m.key ? ' is-active' : '';
+        var empty = counts[m.key] === 0 ? ' is-empty' : '';
+        return '<button type="button" class="sa-lane' + active + empty + '" data-lane="' + m.key + '" '
+          + 'aria-pressed="' + (state.filter === m.key) + '">'
+          + '<span class="sa-dot ' + m.dot + '" aria-hidden="true"></span>'
+          + '<span class="sa-lane-n">' + counts[m.key] + '</span>'
+          + '<span class="sa-lane-l">' + m.label + '</span>'
+          + '</button>';
+      }).join('') + (state.filter !== 'all'
+        ? '<button type="button" class="sa-lane sa-lane-clear" data-lane="all">'
+          + '<span class="sa-lane-l">✕ Clear filter</span></button>'
+        : '');
+      host.querySelectorAll('[data-lane]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var l = b.getAttribute('data-lane');
+          state.filter = (state.filter === l) ? 'all' : l;
+          render();
+        });
+      });
+    }
+
+    // ---- Render: queue --------------------------------------------------
+    function renderQueue(reqs) {
+      var host = document.getElementById('sa-queue');
+      var list = reqs.slice().sort(function (a, b) {
+        var la = LANE_RANK[laneOf(a)], lb = LANE_RANK[laneOf(b)];
+        if (la !== lb) return la - lb;
+        var pa = PRIO_RANK[a.priority] != null ? PRIO_RANK[a.priority] : 9;
+        var pb = PRIO_RANK[b.priority] != null ? PRIO_RANK[b.priority] : 9;
+        if (pa !== pb) return pa - pb;
+        return String(a.id).localeCompare(String(b.id));
+      });
+      if (state.filter !== 'all') {
+        list = list.filter(function (r) { return laneOf(r) === state.filter; });
+      }
+      var countEl = document.getElementById('sa-queue-count');
+      if (countEl) {
+        countEl.textContent = list.length + (list.length === 1 ? ' request' : ' requests')
+          + (state.filter !== 'all' ? ' · filtered' : '');
+      }
+      if (!list.length) {
+        host.innerHTML = '<div class="sa-empty">No requests in this view.<br>'
+          + 'New passenger requests appear here automatically.</div>';
+        return;
+      }
+      host.innerHTML = list.map(function (r) {
+        var lane = laneOf(r);
+        var sel = r.id === state.selectedId ? ' is-selected' : '';
+
+        // Assignment (left) + SLA (right) footer
+        var assignee = r.agentId
+          ? '<span class="sa-assignee"><span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId))
+            + '</span><span class="sa-nm">' + esc(r.agentName || r.agentId) + '</span></span>'
+          : '<span class="sa-unassigned">Unassigned</span>';
+        var st = slaState(r);
+        var slaHtml = (r.sla && r.sla.dueBy)
+          ? '<span class="sa-sla-due' + slaClass(st) + '">◷ due ' + esc(r.sla.dueBy) + '</span>'
+          : '';
+
+        // Needs as quiet tags; only status/exception carry colour
+        var needs = window.AssistStore.needLabels(r.needs).slice(0, 2)
+          .map(function (l) { return '<span class="sa-tag">' + esc(l) + '</span>'; }).join('');
+        var more = r.needs.length > 2 ? '<span class="sa-tag">+' + (r.needs.length - 2) + '</span>' : '';
+        var excChip = (r.exception && r.exception.status !== 'resolved')
+          ? '<span class="chip chip-blocked"><span aria-hidden="true">⚠</span> Exception</span>' : '';
+        var tags = (needs || more || excChip)
+          ? '<div class="sa-row-tags">' + needs + more + excChip + '</div>' : '';
+
+        return '<button type="button" class="sa-row lane-' + lane + sel + '" data-id="' + esc(r.id) + '">'
+          + '<div class="sa-row-head">'
+          +   '<div class="sa-row-idl">'
+          +     '<span class="sa-prio-badge ' + prioClass(r.priority) + '">' + esc(r.priority) + '</span>'
+          +     '<span class="sa-row-pax">' + esc(r.passenger.name) + '</span>'
+          +   '</div>'
+          +   statusChip(r.status)
+          + '</div>'
+          + '<div class="sa-row-meta"><span class="sa-id">' + esc(r.id) + '</span> · '
+          +   esc(r.flight.number || '—') + ' · ' + esc(r.flight.route || '')
+          +   (r.flight.gate ? ' · Gate ' + esc(r.flight.gate) : '') + '</div>'
+          + '<div class="sa-row-foot">' + assignee + slaHtml + '</div>'
+          + tags
+          + '</button>';
+      }).join('');
+      host.querySelectorAll('[data-id]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          state.selectedId = b.getAttribute('data-id');
+          render();
+        });
+      });
+    }
+
+    // ---- Render: detail + actions --------------------------------------
+    function renderDetail(reqs) {
+      var host = document.getElementById('sa-detail');
+      var r = reqs.filter(function (x) { return x.id === state.selectedId; })[0];
+      if (!r) {
+        host.innerHTML = '<div class="card sa-empty-card"><div class="sa-empty">'
+          + 'Select a request from the queue<br>to view details and take action.</div></div>';
+        return;
+      }
+
+      var needs = window.AssistStore.needLabels(r.needs)
+        .map(function (l) { return '<span class="chip chip-info">' + esc(l) + '</span>'; }).join('')
+        || '<span class="sa-unassigned">None specified</span>';
+
+      var excOpen = r.exception && r.exception.status !== 'resolved';
+      var excBanner = excOpen
+        ? '<div class="sa-exc-banner"><span aria-hidden="true">⚠</span><div>'
+          + '<div class="sa-exc-t">' + esc(excLabel(r.exception.type)) + '</div>'
+          + (r.exception.note ? '<div>' + esc(r.exception.note) + '</div>' : '')
+          + '</div></div>'
+        : '';
+
+      // Signal tiles — the three questions a coordinator asks first.
+      var st = slaState(r);
+      var slaMap = { on_track: 'On track', at_risk: 'At risk', breached: 'Breached' };
+      var slaV = esc(slaMap[st] || st)
+        + (r.sla && r.sla.dueBy ? ' <span class="sa-sub2">· due ' + esc(r.sla.dueBy) + '</span>' : '');
+      var prioSig = r.priority === 'P1' ? ' p1' : (r.priority === 'P2' ? ' is-risk' : '');
+      var agentSig = r.agentId
+        ? '<span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId)) + '</span>'
+          + '<span class="sa-nm">' + esc((r.agentName || r.agentId)) + '</span>'
+        : '<span class="sa-unassigned">Unassigned</span>';
+
+      var signals = '<div class="sa-signals">'
+        + '<div class="sa-signal"><span class="sa-signal-k">Priority</span>'
+        +   '<span class="sa-signal-v' + prioSig + '">' + esc(r.priority) + '</span></div>'
+        + '<div class="sa-signal"><span class="sa-signal-k">SLA</span>'
+        +   '<span class="sa-signal-v' + slaClass(st) + '">' + slaV + '</span></div>'
+        + '<div class="sa-signal"><span class="sa-signal-k">Agent</span>'
+        +   '<span class="sa-signal-v">' + agentSig + '</span></div>'
+        + '</div>';
+
+      // Activity: newest first, cap the visible list.
+      var tlArr = (r.timeline || []).slice().reverse();
+      var timeline = tlArr.slice(0, 6).map(function (t) {
+        return '<li class="sa-tl"><span class="sa-tl-dot" aria-hidden="true"></span>'
+          + '<span>' + esc(t.event) + ' <span class="sa-tl-actor">· ' + esc(t.actor) + '</span></span></li>';
+      }).join('');
+      var tlMore = tlArr.length > 6
+        ? '<div class="sa-tl-more">+' + (tlArr.length - 6) + ' earlier events</div>' : '';
+
+      host.innerHTML =
+        '<div class="card">'
+        + excBanner
+        + '<div class="sa-dh-top">'
+        +   '<div>'
+        +     '<span class="caption-text">Request · ' + esc(r.id) + '</span>'
+        +     '<div class="sa-dh-name">' + esc(r.passenger.name) + '</div>'
+        +     '<div class="sa-dh-flight">' + esc(r.flight.number || '—') + ' · ' + esc(r.flight.route || '')
+        +       (r.flight.date ? ' · ' + esc(r.flight.date) : '') + '</div>'
+        +   '</div>'
+        +   statusChip(r.status)
+        + '</div>'
+        + signals
+        + '<div class="sa-section-t">Trip details</div>'
+        + '<div class="sa-kv">'
+        +   kv('Booking ref', r.passenger.bookingRef || '—')
+        +   kv('Terminal / gate', (r.flight.terminal || '—') + (r.flight.gate ? ' · Gate ' + r.flight.gate : ''))
+        +   kv('Boarding', r.flight.boarding || '—')
+        +   kv('Journey', (r.flight.journeyType || 'departing').replace(/^\w/, function (c) { return c.toUpperCase(); }))
+        + '</div>'
+        + '<div class="sa-section-t">Support requested</div>'
+        + '<div class="sa-chips">' + needs + '</div>'
+        + (r.needsNote ? '<p class="sa-note">“' + esc(r.needsNote) + '”</p>' : '')
+        + '</div>'
+
+        + '<div class="card"><div class="sa-card-t">Actions</div>'
+        +   '<div class="sa-actions">' + actionsHTML(r) + '</div>'
+        + '</div>'
+
+        + '<div class="card"><div class="sa-card-t">Activity</div>'
+        +   '<ul class="sa-timeline">' + timeline + '</ul>' + tlMore + '</div>';
+
+      wireActions(r);
+    }
+
+    function actionsHTML(r) {
+      var terminal = (r.status === 'COMPLETED' || r.status === 'CANCELLED');
+      if (terminal) {
+        return '<p class="sa-note" style="font-style:normal;margin:0;">This request is '
+          + esc(r.status.toLowerCase()) + '. No further action required.</p>';
+      }
+
+      // --- Primary next step: exactly one, chosen by state --------------
+      var primary;
+      if (r.status === 'REQUESTED') {
+        primary = '<div class="sa-primary">'
+          + '<div class="sa-primary-label">Next step · Confirm request</div>'
+          + '<button type="button" class="btn-primary" data-act="confirm">Confirm request</button>'
+          + '<p class="sa-note">Acknowledge so the passenger sees “Assistance confirmed”, then assign an agent.</p>'
+          + '</div>';
+      } else if (!r.agentId) {
+        primary = '<div class="sa-primary">'
+          + '<div class="sa-primary-label">Next step · Assign an agent</div>'
+          + '<div class="sa-inline">' + agentSelect('sa-assign-sel')
+          +   '<button type="button" class="btn-primary" data-act="assign">Assign</button></div>'
+          + '</div>';
+      } else {
+        var a = window.AssistStore.agentById ? window.AssistStore.agentById(r.agentId) : null;
+        primary = '<div class="sa-primary">'
+          + '<div class="sa-assigned-strip">'
+          +   '<span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId)) + '</span>'
+          +   '<div><div class="sa-nm2">' + esc(r.agentName || r.agentId) + '</div>'
+          +     '<div class="sa-zone">' + esc(r.agentId) + (a && a.zone ? ' · ' + esc(a.zone) : '') + '</div></div>'
+          + '</div>'
+          + '<div class="sa-primary-label" style="margin-top:2px;">Reassign to another agent</div>'
+          + '<div class="sa-inline">' + agentSelect('sa-assign-sel', r.agentId)
+          +   '<button type="button" class="btn-secondary" data-act="reassign">Reassign</button></div>'
+          + '</div>';
+      }
+
+      // --- Secondary / utility actions ---------------------------------
+      var more = '<div class="sa-more"><div class="sa-more-title">More actions</div>';
+      if (r.exception && r.exception.status !== 'resolved') {
+        more += '<div class="sa-more-row" style="margin-bottom:12px;">'
+          + '<button type="button" class="btn-ghost" data-act="resolve-exc">✓ Resolve exception</button></div>';
+      } else {
+        var opts = EXC_TYPES.map(function (e) { return '<option value="' + e.v + '">' + esc(e.l) + '</option>'; }).join('');
+        more += '<div class="sa-more-row" style="margin-bottom:12px;">'
+          + '<div class="input-group" style="flex:1 1 170px;"><label class="visually-hidden" for="sa-exc-type">Exception type</label>'
+          +   '<select id="sa-exc-type" class="input-field">' + opts + '</select></div>'
+          + '<input id="sa-exc-note" class="input-field" placeholder="Optional note" style="flex:1 1 150px;" />'
+          + '<button type="button" class="btn-ghost sa-danger" data-act="escalate">Raise exception</button>'
+          + '</div>';
+      }
+      more += '<div class="sa-more-row">'
+        + '<button type="button" class="btn-ghost sa-danger" data-act="cancel">Cancel / close request</button></div>';
+      more += '</div>';
+
+      return primary + more;
+    }
+
+    function agentSelect(id, current) {
+      var opts = window.AssistStore.AGENTS.map(function (a) {
+        var sel = a.id === current ? ' selected' : '';
+        var busy = a.status === 'on_task' ? ' (on task)' : '';
+        return '<option value="' + a.id + '"' + sel + '>' + esc(a.name) + ' · ' + esc(a.zone) + busy + '</option>';
+      }).join('');
+      return '<div class="input-group"><label class="visually-hidden" for="' + id + '">Agent</label>'
+        + '<select id="' + id + '" class="input-field">' + opts + '</select></div>';
+    }
+
+    function wireActions(r) {
+      var host = document.getElementById('sa-detail');
+      host.querySelectorAll('[data-act]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var act = b.getAttribute('data-act');
+          if (act === 'confirm') {
+            window.AssistStore.confirmRequest(r.id, CURRENT); toast('Request confirmed');
+          } else if (act === 'assign') {
+            var id = document.getElementById('sa-assign-sel').value;
+            window.AssistStore.assign(r.id, id, CURRENT); toast('Agent ' + id + ' assigned');
+          } else if (act === 'reassign') {
+            var id2 = document.getElementById('sa-assign-sel').value;
+            window.AssistStore.reassign(r.id, id2, CURRENT); toast('Reassigned to ' + id2);
+          } else if (act === 'escalate') {
+            var t = document.getElementById('sa-exc-type').value;
+            var n = document.getElementById('sa-exc-note').value.trim();
+            window.AssistStore.escalate(r.id, t, n, CURRENT); toast('Exception raised');
+          } else if (act === 'resolve-exc') {
+            window.AssistStore.resolveException(r.id, CURRENT); toast('Exception resolved');
+          } else if (act === 'cancel') {
+            window.AssistStore.cancel(r.id, CURRENT); toast('Request cancelled');
+          }
+          render(); // reflect immediately (store change also re-renders)
+        });
+      });
+    }
+
+    // ---- small helpers --------------------------------------------------
+    function kv(k, v) { return '<div><span class="sa-k">' + esc(k) + '</span><span class="sa-v">' + esc(v) + '</span></div>'; }
+    function excLabel(type) {
+      var f = EXC_TYPES.filter(function (e) { return e.v === type; })[0];
+      return f ? f.l : type;
+    }
+    function slaLabel(r) {
+      var st = (r.sla && r.sla.state) || 'on_track';
+      var map = { on_track: 'On track', at_risk: 'At risk', breached: 'Breached' };
+      var due = r.sla && r.sla.dueBy ? ' · due ' + r.sla.dueBy : '';
+      return esc(map[st] || st) + due;
+    }
+
+    var toastTimer = null;
+    function toast(msg) {
+      var el = document.getElementById('sa-toast');
+      if (!el) return;
+      el.textContent = msg; el.classList.add('is-show');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(function () { el.classList.remove('is-show'); }, 1800);
+    }
+
+    // ---- seed sample requests only if the store is completely empty -----
+    function seedIfEmpty() {
+      if (window.AssistStore.all().length > 0) return;
+      var a = window.AssistStore.create({
+        source: 'seed',
+        passenger: { name: 'Mariam Youssef', bookingRef: 'EK4R8T' },
+        flight: { number: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', gate: 'A14', date: 'Tue, 11 Aug', boarding: '08:30', journeyType: 'departing' },
+        needs: ['wheelchair_push', 'long_walk'], needsNote: 'Prefers early boarding assistance.',
+        pickup: 'Terminal 3 — check-in area', destination: 'Gate A14'
+      });
+      var b = window.AssistStore.create({
+        source: 'seed',
+        passenger: { name: 'Daniel Okoro', bookingRef: 'EK2M5K' },
+        flight: { number: 'EK 072', route: 'DXB → CDG', terminal: 'Terminal 3', gate: 'B22', date: 'Tue, 11 Aug', boarding: '09:10', journeyType: 'departing' },
+        needs: ['visual'], needsNote: '', pickup: 'Terminal 3 — check-in area', destination: 'Gate B22'
+      });
+      // Give the second one an SLA-risk exception so the "SLA at risk" lane is demonstrable.
+      window.AssistStore.confirmRequest(b.id, 'coordinator');
+      window.AssistStore.escalate(b.id, 'sla_risk', 'Tight connection — boarding soon.', 'coordinator');
+    }
+
+    // ---- render orchestration ------------------------------------------
+    function render() {
+      if (!document.getElementById('sa-wrapper')) { teardown(); return; }
+      var reqs = window.AssistStore.all();
+      renderLanes(reqs);
+      renderQueue(reqs);
+      renderDetail(reqs);
+    }
+
+    var unsub = null;
+    function teardown() { if (unsub) { unsub(); unsub = null; } }
+
+    function init() {
+      seedIfEmpty();
+      // default selection: first item in attention order
+      if (!state.selectedId) {
+        var reqs = window.AssistStore.all().slice().sort(function (a, b) {
+          return LANE_RANK[laneOf(a)] - LANE_RANK[laneOf(b)];
+        });
+        if (reqs[0]) state.selectedId = reqs[0].id;
+      }
+      // re-render live on any store change (incl. passenger submissions in
+      // another tab). Guard against duplicate subscriptions on re-entry.
+      if (window.__saUnsub) { try { window.__saUnsub(); } catch (e) {} }
+      unsub = window.AssistStore.subscribe(function () {
+        if (!document.getElementById('sa-wrapper')) { teardown(); return; }
+        render();
+      });
+      window.__saUnsub = unsub;
+      render();
+    }
+
+    boot();
+  })();
+  </script>
+</div>

@@ -53,7 +53,7 @@ const ACCESS_MATRIX = {
     shell: 'ops',
     description: 'عملیات زمینی — گیت، turnaround، خدمه، مسافر',
     routes: ['admin', 'staff-login'],
-    modules: ['dashboard', 'gate-management', 'aircraft-turnaround', 'crew-flow', 'passenger-journey'],
+    modules: ['dashboard', 'gate-management', 'aircraft-turnaround', 'crew-flow', 'passenger-journey', 'special-assistance'],
     canManageUsers: false,
   },
   admin: {
@@ -68,6 +68,7 @@ const ACCESS_MATRIX = {
       'aircraft-turnaround',
       'crew-flow',
       'passenger-journey',
+      'special-assistance',
       'user-management',
     ],
     canManageUsers: true,
@@ -81,6 +82,7 @@ const MODULE_META = {
   'aircraft-turnaround': { label: 'Turnaround', icon: '↻' },
   'crew-flow': { label: 'Crew', icon: '◎' },
   'passenger-journey': { label: 'Passengers', icon: '◇' },
+  'special-assistance': { label: 'Special assistance', icon: '♿' },
   'user-management': { label: 'Users', icon: '⚙' },
 }
 
