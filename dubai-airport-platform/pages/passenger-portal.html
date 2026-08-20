@@ -234,6 +234,60 @@
     </div>
   </section>
 
+  <!-- ACCOUNT TAB: profile, saved One-ID preferences, sign out -->
+  <section id="pp-view-account" style="display: none;">
+    <h2 class="section-title" style="margin-bottom: 16px;">Account</h2>
+
+    <div class="card" style="display: flex; align-items: center; gap: 14px;">
+      <div id="pp-account-avatar" style="width: 52px; height: 52px; border-radius: 999px; background: var(--color-primary); color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 800; flex-shrink: 0;">S</div>
+      <div style="flex-grow: 1; min-width: 0;">
+        <p class="body-text" style="font-weight: 700;" id="pp-account-name">—</p>
+        <span class="caption-text" id="pp-account-email" style="word-break: break-all;">—</span>
+      </div>
+      <span class="chip chip-completed" style="flex-shrink: 0;">One-ID</span>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="font-size: 15px; margin-bottom: 12px;">Verified identity</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Passport</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">P‑A•••••42</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Nationality</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">United Arab Emirates</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Skywards</span>
+          <span class="body-text" style="font-size: 14px; font-weight: 600;">EK•••••8821</span>
+        </div>
+      </div>
+      <p class="caption-text" style="margin-top: 12px;">These details are reused on every booking, so you never type them again.</p>
+    </div>
+
+    <div class="card">
+      <h3 class="card-title" style="font-size: 15px; margin-bottom: 12px;">Saved travel preferences</h3>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Seat</span>
+          <span class="chip chip-info" id="pp-account-seat-pref">Window</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Meal</span>
+          <span class="chip chip-info" id="pp-account-meal-pref">Standard</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span class="caption-text">Auto check-in</span>
+          <span class="chip chip-completed">On · T-24h</span>
+        </div>
+      </div>
+      <p class="caption-text" style="margin-top: 12px;">Applied automatically to every booking. Change them during your next booking.</p>
+    </div>
+
+    <button class="btn-secondary" onclick="ppLogout()">Log Out</button>
+  </section>
+
   <!-- VIEW 2: FLIGHT RESULTS (MULTIPLE OPTIONS TO CHOOSE FROM) -->
   <section id="pp-view-results" style="display: none;">
     <button class="btn-secondary" style="width: auto; height: 36px; padding: 0 14px; font-size: 13px; margin-bottom: 16px;" onclick="ppSwitchView('pp-view-home')">
@@ -587,24 +641,25 @@
     }
 
     function ppRenderAuthStatus() {
+      const strip = document.getElementById('pp-auth-status');
       const icon = document.getElementById('pp-auth-icon');
       const text = document.getElementById('pp-auth-text');
       const subtext = document.getElementById('pp-auth-subtext');
       const actions = document.getElementById('pp-auth-actions');
       if (!icon) return;
 
+      // When signed in, the shared customer portal bar in index.html already
+      // shows the name and a sign-out control. Repeating it here costs ~115px
+      // of a 812px phone screen for no new information, so this strip is only
+      // rendered in the signed-out state, where it prompts the sign-in the
+      // booking flow will require.
       if (ppIsLoggedIn()) {
-        icon.style.backgroundColor = 'var(--bg-success)';
-        icon.style.color = 'var(--color-success)';
-        icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
-        text.textContent = currentUser.name;
-        subtext.textContent = `Signed in${currentUser.email ? ' • ' + currentUser.email : ''}`;
-        actions.innerHTML = `
-          <button class="btn-secondary" style="width: auto; height: 34px; padding: 0 16px; font-size: 13px;" onclick="ppLogout()">
-            Log Out
-          </button>
-        `;
-      } else {
+        if (strip) strip.style.display = 'none';
+        return;
+      }
+      if (strip) strip.style.display = 'flex';
+
+      {
         icon.style.backgroundColor = 'var(--bg-secondary)';
         icon.style.color = 'var(--text-secondary)';
         icon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
@@ -632,9 +687,68 @@
       ppSwitchView('pp-view-home');
     }
 
+    /* ---------- App tab bar bridge (called by goToAppTab in app.js) ---------- */
+    function ppShowAppTab(tab) {
+      if (tab === 'account') {
+        ppRenderAccount();
+        ppSwitchView('pp-view-account');
+        return;
+      }
+
+      if (tab === 'pass') {
+        const b = ppDashboardBooking();
+        if (b && b.status.indexOf('Checked-In') === 0) {
+          ppActiveBookingRef = b.ref;
+          ppRenderBoardingPass(b);
+          ppSwitchView('pp-view-boarding-pass');
+        } else {
+          // No pass issued yet — the dashboard explains where they are in the flow.
+          ppSwitchView('pp-view-home');
+          ppScrollToDashboard();
+        }
+        return;
+      }
+
+      if (tab === 'trips') {
+        ppSwitchView('pp-view-home');
+        ppScrollToBookings();
+        return;
+      }
+
+      ppSwitchView('pp-view-home');
+    }
+
+    function ppScrollToBookings() {
+      const card = document.getElementById('pp-my-bookings-card');
+      if (card && card.style.display !== 'none') {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function ppScrollToDashboard() {
+      const dash = document.getElementById('pp-dashboard');
+      if (dash && dash.style.display !== 'none') {
+        dash.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function ppRenderAccount() {
+      const name = ppPassengerName();
+      document.getElementById('pp-account-name').textContent = name;
+      document.getElementById('pp-account-email').textContent =
+        (typeof currentUser !== 'undefined' && currentUser.email) || '—';
+      document.getElementById('pp-account-avatar').textContent = name.charAt(0).toUpperCase();
+
+      // Reflect the preferences saved on the most recent booking.
+      const b = ppDashboardBooking();
+      document.getElementById('pp-account-seat-pref').textContent = b ? b.seatPreference : 'Window';
+      document.getElementById('pp-account-meal-pref').textContent =
+        b ? (b.mealPreference || 'Standard') : 'Standard';
+    }
+
     /* ---------- View router ---------- */
     function ppSwitchView(viewId) {
-      ['pp-view-home', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
+      ['pp-view-home', 'pp-view-account', 'pp-view-results', 'pp-view-auth-required', 'pp-view-booking', 'pp-view-success', 'pp-view-boarding-pass'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
@@ -1089,6 +1203,7 @@
     window.ppLogout = ppLogout;
     window.ppSimulateGateChange = ppSimulateGateChange;
     window.ppOpenBoardingPassFromDashboard = ppOpenBoardingPassFromDashboard;
+    window.ppShowAppTab = ppShowAppTab;
 
     ppInit();
   })();

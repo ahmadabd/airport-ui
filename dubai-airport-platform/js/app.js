@@ -197,7 +197,26 @@ function updateChrome() {
 
   const isStaff = isStaffRole(role) && currentRoute === 'admin'
   setOpsShellVisible(isStaff)
-  setCustomerPortalVisible(role === 'customer' && !isStaff)
+  // The passenger side is navigated entirely from the app tab bar, so the older
+  // customer strip (Book | My Trips | Manage booking | Flight status | Sign out)
+  // is not shown — it duplicated those destinations and cost ~117px of a phone
+  // screen. Account and sign-out live in the Account tab instead.
+  setCustomerPortalVisible(false)
+
+  // Sign In / Sign Up are only offered to a signed-out visitor; a signed-in
+  // passenger gets a compact account chip instead. Showing both at once (the
+  // previous behaviour) offered a signed-in user a "Sign Up" button.
+  const signedIn = !isStaff && role !== 'guest'
+  const signInButtons = document.getElementById('user-actions-container')
+  const accountChip = document.getElementById('user-account-chip')
+  if (signInButtons) signInButtons.style.display = isStaff || signedIn ? 'none' : 'flex'
+  if (accountChip) {
+    accountChip.style.display = signedIn ? 'flex' : 'none'
+    const initial = document.getElementById('app-account-initial')
+    const nameEl = document.getElementById('app-account-name')
+    if (initial) initial.textContent = (currentUser.name || '?').charAt(0).toUpperCase()
+    if (nameEl) nameEl.textContent = (currentUser.name || 'Account').split(' ')[0]
+  }
 
   const publicBits = [
     document.getElementById('public-top-strip'),
@@ -327,7 +346,10 @@ function switchRoute(route) {
     return
   }
 
-  if (route === 'landing') renderLandingView()
+  // The passenger landing experience IS the Passenger Portal — booking and
+  // check-in are the whole passenger product, so there is no separate marketing
+  // page in front of them.
+  if (route === 'landing') renderPassengerPortalView()
   else if (route === 'signin') renderSignInView()
   else if (route === 'signup') renderSignUpView()
   else if (route === 'staff-login') renderStaffLogin()
@@ -345,14 +367,55 @@ function initCustomerPortalLinks() {
   if (logout) logout.addEventListener('click', handleCustomerLogout)
 }
 
-function initBottomNav() {
-  document.querySelectorAll('.bottom-nav-item').forEach((item) => {
-    item.addEventListener('click', (e) => {
-      e.preventDefault()
-      const target = item.getAttribute('data-nav')
-      switchRoute(target === 'home' ? 'landing' : 'signin')
-    })
+/* —— Passenger app tab bar ——
+   The passenger side is a single app: Book, My Trips, Pass, and Account are
+   views of the Passenger Portal rather than separate pages. The tab bar and the
+   header nav both route through here so they can never disagree. */
+let currentAppTab = 'book'
+
+const APP_TAB_VIEWS = {
+  book: 'pp-view-home',
+  trips: 'pp-view-home',
+  pass: 'pp-view-boarding-pass',
+}
+
+function goToAppTab(tab) {
+  currentAppTab = tab
+
+  // A signed-out visitor tapping Account goes straight to sign-in; everything
+  // else is a view inside the portal.
+  if (tab === 'account' && normalizeRole(customerUser.role) === 'guest') {
+    syncAppTabHighlight(tab)
+    switchRoute('signin')
+    return
+  }
+
+  if (currentRoute !== 'landing') {
+    switchRoute('landing')
+    // The portal is fetched asynchronously; apply the tab once it has mounted.
+    window.setTimeout(() => applyAppTab(tab), 260)
+    return
+  }
+  applyAppTab(tab)
+}
+
+function applyAppTab(tab) {
+  syncAppTabHighlight(tab)
+
+  if (typeof window.ppShowAppTab === 'function') {
+    window.ppShowAppTab(tab)
+  }
+}
+
+function syncAppTabHighlight(tab) {
+  document.querySelectorAll('[data-app-tab]').forEach((el) => {
+    el.classList.toggle('active', el.getAttribute('data-app-tab') === tab)
   })
+}
+
+function initBottomNav() {
+  // Tab bar items call goToAppTab() directly from their onclick handlers.
+  syncAppTabHighlight(currentAppTab)
 }
 
 /* —— Auth —— */
