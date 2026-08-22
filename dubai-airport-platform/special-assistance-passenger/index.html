@@ -395,6 +395,39 @@
     }
     #sap-app .sap-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 
+    /* Current assistance agent card (passenger-friendly; no internal IDs) */
+    #sap-app .sap-agent {
+      background: var(--bg-surface); border: var(--border-standard);
+      border-radius: var(--radius-card); padding: var(--space-16);
+      box-shadow: var(--shadow-subtle); margin-bottom: var(--space-20);
+    }
+    #sap-app .sap-agent-h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); margin-bottom: 12px; }
+    #sap-app .sap-agent-id { display: flex; align-items: center; gap: 12px; }
+    #sap-app .sap-agent-ava {
+      width: 48px; height: 48px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--color-primary); color: #fff; font-size: 17px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    #sap-app .sap-agent-name { font-size: 18px; font-weight: 700; color: var(--text-main); line-height: 22px; }
+    #sap-app .sap-agent-role { font-size: 13px; color: var(--text-secondary); }
+    #sap-app .sap-agent-kv { margin-top: 14px; }
+    #sap-app .sap-agent-kv .sap-k { display: block; }
+    #sap-app .sap-agent-kv .sap-v { font-size: 15px; font-weight: 600; color: var(--text-main); }
+    #sap-app .sap-agent-kv > div + div { margin-top: 10px; }
+    #sap-app .sap-agent-actions { display: flex; gap: 10px; margin-top: 16px; }
+    #sap-app .sap-agent-actions button {
+      flex: 1 1 0; height: 46px; border-radius: var(--radius-button); cursor: pointer;
+      font-family: var(--font-family); font-size: 15px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #sap-app .sap-agent-actions .sap-msg { background: var(--color-primary); color: #fff; border: none; box-shadow: 0 2px 6px rgba(215,26,33,0.2); }
+    #sap-app .sap-agent-actions .sap-call { background: var(--bg-surface); color: var(--color-primary); border: 1.5px solid var(--color-primary); }
+    #sap-app .sap-agent-note {
+      margin-top: 12px; font-size: 13px; color: var(--text-secondary);
+      background: var(--bg-secondary); border-radius: var(--radius-card); padding: 10px 12px; display: none;
+    }
+    #sap-app .sap-agent-note.is-show { display: block; }
+
     /* Low-emphasis "start a new request" — while a request is active this is a
        secondary escape hatch near the end of the page, NOT a sticky primary
        action competing with the live tracking above. Keeps a 44px touch target
@@ -677,7 +710,9 @@
       backBtn.style.display = 'flex';
       window.scrollTo(0, 0);
 
-      var stepIndex = window.AssistStore.passengerStepIndex(req.status);
+      // Request-aware projection: stays monotonic across multi-agent handoffs
+      // (never regresses to an earlier step when the next leg is assigned).
+      var stepIndex = window.AssistStore.passengerStepForRequest(req);
       var steps = window.AssistStore.PASSENGER_STEPS.map(function (s, i) {
         var state = i < stepIndex ? 'is-done' : (i === stepIndex ? 'is-current' : '');
         var mark = i < stepIndex ? '✓' : (i === stepIndex ? '●' : (i + 1));
@@ -695,7 +730,30 @@
         return '<span class="chip chip-info"><span aria-hidden="true">•</span> ' + esc(l) + '</span>';
       }).join('');
 
-      var friendly = window.AssistStore.passengerStatusLabel(req.status);
+      var friendly = window.AssistStore.passengerStatusLabelForRequest(req);
+
+      // Current assistance agent (auto-updates as handoffs change the owner).
+      var curAsg = window.AssistStore.currentAssignment(req);
+      var journeyActive = req.status !== 'COMPLETED' && req.status !== 'CANCELLED';
+      var agentCard = (curAsg && curAsg.agentName && journeyActive)
+        ? '<section class="sap-agent" aria-label="Your assistance agent">'
+          + '<div class="sap-agent-h">Your assistance agent</div>'
+          + '<div class="sap-agent-id">'
+          +   '<span class="sap-agent-ava" aria-hidden="true">' + esc(agentInitials(curAsg.agentName)) + '</span>'
+          +   '<div><div class="sap-agent-name">' + esc(curAsg.agentName) + '</div>'
+          +     '<div class="sap-agent-role">Assistance Agent</div></div>'
+          + '</div>'
+          + '<div class="sap-agent-kv">'
+          +   (curAsg.pickup ? '<div><span class="sap-k">Meeting you at</span><span class="sap-v">' + esc(curAsg.pickup) + '</span></div>' : '')
+          +   '<div><span class="sap-k">Helping you with</span><span class="sap-v">' + esc(curAsg.taskTitle || 'Your assistance') + '</span></div>'
+          + '</div>'
+          + '<div class="sap-agent-actions">'
+          +   '<button type="button" class="sap-msg" id="sap-agent-msg"><span aria-hidden="true">💬</span> Message agent</button>'
+          +   '<button type="button" class="sap-call" id="sap-agent-call"><span aria-hidden="true">📞</span> Call agent</button>'
+          + '</div>'
+          + '<div class="sap-agent-note" id="sap-agent-note" role="status"></div>'
+          + '</section>'
+        : '';
 
       scroll.innerHTML = ''
         + '<div class="sap-success" role="status">'
@@ -727,6 +785,8 @@
         +   '</div>'
         + '</section>'
 
+        + agentCard
+
         + '<h2 class="sap-question" style="font-size:18px;">Status</h2>'
         + '<p class="sap-help">We’ll keep this page updated as your assistance progresses.</p>'
         + '<ol class="sap-timeline">' + steps + '</ol>'
@@ -746,6 +806,26 @@
         booking = readContext();
         renderRequest();
       });
+
+      // Simulated contact (prototype only — no real call/message backend, and
+      // the agent's personal number is never exposed).
+      var noteEl = document.getElementById('sap-agent-note');
+      var msgBtn = document.getElementById('sap-agent-msg');
+      var callBtn = document.getElementById('sap-agent-call');
+      if (msgBtn) msgBtn.addEventListener('click', function () {
+        var first = curAsg.agentName ? curAsg.agentName.split(' ')[0] : 'your agent';
+        noteEl.textContent = '💬 Message sent to ' + first + ' — they’ll see it on their agent device and reply shortly. (Demo)';
+        noteEl.classList.add('is-show');
+      });
+      if (callBtn) callBtn.addEventListener('click', function () {
+        noteEl.textContent = '📞 Connecting you via the Assistance Desk · +971 4 216 •• 21 (demo line — your agent’s personal number is never shared).';
+        noteEl.classList.add('is-show');
+      });
+    }
+
+    function agentInitials(name) {
+      return String(name || '?').trim().split(/\s+/).slice(0, 2)
+        .map(function (w) { return w.charAt(0) || ''; }).join('').toUpperCase() || '?';
     }
 
     /* ---- Live updates & boot ------------------------------------------- */
