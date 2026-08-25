@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<!--
+  DXB Special Assistance — Passenger companion (Surface A, standalone)
+  ------------------------------------------------------------------------
+  Independent mobile-first flow. Does NOT touch passenger-portal.html or the
+  booking experience. Entered from the main Passenger flow after the user
+  indicates they need special assistance (booking context passed via URL
+  query params — see the integration spec).
+
+  Reuses the shared repo tokens (../css/design-system.css) and the shared
+  request store (../shared/assist-store.js). No framework, no backend.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Special assistance · Dubai International (DXB)</title>
+  <meta name="description" content="Request special assistance for your journey through Dubai International Airport." />
+
+  <!-- Shared Emirates–DXB design tokens & components (single source of truth) -->
+  <link rel="stylesheet" href="../css/design-system.css" />
+
+  <style>
+    /* ---- Scoped to #sap-app only, so nothing leaks into shared styles ---- */
+
+    /* A responsive mobile-width column. 390x844 is only a design reference —
+       the height is driven by the viewport + content, never hardcoded. */
+    /* One backdrop colour on BOTH html and body. The shared stylesheet sets
+       html/body to --bg-app; overriding only <body> left <html> a different
+       colour, so scrolling/overscroll (rubber-banding, or the root canvas
+       behind the centred column) revealed a mismatched band. Painting both
+       the same keeps the backdrop uniform while the phone column below floats
+       on it, framed by its own border + shadow. */
+    html {
+      background: #EDEBE7;
+    }
+    body {
+      background: #EDEBE7;
+      /* The shared stylesheet sets `html, body { height: 100% }`, which pins
+         <body> to the viewport height. Because <body> is a flex container and
+         #sap-app stretches to it, #sap-app was capped at one viewport tall —
+         so when content was longer, it overflowed and its app-grey background
+         stopped partway down, letting the backdrop bleed through the lower
+         part of the scroll. `height: auto` lets <body> (and therefore
+         #sap-app) grow with content; min-height still fills short viewports. */
+      height: auto;
+      min-height: 100vh;
+      min-height: 100dvh;          /* dvh: correct on mobile browser chrome */
+      display: flex;
+      justify-content: center;
+    }
+    #sap-app {
+      width: 100%;
+      max-width: 430px;            /* comfortable mobile width across phones */
+      min-height: 100vh;
+      min-height: 100dvh;          /* fills the viewport, then grows with content */
+      background: var(--bg-app);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    /* On wider screens present it as a clean centered column (not a tall
+       floating phone artboard). Height still follows the viewport/content. */
+    @media (min-width: 460px) {
+      #sap-app {
+        border-left: var(--border-standard);
+        border-right: var(--border-standard);
+        box-shadow: var(--shadow-emirates);
+      }
+    }
+
+    /* App bar */
+    #sap-app .sap-appbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px var(--page-padding);
+      background: var(--bg-surface);
+      border-bottom: var(--border-standard);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      /* Content scrolls UNDER this sticky header. Cards are also white, so
+         without separation a card landing flush at the header's bottom edge
+         merges into one large white block. A downward shadow marks where the
+         header ends so scrolled content reads as passing beneath it. */
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+    #sap-app .sap-appbar .sap-back {
+      appearance: none;
+      border: var(--border-standard);
+      background: var(--bg-surface);
+      width: 40px; height: 40px;
+      border-radius: var(--radius-button);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      color: var(--text-main);
+      display: none;               /* shown only on the tracking screen */
+      align-items: center;
+      justify-content: center;
+    }
+    #sap-app .sap-appbar h1 {
+      font-size: 18px;
+      line-height: 22px;
+      font-weight: 700;
+    }
+    #sap-app .sap-appbar .sap-appbar-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Content flows with the natural page scroll (no inner fixed-height
+       scroller). flex-grow fills short viewports so the CTA rests at the
+       bottom instead of leaving an empty gray band. */
+    #sap-app .sap-scroll {
+      flex: 1 0 auto;
+      padding: var(--page-padding);
+      padding-bottom: 24px;
+    }
+
+    /* Booking context card */
+    #sap-app .sap-context {
+      background: var(--bg-surface);
+      border: var(--border-standard);
+      border-radius: var(--radius-card);
+      padding: var(--space-16);
+      box-shadow: var(--shadow-subtle);
+      margin-bottom: var(--space-20);
+    }
+    #sap-app .sap-context-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    #sap-app .sap-route {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+    #sap-app .sap-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    #sap-app .sap-field .sap-k {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      display: block;
+    }
+    #sap-app .sap-field .sap-v {
+      font-size: 15px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    #sap-app .sap-demo-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    #sap-app .sap-linkbtn {
+      background: none;
+      border: none;
+      color: var(--color-primary);
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: underline;
+      font-family: var(--font-family);
+    }
+
+    /* Section heading */
+    #sap-app .sap-question {
+      font-size: 20px;
+      line-height: 26px;
+      font-weight: 700;
+      margin: 4px 0 4px;
+    }
+    #sap-app .sap-help {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+    }
+
+    /* Needs list — accessible checkbox cards */
+    #sap-app fieldset.sap-needs {
+      border: none;
+      padding: 0;
+      margin: 0 0 var(--space-20);
+    }
+    #sap-app fieldset.sap-needs legend {
+      padding: 0;
+      margin-bottom: 8px;
+    }
+    #sap-app .sap-need {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--bg-surface);
+      border: var(--border-standard);
+      border-radius: var(--radius-card);
+      padding: 14px 14px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      min-height: 56px;
+      transition: border-color .12s ease, box-shadow .12s ease;
+    }
+    #sap-app .sap-need:hover { border-color: #C9C3BB; }
+    #sap-app .sap-need input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: var(--color-primary);
+      flex: 0 0 auto;
+      cursor: pointer;
+    }
+    #sap-app .sap-need .sap-need-ico {
+      font-size: 20px;
+      width: 24px;
+      text-align: center;
+      flex: 0 0 auto;
+    }
+    #sap-app .sap-need .sap-need-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    /* Selected state — not colour alone: border + tint + checkbox */
+    #sap-app .sap-need.is-selected {
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 1px var(--color-primary) inset;
+      background: #FDF3F3;
+    }
+    /* Keyboard focus is always visible */
+    #sap-app .sap-need:focus-within {
+      outline: 3px solid rgba(215,26,33,0.35);
+      outline-offset: 2px;
+    }
+    #sap-app input:focus-visible,
+    #sap-app textarea:focus-visible,
+    #sap-app button:focus-visible {
+      outline: 3px solid rgba(215,26,33,0.45);
+      outline-offset: 2px;
+    }
+
+    #sap-app textarea.input-field {
+      height: auto;
+      min-height: 88px;
+      padding: 12px 16px;
+      resize: vertical;
+      line-height: 22px;
+      font-family: var(--font-family);
+    }
+
+    #sap-app .sap-privacy {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-card);
+      padding: 12px;
+      margin-top: 4px;
+    }
+
+    /* Sticky primary CTA bar (one primary action per screen).
+       The HOST is the sticky element so it pins to the viewport bottom
+       across the full scroll of #sap-app, and never covers content when
+       scrolled to the end. */
+    #sap-app #sap-cta-host {
+      position: sticky;
+      bottom: 0;
+      z-index: 5;
+    }
+    #sap-app .sap-cta {
+      padding: 12px var(--page-padding);
+      /* honour the iOS/home-indicator safe area on short/notched viewports */
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      background: var(--bg-surface);
+      border-top: var(--border-standard);
+      /* Mirror of the header: separate content scrolling up beneath the CTA. */
+      box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.06);
+    }
+    #sap-app .sap-cta .btn-primary { height: 52px; }
+    #sap-app .sap-cta .sap-selected-count {
+      display: block;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+      min-height: 14px;
+    }
+
+    /* ---- Confirmation / tracking screen ---- */
+    /* Slim confirmation strip — acknowledges receipt without competing with
+       the Status tracker below (which is the main focus of this screen). */
+    #sap-app .sap-success {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-success);
+      border: 1px solid var(--border-success);
+      color: var(--color-success);
+      border-radius: var(--radius-card);
+      padding: 10px 14px;
+      margin-bottom: var(--space-16);
+      font-weight: 600;
+      font-size: 14px;
+      line-height: 20px;
+    }
+    #sap-app .sap-success .sap-success-ico {
+      font-size: 18px; line-height: 1;
+    }
+    #sap-app .sap-reqid {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    #sap-app .sap-reqid strong {
+      color: var(--text-main);
+      font-size: 15px;
+      letter-spacing: .02em;
+    }
+
+    /* Status timeline */
+    #sap-app .sap-timeline {
+      list-style: none;
+      margin: 8px 0 0;
+      padding: 0;
+    }
+    #sap-app .sap-step {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      padding-bottom: 12px;
+      position: relative;
+    }
+    #sap-app .sap-step:last-child { padding-bottom: 0; }
+    /* Connector runs from just under one dot to the next dot, so tightening
+       the row gap keeps the line continuous. */
+    #sap-app .sap-step:not(:last-child)::before {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 30px;
+      bottom: -2px;
+      width: 2px;
+      background: var(--border-color);
+    }
+    #sap-app .sap-step.is-done:not(:last-child)::before { background: var(--color-success); }
+    #sap-app .sap-dot {
+      flex: 0 0 auto;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border-color);
+      background: var(--bg-surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      color: var(--text-dim);
+      z-index: 1;
+    }
+    #sap-app .sap-step.is-done .sap-dot {
+      background: var(--color-success);
+      border-color: var(--color-success);
+      color: #fff;
+    }
+    #sap-app .sap-step.is-current .sap-dot {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+      box-shadow: 0 0 0 4px rgba(215,26,33,0.12);
+    }
+    #sap-app .sap-step .sap-step-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-dim);
+      padding-top: 3px;
+    }
+    #sap-app .sap-step.is-done .sap-step-label,
+    #sap-app .sap-step.is-current .sap-step-label { color: var(--text-main); }
+    #sap-app .sap-step .sap-step-now {
+      display: inline-block;
+      margin-top: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-primary);
+    }
+    #sap-app .sap-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+    /* Current assistance agent card (passenger-friendly; no internal IDs) */
+    #sap-app .sap-agent {
+      background: var(--bg-surface); border: var(--border-standard);
+      border-radius: var(--radius-card); padding: var(--space-16);
+      box-shadow: var(--shadow-subtle); margin-bottom: var(--space-20);
+    }
+    #sap-app .sap-agent-h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-secondary); margin-bottom: 12px; }
+    #sap-app .sap-agent-id { display: flex; align-items: center; gap: 12px; }
+    #sap-app .sap-agent-ava {
+      width: 48px; height: 48px; border-radius: 50%; flex: 0 0 auto;
+      background: var(--color-primary); color: #fff; font-size: 17px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    #sap-app .sap-agent-name { font-size: 18px; font-weight: 700; color: var(--text-main); line-height: 22px; }
+    #sap-app .sap-agent-role { font-size: 13px; color: var(--text-secondary); }
+    #sap-app .sap-agent-kv { margin-top: 14px; }
+    #sap-app .sap-agent-kv .sap-k { display: block; }
+    #sap-app .sap-agent-kv .sap-v { font-size: 15px; font-weight: 600; color: var(--text-main); }
+    #sap-app .sap-agent-kv > div + div { margin-top: 10px; }
+    #sap-app .sap-agent-actions { display: flex; gap: 10px; margin-top: 16px; }
+    #sap-app .sap-agent-actions button {
+      flex: 1 1 0; height: 46px; border-radius: var(--radius-button); cursor: pointer;
+      font-family: var(--font-family); font-size: 15px; font-weight: 700;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    #sap-app .sap-agent-actions .sap-msg { background: var(--color-primary); color: #fff; border: none; box-shadow: 0 2px 6px rgba(215,26,33,0.2); }
+    #sap-app .sap-agent-actions .sap-call { background: var(--bg-surface); color: var(--color-primary); border: 1.5px solid var(--color-primary); }
+    #sap-app .sap-agent-note {
+      margin-top: 12px; font-size: 13px; color: var(--text-secondary);
+      background: var(--bg-secondary); border-radius: var(--radius-card); padding: 10px 12px; display: none;
+    }
+    #sap-app .sap-agent-note.is-show { display: block; }
+
+    /* Low-emphasis "start a new request" — while a request is active this is a
+       secondary escape hatch near the end of the page, NOT a sticky primary
+       action competing with the live tracking above. Keeps a 44px touch target
+       and visible focus for accessibility. */
+    #sap-app .sap-newreq-wrap {
+      margin-top: 24px;
+      padding-top: 16px;
+      border-top: var(--border-standard);
+      text-align: center;
+    }
+    #sap-app .sap-newreq {
+      appearance: none;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-family: var(--font-family);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 12px 16px;
+      min-height: 44px;
+      border-radius: var(--radius-button);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    #sap-app .sap-newreq:hover { color: var(--text-main); }
+
+    #sap-app .sap-muted { color: var(--text-secondary); font-size: 13px; }
+    #sap-app .visually-hidden {
+      position: absolute !important;
+      width: 1px; height: 1px;
+      padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0 0 0 0);
+      white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+  <main id="sap-app" aria-live="polite">
+    <div class="sap-appbar">
+      <button type="button" class="sap-back" id="sap-back" aria-label="Back to request form">←</button>
+      <div>
+        <h1 id="sap-title">Special assistance</h1>
+        <div class="sap-appbar-sub">Dubai International · DXB</div>
+      </div>
+    </div>
+
+    <div class="sap-scroll" id="sap-scroll"><!-- rendered by JS --></div>
+    <div id="sap-cta-host"><!-- sticky CTA rendered by JS --></div>
+  </main>
+
+  <!-- Shared request store (single source of truth) -->
+  <script src="../shared/assist-store.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    var scroll = document.getElementById('sap-scroll');
+    var ctaHost = document.getElementById('sap-cta-host');
+    var backBtn = document.getElementById('sap-back');
+    var titleEl = document.getElementById('sap-title');
+
+    /* ---- Booking context (from URL params, else demo fallback) ---------- */
+
+    // Realistic fictional fallback, aligned with the repo's shared scenario.
+    var DEMO_BOOKING = {
+      name: 'Sara Al-Mansoor',
+      bookingRef: 'EK7X2M',
+      number: 'EK 001',
+      route: 'DXB → LHR',
+      terminal: 'Terminal 3',
+      gate: 'A14',
+      date: 'Tue, 11 Aug',
+      boarding: '08:30',
+      journeyType: 'departing'
+    };
+
+    function readContext() {
+      var p = new URLSearchParams(window.location.search);
+      var has = ['name', 'ref', 'flight', 'route', 'date', 'terminal'].some(function (k) {
+        return p.get(k);
+      });
+      if (!has) {
+        return { ctx: Object.assign({}, DEMO_BOOKING), isDemo: true };
+      }
+      return {
+        isDemo: false,
+        ctx: {
+          name: p.get('name') || 'Guest passenger',
+          bookingRef: p.get('ref') || '',
+          number: p.get('flight') || '',
+          route: p.get('route') || '',
+          terminal: p.get('terminal') || '',
+          gate: p.get('gate') || '',
+          date: p.get('date') || '',
+          boarding: p.get('boarding') || '',
+          journeyType: p.get('journey') || 'departing'
+        }
+      };
+    }
+
+    var booking = readContext();
+
+    // Working state for screen 1
+    var selected = {};   // key -> true
+    var noteText = '';
+
+    /* ---- Utilities ------------------------------------------------------ */
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function contextCardHTML() {
+      var c = booking.ctx;
+      var demo = booking.isDemo
+        ? '<div class="sap-demo-hint">🛈 Showing a sample booking for this preview. '
+          + '<button type="button" class="sap-linkbtn" id="sap-not-you">Not your booking?</button></div>'
+        : '';
+      return ''
+        + '<section class="sap-context" aria-label="Your flight">'
+        +   '<div class="sap-context-top">'
+        +     '<div>'
+        +       '<div class="sap-route">' + esc(c.route || c.number || 'Your flight') + '</div>'
+        +       '<div class="sap-muted">' + esc(c.number) + (c.date ? ' · ' + esc(c.date) : '') + '</div>'
+        +     '</div>'
+        +     '<span class="chip chip-info" aria-label="Passenger">'
+        +       '<span aria-hidden="true">🎫</span> ' + esc(c.bookingRef || '—')
+        +     '</span>'
+        +   '</div>'
+        +   '<div class="sap-grid">'
+        +     field('Passenger', c.name)
+        +     field('Terminal', c.terminal || '—')
+        +     field('Boarding', c.boarding || '—')
+        +     field('Gate', c.gate || 'To be assigned')
+        +   '</div>'
+        +   demo
+        + '</section>';
+    }
+
+    function field(k, v) {
+      return '<div class="sap-field"><span class="sap-k">' + esc(k) + '</span>'
+           + '<span class="sap-v">' + esc(v) + '</span></div>';
+    }
+
+    /* ---- Screen 1: Request ---------------------------------------------- */
+
+    function renderRequest() {
+      titleEl.textContent = 'Special assistance';
+      backBtn.style.display = 'none';
+      window.scrollTo(0, 0);
+
+      var needsHTML = window.AssistStore.NEEDS.map(function (n) {
+        var on = selected[n.key];
+        return ''
+          + '<label class="sap-need' + (on ? ' is-selected' : '') + '" data-need="' + n.key + '">'
+          +   '<input type="checkbox" name="need" value="' + n.key + '"' + (on ? ' checked' : '') + ' />'
+          +   '<span class="sap-need-ico" aria-hidden="true">' + n.icon + '</span>'
+          +   '<span class="sap-need-label">' + esc(n.label) + '</span>'
+          + '</label>';
+      }).join('');
+
+      scroll.innerHTML = ''
+        + contextCardHTML()
+        + '<h2 class="sap-question">What support do you need during your journey?</h2>'
+        + '<p class="sap-help">Choose all that apply. You can add anything else in the notes below.</p>'
+        + '<fieldset class="sap-needs">'
+        +   '<legend class="visually-hidden">Support needs</legend>'
+        +   needsHTML
+        + '</fieldset>'
+        + '<div class="input-group">'
+        +   '<label class="input-label" for="sap-note">Additional notes (optional)</label>'
+        +   '<textarea id="sap-note" class="input-field" maxlength="300" '
+        +     'placeholder="For example: I use my own folding wheelchair.">' + esc(noteText) + '</textarea>'
+        + '</div>'
+        + '<div class="sap-privacy">'
+        +   '<span aria-hidden="true">🔒</span>'
+        +   '<span>Please share only the support you need — no medical details are required.</span>'
+        + '</div>';
+
+      ctaHost.innerHTML = ''
+        + '<div class="sap-cta">'
+        +   '<button type="button" class="btn-primary" id="sap-submit">Submit request</button>'
+        +   '<span class="sap-selected-count" id="sap-count" aria-live="polite"></span>'
+        + '</div>';
+
+      // Wire needs
+      scroll.querySelectorAll('.sap-need').forEach(function (row) {
+        var input = row.querySelector('input');
+        input.addEventListener('change', function () {
+          var key = row.getAttribute('data-need');
+          if (input.checked) selected[key] = true; else delete selected[key];
+          row.classList.toggle('is-selected', input.checked);
+          updateCount();
+        });
+      });
+
+      var note = document.getElementById('sap-note');
+      note.addEventListener('input', function () { noteText = note.value; });
+
+      var notYou = document.getElementById('sap-not-you');
+      if (notYou) notYou.addEventListener('click', handleNotYourBooking);
+
+      document.getElementById('sap-submit').addEventListener('click', handleSubmit);
+      updateCount();
+    }
+
+    function updateCount() {
+      var n = Object.keys(selected).length;
+      var el = document.getElementById('sap-count');
+      if (!el) return;
+      el.textContent = n === 0
+        ? 'Select at least one type of support'
+        : n + (n === 1 ? ' support type selected' : ' support types selected');
+    }
+
+    function handleNotYourBooking() {
+      // Fallback when booking context is a placeholder: let the passenger
+      // correct name + reference so they don't have to re-enter everything.
+      var name = window.prompt('Passenger name', booking.ctx.name) ;
+      if (name === null) return;
+      var ref = window.prompt('Booking reference', booking.ctx.bookingRef);
+      if (ref === null) return;
+      booking.ctx.name = name.trim() || booking.ctx.name;
+      booking.ctx.bookingRef = ref.trim() || booking.ctx.bookingRef;
+      booking.isDemo = false;
+      renderRequest();
+    }
+
+    function handleSubmit() {
+      var needs = Object.keys(selected);
+      if (needs.length === 0) {
+        var count = document.getElementById('sap-count');
+        count.textContent = 'Please select at least one type of support to continue.';
+        count.style.color = 'var(--color-error)';
+        scroll.querySelector('.sap-needs').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      var c = booking.ctx;
+      var req = window.AssistStore.create({
+        source: booking.isDemo ? 'passenger_app_demo' : 'passenger_app',
+        passenger: { name: c.name, bookingRef: c.bookingRef },
+        flight: {
+          number: c.number, route: c.route, terminal: c.terminal,
+          gate: c.gate, date: c.date, boarding: c.boarding, journeyType: c.journeyType
+        },
+        needs: needs,
+        needsNote: noteText.trim(),
+        pickup: c.terminal ? (c.terminal + ' — check-in area') : '',
+        destination: c.gate ? ('Gate ' + c.gate) : ''
+      });
+      renderTracking(req.id);
+    }
+
+    /* ---- Screen 2: Confirmation / tracking ------------------------------ */
+
+    // Accurate secondary line for the *current* step. Keyed to the shared
+    // PASSENGER_STEPS order (projection lives in AssistStore — unchanged here).
+    // The first step must NOT read "In progress now"; nothing is happening yet
+    // beyond receipt.
+    var STEP_NOW_MESSAGES = [
+      'We’ve received your request.',
+      'Your assistance has been confirmed.',
+      'An agent has been assigned to you.',
+      'Your agent is on the way.',
+      'Your assistance is underway.',
+      'Your assistance is complete.'
+    ];
+    function currentStepMessage(i) {
+      return STEP_NOW_MESSAGES[i] || 'We’re working on this now.';
+    }
+
+    function renderTracking(id) {
+      var req = window.AssistStore.get(id);
+      if (!req) { renderRequest(); return; }
+
+      titleEl.textContent = 'Your request';
+      backBtn.style.display = 'flex';
+      window.scrollTo(0, 0);
+
+      // Request-aware projection: stays monotonic across multi-agent handoffs
+      // (never regresses to an earlier step when the next leg is assigned).
+      var stepIndex = window.AssistStore.passengerStepForRequest(req);
+      var steps = window.AssistStore.PASSENGER_STEPS.map(function (s, i) {
+        var state = i < stepIndex ? 'is-done' : (i === stepIndex ? 'is-current' : '');
+        var mark = i < stepIndex ? '✓' : (i === stepIndex ? '●' : (i + 1));
+        var now = i === stepIndex
+          ? '<br><span class="sap-step-now">' + esc(currentStepMessage(i)) + '</span>'
+          : '';
+        return ''
+          + '<li class="sap-step ' + state + '">'
+          +   '<span class="sap-dot" aria-hidden="true">' + mark + '</span>'
+          +   '<span class="sap-step-label">' + esc(s.label) + now + '</span>'
+          + '</li>';
+      }).join('');
+
+      var needChips = window.AssistStore.needLabels(req.needs).map(function (l) {
+        return '<span class="chip chip-info"><span aria-hidden="true">•</span> ' + esc(l) + '</span>';
+      }).join('');
+
+      var friendly = window.AssistStore.passengerStatusLabelForRequest(req);
+
+      // Current assistance agent (auto-updates as handoffs change the owner).
+      var curAsg = window.AssistStore.currentAssignment(req);
+      var journeyActive = req.status !== 'COMPLETED' && req.status !== 'CANCELLED';
+      var agentCard = (curAsg && curAsg.agentName && journeyActive)
+        ? '<section class="sap-agent" aria-label="Your assistance agent">'
+          + '<div class="sap-agent-h">Your assistance agent</div>'
+          + '<div class="sap-agent-id">'
+          +   '<span class="sap-agent-ava" aria-hidden="true">' + esc(agentInitials(curAsg.agentName)) + '</span>'
+          +   '<div><div class="sap-agent-name">' + esc(curAsg.agentName) + '</div>'
+          +     '<div class="sap-agent-role">Assistance Agent</div></div>'
+          + '</div>'
+          + '<div class="sap-agent-kv">'
+          +   (curAsg.pickup ? '<div><span class="sap-k">Meeting you at</span><span class="sap-v">' + esc(curAsg.pickup) + '</span></div>' : '')
+          +   '<div><span class="sap-k">Helping you with</span><span class="sap-v">' + esc(curAsg.taskTitle || 'Your assistance') + '</span></div>'
+          + '</div>'
+          + '<div class="sap-agent-actions">'
+          +   '<button type="button" class="sap-msg" id="sap-agent-msg"><span aria-hidden="true">💬</span> Message agent</button>'
+          +   '<button type="button" class="sap-call" id="sap-agent-call"><span aria-hidden="true">📞</span> Call agent</button>'
+          + '</div>'
+          + '<div class="sap-agent-note" id="sap-agent-note" role="status"></div>'
+          + '</section>'
+        : '';
+
+      scroll.innerHTML = ''
+        + '<div class="sap-success" role="status">'
+        +   '<span class="sap-success-ico" aria-hidden="true">✓</span>'
+        +   '<span>Request received — help is being arranged.</span>'
+        + '</div>'
+
+        + '<section class="sap-context" aria-label="Request summary">'
+        +   '<div class="sap-context-top">'
+        +     '<div>'
+        +       '<div class="sap-reqid">Request ID<br><strong>' + esc(req.id) + '</strong></div>'
+        +     '</div>'
+        +     '<span class="chip chip-pending" aria-label="Current status">'
+        +       '<span aria-hidden="true">◷</span> ' + esc(friendly)
+        +     '</span>'
+        +   '</div>'
+        +   '<div class="sap-grid">'
+        +     field('Flight', req.flight.number || '—')
+        +     field('Route', req.flight.route || '—')
+        +     field('Terminal', req.flight.terminal || '—')
+        +     field('Boarding', req.flight.boarding || '—')
+        +   '</div>'
+        +   '<div style="margin-top:14px;">'
+        +     '<span class="sap-k" style="display:block;margin-bottom:6px;">Support requested</span>'
+        +     '<div class="sap-chips">' + (needChips || '<span class="sap-muted">—</span>') + '</div>'
+        +     (req.needsNote
+                ? '<p class="sap-muted" style="margin-top:10px;">“' + esc(req.needsNote) + '”</p>'
+                : '')
+        +   '</div>'
+        + '</section>'
+
+        + agentCard
+
+        + '<h2 class="sap-question" style="font-size:18px;">Status</h2>'
+        + '<p class="sap-help">We’ll keep this page updated as your assistance progresses.</p>'
+        + '<ol class="sap-timeline">' + steps + '</ol>'
+
+        // Low-emphasis escape hatch, at the end of the page — deliberately not a
+        // sticky primary action while this request is live.
+        + '<div class="sap-newreq-wrap">'
+        +   '<button type="button" class="sap-newreq" id="sap-new">Start a new request</button>'
+        + '</div>';
+
+      // No sticky CTA on the tracking screen — the tracker itself is the content.
+      ctaHost.innerHTML = '';
+
+      document.getElementById('sap-new').addEventListener('click', function () {
+        window.AssistStore.clearLastId();
+        selected = {}; noteText = '';
+        booking = readContext();
+        renderRequest();
+      });
+
+      // Simulated contact (prototype only — no real call/message backend, and
+      // the agent's personal number is never exposed).
+      var noteEl = document.getElementById('sap-agent-note');
+      var msgBtn = document.getElementById('sap-agent-msg');
+      var callBtn = document.getElementById('sap-agent-call');
+      if (msgBtn) msgBtn.addEventListener('click', function () {
+        var first = curAsg.agentName ? curAsg.agentName.split(' ')[0] : 'your agent';
+        noteEl.textContent = '💬 Message sent to ' + first + ' — they’ll see it on their agent device and reply shortly. (Demo)';
+        noteEl.classList.add('is-show');
+      });
+      if (callBtn) callBtn.addEventListener('click', function () {
+        noteEl.textContent = '📞 Connecting you via the Assistance Desk · +971 4 216 •• 21 (demo line — your agent’s personal number is never shared).';
+        noteEl.classList.add('is-show');
+      });
+    }
+
+    function agentInitials(name) {
+      return String(name || '?').trim().split(/\s+/).slice(0, 2)
+        .map(function (w) { return w.charAt(0) || ''; }).join('').toUpperCase() || '?';
+    }
+
+    /* ---- Live updates & boot ------------------------------------------- */
+
+    // If the OCC/Agent later changes this request in another tab, refresh
+    // the tracking view automatically.
+    window.AssistStore.subscribe(function () {
+      var id = window.AssistStore.getLastId();
+      if (id && backBtn.style.display !== 'none') renderTracking(id);
+    });
+
+    backBtn.addEventListener('click', function () {
+      // Back returns to a fresh request form (keeps the stored request intact).
+      selected = {}; noteText = '';
+      booking = readContext();
+      renderRequest();
+    });
+
+    // Boot: if the passenger already submitted (this browser), show tracking.
+    var lastId = window.AssistStore.getLastId();
+    if (lastId && window.AssistStore.get(lastId)) {
+      renderTracking(lastId);
+    } else {
+      renderRequest();
+    }
+  })();
+  </script>
+</body>
+</html>
