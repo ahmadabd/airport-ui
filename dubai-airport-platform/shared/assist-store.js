@@ -44,6 +44,7 @@
     EN_ROUTE: 'EN_ROUTE',
     PASSENGER_LOCATED: 'PASSENGER_LOCATED',
     IN_PROGRESS: 'IN_PROGRESS',
+    AWAITING_ASSIGNMENT: 'AWAITING_ASSIGNMENT', // a leg handed off; journey open, needs next agent
     COMPLETED: 'COMPLETED',
     CANCELLED: 'CANCELLED'
   };
@@ -67,6 +68,7 @@
     EN_ROUTE: 3,
     PASSENGER_LOCATED: 4,
     IN_PROGRESS: 4,
+    AWAITING_ASSIGNMENT: 4,   // between legs — passenger still sees "Assistance in progress"
     COMPLETED: 5,
     CANCELLED: -1
   };
@@ -167,7 +169,13 @@
       destination: input.destination || flight.gate || '',
       priority: 'P3',                 // baseline; Coordinator may raise later
       sla: { dueBy: flight.boarding || '', state: 'on_track' },
+      // Legacy single-owner mirror (kept in sync with the current leg so all
+      // existing reads keep working). Multi-agent journey lives in assignments[].
       agentId: null,
+      agentName: null,
+      assignments: [],                // ordered legs (see assignTask)
+      currentAssignmentId: null,      // active leg, or null while awaiting the next
+      journeyStepReached: 0,          // monotonic passenger-projection high-water mark
       checkpoints: checkpoints,
       currentCheckpoint: 0,
       exception: null,
@@ -230,17 +238,81 @@
   function confirmRequest(id, actor) {
     return update(id, { status: STATUS.CONFIRMED }, actor || 'coordinator', 'Request confirmed');
   }
-  function assign(id, agentId, actor) {
-    var a = agentById(agentId);
-    return update(id, {
-      agentId: agentId, agentName: a ? a.name : agentId, status: STATUS.ASSIGNED
-    }, actor || 'coordinator', 'Assigned to ' + (a ? a.name : agentId) + ' (' + agentId + ')');
+
+  /* ---- Assignment (leg) helpers ---------------------------------------- */
+  function currentAssignment(r) {
+    if (!r || !Array.isArray(r.assignments)) return null;
+    var id = r.currentAssignmentId;
+    return r.assignments.filter(function (a) { return a.assignmentId === id; })[0] || null;
   }
-  function reassign(id, agentId, actor) {
-    var a = agentById(agentId);
+  function nextAssignmentId(r) {
+    var n = (r && Array.isArray(r.assignments) ? r.assignments.length : 0) + 1;
+    return 'ASG-' + n;
+  }
+
+  // Coordinator assigns a new leg with full task context. This is the primary
+  // multi-agent entry point (first assignment AND every subsequent handoff leg).
+  // opts = { agentId, taskTitle, taskInstruction, pickup, destination, isFinal }
+  function assignTask(id, opts, actor) {
+    opts = opts || {};
+    var r = get(id);
+    if (!r) return null;
+    var a = agentById(opts.agentId);
+    var asg = {
+      assignmentId: nextAssignmentId(r),
+      agentId: opts.agentId,
+      agentName: a ? a.name : opts.agentId,
+      taskTitle: opts.taskTitle || 'Assist passenger',
+      taskInstruction: opts.taskInstruction || '',
+      pickup: opts.pickup || r.pickup || '',
+      destination: opts.destination || r.destination || '',
+      isFinal: !!opts.isFinal,
+      status: STATUS.ASSIGNED,
+      assignedAt: nowISO(), acceptedAt: null, startedAt: null, completedAt: null,
+      handoff: null
+    };
+    var assignments = (r.assignments || []).slice();
+    assignments.push(asg);
     return update(id, {
-      agentId: agentId, agentName: a ? a.name : agentId
-    }, actor || 'coordinator', 'Reassigned to ' + (a ? a.name : agentId) + ' (' + agentId + ')');
+      assignments: assignments,
+      currentAssignmentId: asg.assignmentId,
+      agentId: asg.agentId, agentName: asg.agentName,   // mirror current owner
+      status: STATUS.ASSIGNED,
+      journeyStepReached: Math.max(r.journeyStepReached || 0, 2)
+    }, actor || 'coordinator',
+      'Assigned to ' + asg.agentName + ' (' + asg.agentId + ') — Task: ' + asg.taskTitle
+      + (asg.isFinal ? ' [final leg]' : ' [handoff leg]'));
+  }
+
+  // Legacy single-leg assign: defaults to a FINAL leg so single-agent flows
+  // complete the journey exactly as before this multi-agent change.
+  function assign(id, agentId, actor) {
+    var r = get(id);
+    return assignTask(id, {
+      agentId: agentId,
+      taskTitle: (r && r.destination) ? ('Escort to ' + r.destination) : 'Assist passenger',
+      pickup: r && r.pickup, destination: r && r.destination,
+      isFinal: true
+    }, actor);
+  }
+
+  // Swap the agent on the CURRENT leg (before it is completed), keeping the task.
+  function reassign(id, agentId, actor) {
+    var r = get(id);
+    var a = agentById(agentId);
+    var cur = currentAssignment(r);
+    if (!cur) {
+      return update(id, { agentId: agentId, agentName: a ? a.name : agentId },
+        actor || 'coordinator', 'Reassigned to ' + (a ? a.name : agentId) + ' (' + agentId + ')');
+    }
+    var assignments = r.assignments.map(function (x) {
+      return x.assignmentId === cur.assignmentId
+        ? Object.assign({}, x, { agentId: agentId, agentName: a ? a.name : agentId })
+        : x;
+    });
+    return update(id, { assignments: assignments, agentId: agentId, agentName: a ? a.name : agentId },
+      actor || 'coordinator',
+      'Reassigned to ' + (a ? a.name : agentId) + ' (' + agentId + ') — Task: ' + cur.taskTitle);
   }
   function escalate(id, type, note, actor) {
     var patch = { exception: { type: type, note: note || '', openedAt: nowISO(), status: 'open' } };
@@ -267,32 +339,150 @@
     return update(id, { priority: p }, actor || 'coordinator', 'Priority set to ' + p);
   }
 
+  // Define the full ordered Assistance Plan up-front: one assignment (leg) per
+  // step, each with its own pre-selected agent. Step 1 becomes active; the rest
+  // are PENDING and auto-activate on handoff (see handoffPassenger). The number
+  // of steps is whatever the coordinator passes — never hardcoded.
+  // steps = [{ agentId, taskTitle, taskInstruction, pickup, destination }, ...]
+  function setPlan(id, steps, actor) {
+    var r = get(id);
+    if (!r) return null;
+    steps = (steps || []).filter(function (s) { return s && s.agentId; });
+    if (!steps.length) return null;
+    var assignments = steps.map(function (s, i) {
+      var a = agentById(s.agentId);
+      return {
+        assignmentId: 'ASG-' + (i + 1),
+        stepNo: i + 1,
+        agentId: s.agentId,
+        agentName: a ? a.name : s.agentId,
+        taskTitle: s.taskTitle || ('Step ' + (i + 1)),
+        taskInstruction: s.taskInstruction || '',
+        pickup: s.pickup || '',
+        destination: s.destination || '',
+        isFinal: i === steps.length - 1,
+        status: i === 0 ? STATUS.ASSIGNED : 'PENDING',
+        assignedAt: i === 0 ? nowISO() : null,
+        acceptedAt: null, startedAt: null, completedAt: null,
+        handoff: null
+      };
+    });
+    var first = assignments[0];
+    return update(id, {
+      assignments: assignments,
+      currentAssignmentId: first.assignmentId,
+      agentId: first.agentId, agentName: first.agentName,
+      status: STATUS.ASSIGNED,
+      journeyStepReached: Math.max(r.journeyStepReached || 0, 2)
+    }, actor || 'coordinator',
+      'Assistance plan set — ' + assignments.length + ' step' + (assignments.length > 1 ? 's' : '')
+      + ' · Step 1: ' + first.agentName + ' (' + first.taskTitle + ')');
+  }
+
   /* ---- Agent lifecycle helpers (Phase 3) --------------------------------
      Thin, additive wrappers the Agent app uses to advance a request it is
      assigned to. Each enforces a valid predecessor state (returns null and
      writes nothing on an out-of-order call) and records one audit entry, so
      OCC and the passenger tracker reflect the change automatically. ------- */
 
-  function agentTransition(id, fromStates, toStatus, actor, note) {
-    var cur = get(id);
-    if (!cur) return null;
-    if (fromStates.indexOf(cur.status) === -1) return null; // invalid transition — no-op
-    return update(id, { status: toStatus }, actor || 'agent', note);
+  // Advance the CURRENT leg one execution step, mirror it onto the request
+  // status, and raise (never lower) the passenger high-water mark. Guards on
+  // the current leg's status (falls back to request.status for legacy requests
+  // that predate assignments[]).
+  function advanceAssignment(id, fromStates, toStatus, stampField, journeyStep, actor, note) {
+    var r = get(id);
+    if (!r) return null;
+    var cur = currentAssignment(r);
+    var curStatus = cur ? cur.status : r.status;
+    if (fromStates.indexOf(curStatus) === -1) return null; // invalid transition — no-op
+    var patch = { status: toStatus };
+    if (cur) {
+      var updated = Object.assign({}, cur, { status: toStatus });
+      if (stampField) updated[stampField] = nowISO();
+      patch.assignments = r.assignments.map(function (x) {
+        return x.assignmentId === cur.assignmentId ? updated : x;
+      });
+    }
+    if (journeyStep != null) patch.journeyStepReached = Math.max(r.journeyStepReached || 0, journeyStep);
+    return update(id, patch, actor || 'agent', note);
   }
   function acceptAssignment(id, actor) {
-    return agentTransition(id, [STATUS.ASSIGNED], STATUS.ACCEPTED, actor || 'agent', 'Assignment accepted');
+    return advanceAssignment(id, [STATUS.ASSIGNED], STATUS.ACCEPTED, 'acceptedAt', 2, actor || 'agent', 'Assignment accepted');
   }
   function startEnRoute(id, actor) {
-    return agentTransition(id, [STATUS.ACCEPTED], STATUS.EN_ROUTE, actor || 'agent', 'On the way to the passenger');
+    return advanceAssignment(id, [STATUS.ACCEPTED], STATUS.EN_ROUTE, null, 3, actor || 'agent', 'On the way to the passenger');
   }
   function locatePassenger(id, actor) {
-    return agentTransition(id, [STATUS.EN_ROUTE], STATUS.PASSENGER_LOCATED, actor || 'agent', 'Passenger located');
+    return advanceAssignment(id, [STATUS.EN_ROUTE], STATUS.PASSENGER_LOCATED, null, 4, actor || 'agent', 'Passenger located');
   }
   function startAssistance(id, actor) {
-    return agentTransition(id, [STATUS.PASSENGER_LOCATED], STATUS.IN_PROGRESS, actor || 'agent', 'Assistance started');
+    return advanceAssignment(id, [STATUS.PASSENGER_LOCATED], STATUS.IN_PROGRESS, 'startedAt', 4, actor || 'agent', 'Assistance started');
   }
+
+  // Complete the FINAL leg → the whole AssistanceRequest is COMPLETED. A leg
+  // flagged not-final must hand off instead (returns null here).
   function completeAssistance(id, actor) {
-    return agentTransition(id, [STATUS.IN_PROGRESS], STATUS.COMPLETED, actor || 'agent', 'Assistance completed');
+    var r = get(id);
+    if (!r) return null;
+    var cur = currentAssignment(r);
+    var curStatus = cur ? cur.status : r.status;
+    if (curStatus !== STATUS.IN_PROGRESS) return null;
+    if (cur && !cur.isFinal) return null; // not the final leg — use handoffPassenger
+    var patch = { status: STATUS.COMPLETED, journeyStepReached: 5 };
+    if (cur) {
+      var updated = Object.assign({}, cur, { status: STATUS.COMPLETED, completedAt: nowISO() });
+      patch.assignments = r.assignments.map(function (x) {
+        return x.assignmentId === cur.assignmentId ? updated : x;
+      });
+    }
+    return update(id, patch, actor || 'agent', 'Assistance completed');
+  }
+
+  // Successful handoff → current leg COMPLETED (with handoff record). The
+  // journey stays OPEN. If the plan has a next PENDING step, it AUTO-ACTIVATES
+  // (its pre-selected agent becomes the current owner and sees the task) — the
+  // system never picks the agent, it only activates the coordinator's plan.
+  // If no next step is planned, it falls back to AWAITING_ASSIGNMENT.
+  function handoffPassenger(id, note, actor) {
+    var r = get(id);
+    if (!r) return null;
+    var cur = currentAssignment(r);
+    if (!cur || cur.status !== STATUS.IN_PROGRESS) return null;
+    var loc = cur.destination || '';
+    var assignments = r.assignments.map(function (x) {
+      return x.assignmentId === cur.assignmentId
+        ? Object.assign({}, x, { status: STATUS.COMPLETED, completedAt: nowISO(),
+            handoff: { status: 'done', note: note || '', at: nowISO(), atLocation: loc } })
+        : x;
+    });
+    // Next pre-planned step, in order.
+    var next = assignments
+      .filter(function (x) { return x.status === 'PENDING'; })
+      .sort(function (a, b) { return (a.stepNo || 0) - (b.stepNo || 0); })[0];
+    if (next) {
+      assignments = assignments.map(function (x) {
+        return x.assignmentId === next.assignmentId
+          ? Object.assign({}, x, { status: STATUS.ASSIGNED, assignedAt: nowISO() })
+          : x;
+      });
+      return update(id, {
+        assignments: assignments,
+        currentAssignmentId: next.assignmentId,
+        agentId: next.agentId, agentName: next.agentName,   // next pre-assigned owner
+        status: STATUS.ASSIGNED,
+        journeyStepReached: Math.max(r.journeyStepReached || 0, 4)
+      }, actor || 'agent',
+        'Handed off at ' + (loc || 'handoff point') + (note ? ' — ' + note : '')
+        + ' · Next: ' + next.agentName + ' (' + next.taskTitle + ')');
+    }
+    return update(id, {
+      assignments: assignments,
+      currentAssignmentId: null,
+      agentId: null, agentName: null,             // no current owner; needs coordinator
+      status: STATUS.AWAITING_ASSIGNMENT,
+      journeyStepReached: Math.max(r.journeyStepReached || 0, 4)
+    }, actor || 'agent',
+      'Handed off at ' + (loc || 'handoff point') + (note ? ' — ' + note : ''));
   }
 
   function subscribe(fn) {
@@ -329,6 +519,21 @@
     if (i < 0) return 'Cancelled';
     return PASSENGER_STEPS[i] ? PASSENGER_STEPS[i].label : 'Request received';
   }
+  // Request-aware projection: never regresses across handoffs (uses the
+  // monotonic high-water mark). Falls back to the status map for legacy
+  // requests that predate journeyStepReached.
+  function passengerStepForRequest(r) {
+    if (!r) return 0;
+    if (r.status === STATUS.CANCELLED) return -1;
+    var byStatus = (r.status in STATUS_TO_STEP) ? STATUS_TO_STEP[r.status] : 0;
+    var hwm = (typeof r.journeyStepReached === 'number') ? r.journeyStepReached : 0;
+    return Math.max(byStatus, hwm);
+  }
+  function passengerStatusLabelForRequest(r) {
+    var i = passengerStepForRequest(r);
+    if (i < 0) return 'Cancelled';
+    return PASSENGER_STEPS[i] ? PASSENGER_STEPS[i].label : 'Request received';
+  }
 
   window.AssistStore = {
     // constants
@@ -348,17 +553,22 @@
     // coordinator transitions
     confirmRequest: confirmRequest,
     assign: assign,
+    assignTask: assignTask,            // task-based assignment (multi-agent)
+    setPlan: setPlan,                  // define the full ordered assistance plan
     reassign: reassign,
     escalate: escalate,
     resolveException: resolveException,
     cancel: cancel,
     setPriority: setPriority,
-    // agent lifecycle transitions (Phase 3)
+    // assignment helpers
+    currentAssignment: currentAssignment,
+    // agent lifecycle transitions (Phase 3 + multi-agent)
     acceptAssignment: acceptAssignment,
     startEnRoute: startEnRoute,
     locatePassenger: locatePassenger,
     startAssistance: startAssistance,
     completeAssistance: completeAssistance,
+    handoffPassenger: handoffPassenger,
     // passenger session helpers
     getLastId: getLastId,
     setLastId: setLastId,
@@ -367,6 +577,8 @@
     needByKey: needByKey,
     needLabels: needLabels,
     passengerStepIndex: passengerStepIndex,
-    passengerStatusLabel: passengerStatusLabel
+    passengerStatusLabel: passengerStatusLabel,
+    passengerStepForRequest: passengerStepForRequest,
+    passengerStatusLabelForRequest: passengerStatusLabelForRequest
   };
 })();

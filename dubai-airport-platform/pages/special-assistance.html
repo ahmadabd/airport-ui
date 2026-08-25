@@ -38,6 +38,7 @@
     #sa-wrapper .sa-dot-sla { background: var(--color-warning); }
     #sa-wrapper .sa-dot-exc { background: var(--color-error); }
     #sa-wrapper .sa-dot-act { background: var(--color-success); }
+    #sa-wrapper .sa-dot-await { background: var(--color-primary); }
 
     /* Master–detail */
     #sa-wrapper .sa-split { display: grid; grid-template-columns: 372px 1fr; gap: 20px; align-items: start; }
@@ -61,6 +62,7 @@
     #sa-wrapper .sa-row.lane-sla { border-left-color: var(--color-warning); }
     #sa-wrapper .sa-row.lane-exception { border-left-color: var(--color-error); }
     #sa-wrapper .sa-row.lane-active { border-left-color: var(--color-success); }
+    #sa-wrapper .sa-row.lane-await { border-left-color: var(--color-primary); background: #FFFDFD; }
     #sa-wrapper .sa-row.lane-done { border-left-color: var(--border-color); opacity: .68; }
     /* Selected: strong primary ring, lane accent preserved outside the inset ring */
     #sa-wrapper .sa-row.is-selected {
@@ -151,10 +153,17 @@
     #sa-wrapper .sa-assigned-strip .sa-zone { font-size: 12.5px; color: var(--text-secondary); }
     #sa-wrapper .sa-more { margin-top: 16px; }
     #sa-wrapper .sa-more-title { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; margin-bottom: 10px; }
-    #sa-wrapper .sa-more-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
-    #sa-wrapper .sa-inline { display: flex; gap: 8px; align-items: stretch; flex-wrap: wrap; }
-    #sa-wrapper .sa-inline .input-field { flex: 1 1 170px; margin: 0; height: 44px; }
-    #sa-wrapper .sa-inline .input-group { flex: 1 1 170px; margin: 0; }
+    #sa-wrapper .sa-more-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    /* Keep the exception select, note field and Raise button on one aligned row. */
+    #sa-wrapper .sa-more-row .input-group { flex: 1 1 170px; margin: 0; }
+    #sa-wrapper .sa-more-row .input-field { height: 44px; margin: 0; box-sizing: border-box; }
+    #sa-wrapper .sa-inline { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; }
+    /* Flex only on the DIRECT row items — never on a <select> nested inside a
+       column-flex .input-group, or flex-basis would drive its HEIGHT. */
+    #sa-wrapper .sa-inline > .input-field,
+    #sa-wrapper .sa-inline > .input-group { flex: 1 1 170px; }
+    #sa-wrapper .sa-inline .input-field { height: 44px; margin: 0; box-sizing: border-box; }
+    #sa-wrapper .sa-inline .input-group { margin: 0; }
     #sa-wrapper .sa-actions .btn-primary, #sa-wrapper .sa-actions .btn-secondary { width: auto; padding: 0 18px; height: 44px; font-size: 15px; }
     #sa-wrapper .btn-ghost {
       appearance: none; font-family: var(--font-family); cursor: pointer;
@@ -177,6 +186,47 @@
     #sa-wrapper .sa-tl:first-child .sa-tl-dot { background: var(--color-primary); }
     #sa-wrapper .sa-tl .sa-tl-actor { color: var(--text-dim); }
     #sa-wrapper .sa-tl-more { font-size: 12.5px; color: var(--text-dim); margin-top: 8px; }
+
+    /* "Next assignment required" attention banner */
+    #sa-wrapper .sa-await-banner {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: #FDF3F3; border: 1px solid var(--color-primary);
+      color: var(--color-primary); border-radius: var(--radius-card); padding: 12px 14px; margin-bottom: 14px;
+    }
+    #sa-wrapper .sa-await-banner .sa-await-t { font-weight: 700; }
+    #sa-wrapper .sa-await-banner .sa-await-sub { font-size: 12.5px; color: var(--text-secondary); }
+
+    /* Assignment history (operational log of every agent leg) */
+    #sa-wrapper .sa-history { list-style: none; margin: 4px 0 0; padding: 0; }
+    #sa-wrapper .sa-hist { position: relative; padding: 0 0 14px 20px; }
+    #sa-wrapper .sa-hist::before {
+      content: ""; position: absolute; left: 4px; top: 4px; width: 9px; height: 9px; border-radius: 50%;
+      background: var(--color-success); border: 2px solid var(--bg-surface); box-shadow: 0 0 0 1px var(--border-color);
+    }
+    #sa-wrapper .sa-hist.is-current::before { background: var(--color-primary); }
+    #sa-wrapper .sa-hist.is-upcoming::before { background: var(--bg-surface); box-shadow: 0 0 0 1px var(--border-color); }
+    #sa-wrapper .sa-hist.is-upcoming { opacity: .72; }
+    #sa-wrapper .sa-hist-step { font-size: 11px; font-weight: 700; color: var(--text-dim); letter-spacing: .03em; }
+    #sa-wrapper .sa-hist-status.is-upcoming { color: var(--text-dim); }
+
+    /* Assistance plan builder (configurable number of steps) */
+    #sa-wrapper .sa-plan-step { border: var(--border-standard); border-radius: var(--radius-button); padding: 12px; margin-bottom: 10px; background: var(--bg-surface); }
+    #sa-wrapper .sa-plan-step-h { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); margin-bottom: 10px; }
+    #sa-wrapper .sa-ps-remove { appearance: none; background: none; border: none; color: var(--color-error); font-weight: 600; font-size: 12px; cursor: pointer; text-transform: none; letter-spacing: 0; padding: 0; }
+    #sa-wrapper .sa-hist:not(:last-child)::after {
+      content: ""; position: absolute; left: 8px; top: 14px; bottom: -2px; width: 2px; background: var(--border-color);
+    }
+    #sa-wrapper .sa-hist-who { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    #sa-wrapper .sa-hist-task { font-size: 13px; color: var(--text-secondary); margin-top: 1px; }
+    #sa-wrapper .sa-hist-status { font-size: 12.5px; font-weight: 600; color: var(--text-dim); margin-top: 3px; }
+    #sa-wrapper .sa-hist-status.is-active { color: var(--color-primary); }
+    #sa-wrapper .sa-hist-handoff { font-size: 12px; color: var(--color-success); font-weight: 600; margin-top: 3px; }
+    #sa-wrapper .sa-task-fields { display: flex; flex-direction: column; gap: 10px; }
+    #sa-wrapper .sa-task-fields .input-field { height: 42px; margin: 0; }
+    #sa-wrapper .sa-task-fields .input-group { margin: 0; }
+    #sa-wrapper .sa-final-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 2px 0; }
+    #sa-wrapper .sa-final-toggle input { width: 18px; height: 18px; accent-color: var(--color-primary); cursor: pointer; }
+    #sa-wrapper .sa-field-lbl { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: -4px; }
 
     #sa-wrapper .sa-empty { text-align: center; color: var(--text-secondary); padding: 40px 16px; }
     #sa-wrapper .sa-detail .sa-empty-card { display: flex; align-items: center; justify-content: center; min-height: 320px; }
@@ -232,7 +282,7 @@
     }
 
     var CURRENT = 'coordinator'; // actor label for audit
-    var state = { filter: 'all', selectedId: null };
+    var state = { filter: 'all', selectedId: null, planDraft: null };
 
     var EXC_TYPES = [
       { v: 'passenger_not_found', l: 'Passenger not found' },
@@ -254,14 +304,16 @@
       if (r.status === 'COMPLETED' || r.status === 'CANCELLED') return 'done';
       var excOpen = r.exception && r.exception.status !== 'resolved';
       var slaRisk = (r.exception && r.exception.type === 'sla_risk') || (r.sla && r.sla.state === 'at_risk');
-      // SLA risk and exceptions take precedence so they are never hidden
-      // inside the "new/unassigned" bucket.
+      // SLA risk and exceptions take precedence so they are never hidden.
       if (slaRisk) return 'sla';
       if (excOpen) return 'exception';
+      // A handed-off leg leaves the journey needing the NEXT agent — an
+      // actionable coordinator state, kept separate from brand-new requests.
+      if (r.status === 'AWAITING_ASSIGNMENT') return 'await';
       if (!r.agentId && (r.status === 'REQUESTED' || r.status === 'CONFIRMED')) return 'new';
       return 'active';
     }
-    var LANE_RANK = { new: 0, sla: 1, exception: 2, active: 3, done: 5 };
+    var LANE_RANK = { new: 0, await: 1, sla: 2, exception: 3, active: 4, done: 5 };
     var PRIO_RANK = { P1: 0, P2: 1, P3: 2, P4: 3 };
 
     function statusChip(status) {
@@ -275,6 +327,7 @@
         EN_ROUTE:         ['chip-in-progress', '→', 'En route'],
         PASSENGER_LOCATED:['chip-in-progress', '📍', 'Located'],
         IN_PROGRESS:      ['chip-in-progress', '⧗', 'In progress'],
+        AWAITING_ASSIGNMENT: ['chip-warning', '⇄', 'Next assignment'],
         COMPLETED:        ['chip-completed', '✓', 'Completed'],
         CANCELLED:        ['chip-blocked', '✕', 'Cancelled']
       };
@@ -293,16 +346,17 @@
 
     function laneMeta() {
       return [
-        { key: 'new',       label: 'New / unassigned', dot: 'sa-dot-new' },
-        { key: 'sla',       label: 'SLA at risk',      dot: 'sa-dot-sla' },
-        { key: 'exception', label: 'Exceptions',       dot: 'sa-dot-exc' },
-        { key: 'active',    label: 'Active',           dot: 'sa-dot-act' }
+        { key: 'new',       label: 'New / unassigned',  dot: 'sa-dot-new' },
+        { key: 'await',     label: 'Next assignment',   dot: 'sa-dot-await' },
+        { key: 'sla',       label: 'SLA at risk',       dot: 'sa-dot-sla' },
+        { key: 'exception', label: 'Exceptions',        dot: 'sa-dot-exc' },
+        { key: 'active',    label: 'Active',            dot: 'sa-dot-act' }
       ];
     }
 
     // ---- Render: attention lanes (filters) -----------------------------
     function renderLanes(reqs) {
-      var counts = { new: 0, sla: 0, exception: 0, active: 0, done: 0 };
+      var counts = { new: 0, await: 0, sla: 0, exception: 0, active: 0, done: 0 };
       reqs.forEach(function (r) { counts[laneOf(r)]++; });
       var host = document.getElementById('sa-lanes');
       host.innerHTML = laneMeta().map(function (m) {
@@ -359,7 +413,9 @@
         var assignee = r.agentId
           ? '<span class="sa-assignee"><span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId))
             + '</span><span class="sa-nm">' + esc(r.agentName || r.agentId) + '</span></span>'
-          : '<span class="sa-unassigned">Unassigned</span>';
+          : (r.status === 'AWAITING_ASSIGNMENT'
+              ? '<span class="sa-unassigned" style="color:var(--color-primary);font-weight:700;">⇄ Awaiting next agent</span>'
+              : '<span class="sa-unassigned">Unassigned</span>');
         var st = slaState(r);
         var slaHtml = (r.sla && r.sla.dueBy)
           ? '<span class="sa-sla-due' + slaClass(st) + '">◷ due ' + esc(r.sla.dueBy) + '</span>'
@@ -392,6 +448,7 @@
       host.querySelectorAll('[data-id]').forEach(function (b) {
         b.addEventListener('click', function () {
           state.selectedId = b.getAttribute('data-id');
+          state.planDraft = null;   // fresh plan-builder state per request
           render();
         });
       });
@@ -411,11 +468,29 @@
         .map(function (l) { return '<span class="chip chip-info">' + esc(l) + '</span>'; }).join('')
         || '<span class="sa-unassigned">None specified</span>';
 
+      var curAsg = window.AssistStore.currentAssignment(r);
+
+      // Plan builder is shown once the request is confirmed and has no plan yet.
+      var needsPlan = (r.status === 'CONFIRMED') && (!r.assignments || !r.assignments.length);
+      if (needsPlan) { if (!state.planDraft) state.planDraft = defaultPlanDraft(r); }
+      else { state.planDraft = null; }
+
       var excOpen = r.exception && r.exception.status !== 'resolved';
       var excBanner = excOpen
         ? '<div class="sa-exc-banner"><span aria-hidden="true">⚠</span><div>'
           + '<div class="sa-exc-t">' + esc(excLabel(r.exception.type)) + '</div>'
           + (r.exception.note ? '<div>' + esc(r.exception.note) + '</div>' : '')
+          + '</div></div>'
+        : '';
+
+      // Attention state: a leg handed off; the journey needs the next agent.
+      var lastHo = lastHandoff(r);
+      var awaitBanner = (r.status === 'AWAITING_ASSIGNMENT')
+        ? '<div class="sa-await-banner"><span aria-hidden="true">⇄</span><div>'
+          + '<div class="sa-await-t">Next assignment required</div>'
+          + '<div class="sa-await-sub">Previous leg handed off'
+          + (lastHo ? ' at ' + esc(lastHo.atLocation || '') + (lastHo.at ? ' · ' + esc(fmtTime(lastHo.at)) : '') : '')
+          + '. Assign the next agent to continue the journey.</div>'
           + '</div></div>'
         : '';
 
@@ -425,10 +500,15 @@
       var slaV = esc(slaMap[st] || st)
         + (r.sla && r.sla.dueBy ? ' <span class="sa-sub2">· due ' + esc(r.sla.dueBy) + '</span>' : '');
       var prioSig = r.priority === 'P1' ? ' p1' : (r.priority === 'P2' ? ' is-risk' : '');
-      var agentSig = r.agentId
-        ? '<span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId)) + '</span>'
-          + '<span class="sa-nm">' + esc((r.agentName || r.agentId)) + '</span>'
-        : '<span class="sa-unassigned">Unassigned</span>';
+      var agentSig = curAsg
+        ? '<span class="sa-ava" aria-hidden="true">' + esc(initials(curAsg.agentName || curAsg.agentId)) + '</span>'
+          + '<span class="sa-nm">' + esc((curAsg.agentName || curAsg.agentId)) + '</span>'
+        : (r.status === 'AWAITING_ASSIGNMENT'
+            ? '<span class="sa-unassigned" style="color:var(--color-primary);">Awaiting next</span>'
+            : (r.agentId
+                ? '<span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId)) + '</span>'
+                  + '<span class="sa-nm">' + esc((r.agentName || r.agentId)) + '</span>'
+                : '<span class="sa-unassigned">Unassigned</span>'));
 
       var signals = '<div class="sa-signals">'
         + '<div class="sa-signal"><span class="sa-signal-k">Priority</span>'
@@ -450,6 +530,7 @@
 
       host.innerHTML =
         '<div class="card">'
+        + awaitBanner
         + excBanner
         + '<div class="sa-dh-top">'
         +   '<div>'
@@ -477,6 +558,8 @@
         +   '<div class="sa-actions">' + actionsHTML(r) + '</div>'
         + '</div>'
 
+        + historyCard(r)
+
         + '<div class="card"><div class="sa-card-t">Activity</div>'
         +   '<ul class="sa-timeline">' + timeline + '</ul>' + tlMore + '</div>';
 
@@ -491,31 +574,35 @@
       }
 
       // --- Primary next step: exactly one, chosen by state --------------
+      var curAsg = window.AssistStore.currentAssignment(r);
       var primary;
       if (r.status === 'REQUESTED') {
         primary = '<div class="sa-primary">'
           + '<div class="sa-primary-label">Next step · Confirm request</div>'
           + '<button type="button" class="btn-primary" data-act="confirm">Confirm request</button>'
-          + '<p class="sa-note">Acknowledge so the passenger sees “Assistance confirmed”, then assign an agent.</p>'
+          + '<p class="sa-note">Acknowledge so the passenger sees “Assistance confirmed”, then assign the first agent.</p>'
           + '</div>';
-      } else if (!r.agentId) {
-        primary = '<div class="sa-primary">'
-          + '<div class="sa-primary-label">Next step · Assign an agent</div>'
-          + '<div class="sa-inline">' + agentSelect('sa-assign-sel')
-          +   '<button type="button" class="btn-primary" data-act="assign">Assign</button></div>'
-          + '</div>';
-      } else {
-        var a = window.AssistStore.agentById ? window.AssistStore.agentById(r.agentId) : null;
+      } else if (curAsg) {
+        // A leg is active — show current owner + task, allow reassign of it.
+        var a = window.AssistStore.agentById ? window.AssistStore.agentById(curAsg.agentId) : null;
         primary = '<div class="sa-primary">'
           + '<div class="sa-assigned-strip">'
-          +   '<span class="sa-ava" aria-hidden="true">' + esc(initials(r.agentName || r.agentId)) + '</span>'
-          +   '<div><div class="sa-nm2">' + esc(r.agentName || r.agentId) + '</div>'
-          +     '<div class="sa-zone">' + esc(r.agentId) + (a && a.zone ? ' · ' + esc(a.zone) : '') + '</div></div>'
+          +   '<span class="sa-ava" aria-hidden="true">' + esc(initials(curAsg.agentName || curAsg.agentId)) + '</span>'
+          +   '<div><div class="sa-nm2">' + esc(curAsg.agentName || curAsg.agentId) + '</div>'
+          +     '<div class="sa-zone">' + esc(curAsg.agentId) + (a && a.zone ? ' · ' + esc(a.zone) : '') + '</div></div>'
           + '</div>'
-          + '<div class="sa-primary-label" style="margin-top:2px;">Reassign to another agent</div>'
-          + '<div class="sa-inline">' + agentSelect('sa-assign-sel', r.agentId)
+          + '<div class="sa-hist-task" style="margin:8px 0 2px;">Task: ' + esc(curAsg.taskTitle)
+          +   (curAsg.isFinal ? ' · final leg' : ' · handoff leg') + '</div>'
+          + '<div class="sa-primary-label" style="margin-top:8px;">Reassign this leg to another agent</div>'
+          + '<div class="sa-inline">' + agentSelect('sa-assign-sel', curAsg.agentId)
           +   '<button type="button" class="btn-secondary" data-act="reassign">Reassign</button></div>'
           + '</div>';
+      } else if (r.status === 'CONFIRMED' && (!r.assignments || !r.assignments.length)) {
+        // No plan yet — let the coordinator define all ordered steps up front.
+        primary = planBuilderHTML(r);
+      } else {
+        // Fallback: next leg needed but no pre-planned step (e.g. plan ran out).
+        primary = assignFormHTML(r);
       }
 
       // --- Secondary / utility actions ---------------------------------
@@ -539,6 +626,145 @@
       return primary + more;
     }
 
+    /* ---- Assistance plan builder (configurable, ordered steps) ---------- */
+    function agentOptions(current) {
+      return window.AssistStore.AGENTS.map(function (a) {
+        var sel = a.id === current ? ' selected' : '';
+        var busy = a.status === 'on_task' ? ' (on task)' : '';
+        return '<option value="' + a.id + '"' + sel + '>' + esc(a.name) + ' · ' + esc(a.zone) + busy + '</option>';
+      }).join('');
+    }
+    function defaultPlanDraft(r) {
+      var A = window.AssistStore.AGENTS;
+      var pickup0 = r.pickup || (r.flight.terminal ? r.flight.terminal + ' — check-in area' : '');
+      var dest = r.destination || (r.flight.gate ? 'Gate ' + r.flight.gate : '');
+      return [
+        { taskTitle: '', taskInstruction: '', pickup: pickup0, destination: '', agentId: A[0] ? A[0].id : '' },
+        { taskTitle: '', taskInstruction: '', pickup: '', destination: dest, agentId: A[1] ? A[1].id : '' }
+      ];
+    }
+    function newPlanStep(i) {
+      var A = window.AssistStore.AGENTS;
+      var a = A[i % A.length] || A[0];
+      return { taskTitle: '', taskInstruction: '', pickup: '', destination: '', agentId: a ? a.id : '' };
+    }
+    // Read the current DOM inputs back into state.planDraft (before add/remove/save).
+    function syncPlanDraft() {
+      var rows = document.querySelectorAll('#sa-plan-list .sa-plan-step');
+      var arr = [];
+      rows.forEach(function (row) {
+        arr.push({
+          taskTitle: row.querySelector('.sa-ps-title').value.trim(),
+          taskInstruction: row.querySelector('.sa-ps-instr').value.trim(),
+          pickup: row.querySelector('.sa-ps-pickup').value.trim(),
+          destination: row.querySelector('.sa-ps-dest').value.trim(),
+          agentId: row.querySelector('.sa-ps-agent').value
+        });
+      });
+      if (arr.length) state.planDraft = arr;
+    }
+    function planBuilderHTML(r) {
+      var steps = state.planDraft || defaultPlanDraft(r);
+      var rows = steps.map(function (s, i) {
+        return '<div class="sa-plan-step" data-step="' + i + '">'
+          + '<div class="sa-plan-step-h"><span>Step ' + (i + 1) + '</span>'
+          +   (i > 0 ? '<button type="button" class="sa-ps-remove" data-act="remove-step" data-step="' + i + '">Remove</button>' : '')
+          + '</div>'
+          + '<div class="sa-task-fields">'
+          +   '<input class="input-field sa-ps-title" value="' + esc(s.taskTitle) + '" placeholder="Step title · e.g. Check-in → Security" />'
+          +   '<input class="input-field sa-ps-instr" value="' + esc(s.taskInstruction) + '" placeholder="What the agent must do (optional)" />'
+          +   '<input class="input-field sa-ps-pickup" value="' + esc(s.pickup) + '" placeholder="Pickup / start point" />'
+          +   '<input class="input-field sa-ps-dest" value="' + esc(s.destination) + '" placeholder="Destination / handoff point" />'
+          +   '<select class="input-field sa-ps-agent">' + agentOptions(s.agentId) + '</select>'
+          + '</div></div>';
+      }).join('');
+      return '<div class="sa-primary">'
+        + '<div class="sa-primary-label">Define the assistance plan</div>'
+        + '<p class="sa-note" style="margin:0 0 12px;">Add each leg of the journey and pick the agent for it. Handoff activates the next step automatically — the number of steps is up to you.</p>'
+        + '<div id="sa-plan-list">' + rows + '</div>'
+        + '<div class="sa-more-row" style="margin-top:4px;">'
+        +   '<button type="button" class="btn-ghost" data-act="add-step">+ Add step</button>'
+        +   '<button type="button" class="btn-primary" data-act="save-plan" style="width:auto;">Save plan &amp; start</button>'
+        + '</div></div>';
+    }
+
+    // Task-based assignment form (fallback: next leg when no plan step remains).
+    function assignFormHTML(r) {
+      var isNext = (r.status === 'AWAITING_ASSIGNMENT');
+      var lastHo = lastHandoff(r);
+      var pickupDefault = (isNext && lastHo && lastHo.atLocation)
+        ? lastHo.atLocation
+        : (r.pickup || (r.flight.terminal ? r.flight.terminal + ' — check-in area' : ''));
+      var destDefault = r.destination || (r.flight.gate ? 'Gate ' + r.flight.gate : '');
+      var titleDefault = (pickupDefault && destDefault) ? (shortLoc(pickupDefault) + ' → ' + destDefault) : '';
+      return '<div class="sa-primary">'
+        + '<div class="sa-primary-label">' + (isNext ? 'Next step · Assign the next agent' : 'Next step · Assign an agent') + '</div>'
+        + '<div class="sa-task-fields">'
+        +   agentSelect('sa-assign-sel')
+        +   '<div><div class="sa-field-lbl">Task</div>'
+        +     '<input id="sa-task-title" class="input-field" value="' + esc(titleDefault) + '" placeholder="e.g. Check-in → Gate B12" /></div>'
+        +   '<div><div class="sa-field-lbl">Pickup / start point</div>'
+        +     '<input id="sa-task-pickup" class="input-field" value="' + esc(pickupDefault) + '" /></div>'
+        +   '<div><div class="sa-field-lbl">Destination / handoff point</div>'
+        +     '<input id="sa-task-dest" class="input-field" value="' + esc(destDefault) + '" /></div>'
+        +   '<label class="sa-final-toggle"><input type="checkbox" id="sa-task-final" /> This is the final leg (completes the journey)</label>'
+        +   '<button type="button" class="btn-primary" data-act="assign-task" style="width:auto;">'
+        +     (isNext ? 'Assign next agent' : 'Assign agent') + '</button>'
+        + '</div></div>';
+    }
+    function shortLoc(s) {
+      s = String(s || '');
+      var dash = s.indexOf(' — ');
+      return dash > -1 ? s.slice(0, dash) : s;
+    }
+
+    // Assistance plan & agent history — every step in order: completed (with
+    // handoff), current, and upcoming. Connected to the audit timeline below.
+    function historyCard(r) {
+      var list = (r.assignments || []).slice().sort(function (a, b) { return (a.stepNo || 0) - (b.stepNo || 0); });
+      if (!list.length) return '';
+      var cur = window.AssistStore.currentAssignment(r);
+      var rows = list.map(function (a) {
+        var upcoming = a.status === 'PENDING';
+        var isCurrent = cur && a.assignmentId === cur.assignmentId && a.status !== 'COMPLETED';
+        var cls = a.status === 'COMPLETED' ? '' : (upcoming ? ' is-upcoming' : (isCurrent ? ' is-current' : ''));
+        var statusLine, statusCls = '', handoffLine = '';
+        if (a.status === 'COMPLETED') {
+          statusLine = 'Completed' + (a.completedAt ? ' · ' + esc(fmtTime(a.completedAt)) : '');
+          if (a.handoff && a.handoff.status === 'done') {
+            handoffLine = '<div class="sa-hist-handoff">↳ Handoff · ' + esc(a.handoff.atLocation || a.destination || '')
+              + (a.handoff.at ? ' · ' + esc(fmtTime(a.handoff.at)) : '') + '</div>';
+          }
+        } else if (upcoming) {
+          statusLine = 'Upcoming'; statusCls = ' is-upcoming';
+        } else {
+          statusLine = legStatusLabel(a.status); statusCls = ' is-active';
+        }
+        return '<li class="sa-hist' + cls + '">'
+          + '<div class="sa-hist-step">Step ' + (a.stepNo || '') + (a.isFinal ? ' · final' : '') + '</div>'
+          + '<div class="sa-hist-who">' + esc(a.agentName || a.agentId) + '</div>'
+          + '<div class="sa-hist-task">' + esc(a.taskTitle) + '</div>'
+          + '<div class="sa-hist-status' + statusCls + '">' + statusLine + '</div>'
+          + handoffLine
+          + '</li>';
+      }).join('');
+      return '<div class="card"><div class="sa-card-t">Assistance plan &amp; agent history</div>'
+        + '<ul class="sa-history">' + rows + '</ul></div>';
+    }
+    function fmtTime(iso) {
+      try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+      catch (e) { return ''; }
+    }
+    function lastHandoff(r) {
+      var hs = (r.assignments || []).filter(function (a) { return a.handoff && a.handoff.status === 'done'; });
+      return hs.length ? hs[hs.length - 1].handoff : null;
+    }
+    function legStatusLabel(s) {
+      var m = { PENDING: 'Upcoming', ASSIGNED: 'Assigned', ACCEPTED: 'Accepted', EN_ROUTE: 'En route',
+                PASSENGER_LOCATED: 'Passenger located', IN_PROGRESS: 'In progress', COMPLETED: 'Completed' };
+      return m[s] || s;
+    }
+
     function agentSelect(id, current) {
       var opts = window.AssistStore.AGENTS.map(function (a) {
         var sel = a.id === current ? ' selected' : '';
@@ -556,9 +782,34 @@
           var act = b.getAttribute('data-act');
           if (act === 'confirm') {
             window.AssistStore.confirmRequest(r.id, CURRENT); toast('Request confirmed');
-          } else if (act === 'assign') {
-            var id = document.getElementById('sa-assign-sel').value;
-            window.AssistStore.assign(r.id, id, CURRENT); toast('Agent ' + id + ' assigned');
+          } else if (act === 'add-step') {
+            syncPlanDraft();
+            state.planDraft = (state.planDraft || []).concat([newPlanStep((state.planDraft || []).length)]);
+            render(); return;
+          } else if (act === 'remove-step') {
+            syncPlanDraft();
+            var idx = parseInt(b.getAttribute('data-step'), 10);
+            state.planDraft = (state.planDraft || []).filter(function (_, i) { return i !== idx; });
+            render(); return;
+          } else if (act === 'save-plan') {
+            syncPlanDraft();
+            var steps = (state.planDraft || []).filter(function (s) { return s.agentId; });
+            if (!steps.length) { toast('Add at least one step'); return; }
+            window.AssistStore.setPlan(r.id, steps, CURRENT);
+            state.planDraft = null;
+            toast('Assistance plan set · ' + steps.length + ' step' + (steps.length > 1 ? 's' : ''));
+          } else if (act === 'assign-task') {
+            var ag = document.getElementById('sa-assign-sel').value;
+            var title = document.getElementById('sa-task-title').value.trim();
+            var pickup = document.getElementById('sa-task-pickup').value.trim();
+            var dest = document.getElementById('sa-task-dest').value.trim();
+            var isFinal = document.getElementById('sa-task-final').checked;
+            window.AssistStore.assignTask(r.id, {
+              agentId: ag,
+              taskTitle: title || ((pickup ? shortLoc(pickup) : 'Assist') + (dest ? ' → ' + dest : '')),
+              taskInstruction: '', pickup: pickup, destination: dest, isFinal: isFinal
+            }, CURRENT);
+            toast(isFinal ? 'Final leg assigned' : 'Next leg assigned');
           } else if (act === 'reassign') {
             var id2 = document.getElementById('sa-assign-sel').value;
             window.AssistStore.reassign(r.id, id2, CURRENT); toast('Reassigned to ' + id2);
@@ -604,9 +855,9 @@
       var a = window.AssistStore.create({
         source: 'seed',
         passenger: { name: 'Mariam Youssef', bookingRef: 'EK4R8T' },
-        flight: { number: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', gate: 'A14', date: 'Tue, 11 Aug', boarding: '08:30', journeyType: 'departing' },
+        flight: { number: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', gate: 'B12', date: 'Tue, 11 Aug', boarding: '08:30', journeyType: 'departing' },
         needs: ['wheelchair_push', 'long_walk'], needsNote: 'Prefers early boarding assistance.',
-        pickup: 'Terminal 3 — check-in area', destination: 'Gate A14'
+        pickup: 'Terminal 3 — check-in area', destination: 'Gate B12'
       });
       var b = window.AssistStore.create({
         source: 'seed',
