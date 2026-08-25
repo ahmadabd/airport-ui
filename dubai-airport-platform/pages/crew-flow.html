@@ -1,823 +1,984 @@
-<!-- CrewFlow Module — Emirates–DXB Operations Control Platform -->
+<!-- Crew Operations Control — synchronized with the CrewFlow mobile prototype -->
 
-<div id="crewflow-module-wrapper">
+<style>
+  #crew-ops-control {
+    --co-ink: #1d1b1a;
+    --co-muted: #716c66;
+    --co-line: #ded8d1;
+    --co-soft: #faf8f5;
+    --co-red: #c8102e;
+    color: var(--co-ink);
+  }
 
-  <!-- Page Header & Title -->
-  <div class="card-header" style="margin-bottom: 16px;">
+  #crew-ops-control * { box-sizing: border-box; }
+  #crew-ops-control .co-header,
+  #crew-ops-control .co-row,
+  #crew-ops-control .co-between { display: flex; align-items: center; }
+  #crew-ops-control .co-header,
+  #crew-ops-control .co-between { justify-content: space-between; }
+  #crew-ops-control .co-header { gap: 16px; margin-bottom: 16px; }
+  #crew-ops-control .co-row { gap: 8px; }
+  #crew-ops-control .co-wrap { flex-wrap: wrap; }
+  #crew-ops-control .co-stack { display: flex; flex-direction: column; gap: 12px; }
+
+  #crew-ops-control .co-flight {
+    background: linear-gradient(135deg, #b90e29, #d71a21);
+    color: #fff;
+    border: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  #crew-ops-control .co-flight::after {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border: 36px solid rgba(255, 255, 255, .08);
+    border-radius: 50%;
+    right: -70px;
+    top: -95px;
+  }
+  #crew-ops-control .co-flight-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) repeat(5, minmax(90px, 1fr));
+    gap: 16px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  #crew-ops-control .co-route { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+  #crew-ops-control .co-flight-label { color: rgba(255,255,255,.72); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  #crew-ops-control .co-flight-value { color: #fff; font-size: 14px; font-weight: 700; margin-top: 3px; }
+
+  #crew-ops-control .co-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  #crew-ops-control .co-kpi {
+    background: #fff;
+    border: 1px solid var(--co-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  #crew-ops-control .co-kpi-label { color: var(--co-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  #crew-ops-control .co-kpi-value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+
+  #crew-ops-control .co-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, .9fr);
+    gap: 16px;
+    align-items: start;
+  }
+  #crew-ops-control .co-card {
+    background: #fff;
+    border: 1px solid var(--co-line);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  #crew-ops-control .co-section-title { font-size: 16px; font-weight: 750; margin: 0; }
+  #crew-ops-control .co-help { color: var(--co-muted); font-size: 12px; line-height: 1.5; }
+
+  #crew-ops-control .co-steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+  #crew-ops-control .co-step {
+    min-height: 88px;
+    border: 1px solid var(--co-line);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--co-soft);
+  }
+  #crew-ops-control .co-step.co-done { border-color: #a6f4c5; background: #ecfdf3; }
+  #crew-ops-control .co-step.co-current { border-color: #fdb022; background: #fffaeb; }
+  #crew-ops-control .co-step-index {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eee9e3;
+    color: var(--co-muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  #crew-ops-control .co-step.co-done .co-step-index { background: #067647; color: #fff; }
+  #crew-ops-control .co-step-name { display: block; font-size: 12px; font-weight: 700; margin-top: 8px; }
+  #crew-ops-control .co-step-time { display: block; color: var(--co-muted); font-size: 10px; margin-top: 3px; }
+
+  #crew-ops-control .co-roster {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  #crew-ops-control .co-person {
+    width: 100%;
+    border: 1px solid var(--co-line);
+    border-radius: 11px;
+    padding: 12px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+  #crew-ops-control .co-person:hover,
+  #crew-ops-control .co-person.co-selected { border-color: var(--co-red); box-shadow: 0 0 0 2px rgba(200,16,46,.08); }
+  #crew-ops-control .co-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f3efe9;
+    color: var(--co-red);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex: 0 0 auto;
+  }
+  #crew-ops-control .co-name { font-size: 13px; font-weight: 750; }
+  #crew-ops-control .co-meta { color: var(--co-muted); font-size: 11px; margin-top: 2px; }
+  #crew-ops-control .co-progress { height: 5px; background: #eee9e3; border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  #crew-ops-control .co-progress > span { display: block; height: 100%; background: var(--co-red); border-radius: inherit; }
+
+  #crew-ops-control .co-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+  #crew-ops-control .co-chip-ready,
+  #crew-ops-control .co-chip-resolved { color: #067647; background: #ecfdf3; border-color: #a6f4c5; }
+  #crew-ops-control .co-chip-open,
+  #crew-ops-control .co-chip-action { color: #b42318; background: #fef3f2; border-color: #fecdca; }
+  #crew-ops-control .co-chip-triaged,
+  #crew-ops-control .co-chip-proposed { color: #b54708; background: #fffaeb; border-color: #fedf89; }
+  #crew-ops-control .co-chip-neutral { color: #344054; background: #f2f4f7; border-color: #d0d5dd; }
+
+  #crew-ops-control .co-issue {
+    border: 1px solid var(--co-line);
+    border-left: 4px solid #fdb022;
+    border-radius: 10px;
+    padding: 13px;
+    background: #fff;
+  }
+  #crew-ops-control .co-issue.co-blocking { border-left-color: #d92d20; background: #fffafa; }
+  #crew-ops-control .co-issue + .co-issue { margin-top: 10px; }
+  #crew-ops-control .co-issue-title { font-size: 13px; font-weight: 750; }
+  #crew-ops-control .co-issue-copy { color: var(--co-muted); font-size: 12px; line-height: 1.45; margin-top: 6px; }
+  #crew-ops-control .co-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  #crew-ops-control .co-btn {
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--co-line);
+    background: #fff;
+    color: var(--co-ink);
+    padding: 0 11px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #crew-ops-control .co-btn:hover { background: #f8f5f1; }
+  #crew-ops-control .co-btn:disabled { opacity: .5; cursor: not-allowed; }
+  #crew-ops-control .co-btn:disabled:hover { background: #fff; }
+  #crew-ops-control .co-btn-primary { background: var(--co-red); border-color: var(--co-red); color: #fff; }
+  #crew-ops-control .co-btn-primary:hover { background: #a60f2d; }
+  #crew-ops-control .co-btn-primary:disabled:hover { background: var(--co-red); }
+  #crew-ops-control .co-btn-success { color: #067647; border-color: #75e0a7; background: #ecfdf3; }
+  #crew-ops-control .co-task {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #eee9e3;
+    font-size: 12px;
+  }
+  #crew-ops-control .co-task:last-child { border-bottom: 0; }
+  #crew-ops-control .co-proposal { border: 1px solid #fdb022; background: #fffaeb; border-radius: 11px; padding: 13px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-picker { border: 1px solid #d0d5dd; background: #f9fafb; border-radius: 11px; padding: 13px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-list { display: grid; gap: 8px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--co-line);
+    border-radius: 9px;
+    background: #fff;
+    padding: 10px;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+  #crew-ops-control .co-candidate-option:hover { border-color: #fda29b; }
+  #crew-ops-control .co-candidate-option.co-selected { border-color: var(--co-red); box-shadow: 0 0 0 2px rgba(200,16,46,.08); }
+  #crew-ops-control .co-radio {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border: 1px solid #98a2b3;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: inset 0 0 0 4px #fff;
+  }
+  #crew-ops-control .co-candidate-option.co-selected .co-radio { border-color: var(--co-red); background: var(--co-red); }
+  #crew-ops-control .co-audit { padding: 9px 0; border-bottom: 1px solid #eee9e3; }
+  #crew-ops-control .co-audit:last-child { border-bottom: 0; }
+  #crew-ops-control .co-empty { padding: 24px 12px; text-align: center; border: 1px dashed var(--co-line); border-radius: 10px; color: var(--co-muted); font-size: 12px; }
+
+  @media (max-width: 980px) {
+    #crew-ops-control .co-flight-grid { grid-template-columns: repeat(3, 1fr); }
+    #crew-ops-control .co-flight-main { grid-column: 1 / -1; }
+    #crew-ops-control .co-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    #crew-ops-control .co-header { align-items: flex-start; flex-direction: column; }
+    #crew-ops-control .co-kpis { grid-template-columns: repeat(2, 1fr); }
+    #crew-ops-control .co-steps { grid-template-columns: 1fr; }
+    #crew-ops-control .co-roster { grid-template-columns: 1fr; }
+    #crew-ops-control .co-flight-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div id="crew-ops-control">
+  <div class="co-header">
     <div>
-      <span class="caption-text">Dubai International Airport (DXB) • Flight Crew Operations</span>
-      <h1 class="page-title">CrewFlow Roster & Task Dispatch</h1>
+      <span class="caption-text">DXB Operations · Crew control</span>
+      <h1 class="page-title" style="margin: 2px 0 4px;">Crew Operations Control</h1>
+      <p class="supporting-text">The admin view uses the same flight, roster, journey and issue records as the CrewFlow app.</p>
     </div>
-    <div style="display: flex; gap: 8px; align-items: center;">
-      <span class="chip chip-completed">
-        <span class="chip-icon">●</span> Biometric One-ID Sync
-      </span>
-      <span class="chip chip-info" id="crew-ops-clock">Tue, 4 Aug • 10:15</span>
-    </div>
-  </div>
-
-  <!-- Flight Summary KPI Cards Row -->
-  <div class="grid-4col" style="margin-bottom: 16px;">
-    <div class="card" style="margin-bottom: 0; padding: 16px;">
-      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--text-secondary);">Active Flight Crews</span>
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-        <span style="font-size: 28px; font-weight: 800; color: var(--text-main);" id="kpi-crew-flights">6</span>
-        <span class="chip chip-info">DXB Operations</span>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-success);">
-      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-success);">Manifest Verified</span>
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-        <span style="font-size: 28px; font-weight: 800; color: var(--color-success);" id="kpi-crew-verified">4</span>
-        <span class="chip chip-completed">Ready for Departure</span>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-warning);">
-      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-warning);">Tasks In Progress</span>
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-        <span style="font-size: 28px; font-weight: 800; color: var(--color-warning);" id="kpi-crew-progress">2</span>
-        <span class="chip chip-warning">Boarding Prep</span>
-      </div>
-    </div>
-
-    <div class="card" style="margin-bottom: 0; padding: 16px; border-left: 4px solid var(--color-error);">
-      <span class="caption-text" style="text-transform: uppercase; font-weight: 700; color: var(--color-error);">Action Required</span>
-      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px;">
-        <span style="font-size: 28px; font-weight: 800; color: var(--color-error);" id="kpi-crew-action">1</span>
-        <span class="chip chip-error">Pending Task</span>
-      </div>
+    <div class="co-row co-wrap">
+      <span class="co-chip co-chip-ready" id="co-sync-badge">● Synced</span>
+      <button class="co-btn" data-action="refresh">↻ Refresh</button>
+      <button class="co-btn co-btn-primary" data-action="open-app">Open Crew App ↗</button>
     </div>
   </div>
 
-  <!-- Flight Selector & Search Bar -->
-  <div class="card" style="margin-bottom: 16px; padding: 16px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <h3 class="card-title" style="font-size: 16px;">Select Flight to Inspect Crew & Task Statuses</h3>
-        <span class="supporting-text">Click a flight card or search by flight number to view assigned crew members & task progress</span>
-      </div>
-      <div style="display: flex; gap: 8px;">
-        <input type="text" id="crew-flight-search" class="input-field" style="height: 36px; font-size: 13px; width: 220px;" placeholder="Search Flight / Crew..." oninput="filterCrewFlights()">
-      </div>
-    </div>
+  <section class="card co-flight" id="co-flight"></section>
+  <section class="co-kpis" id="co-kpis"></section>
 
-    <!-- Scrollable Flight Selector Cards -->
-    <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin;" id="crew-flights-scroll-container">
-      <!-- Flight chips populated by JS -->
-    </div>
-  </div>
-
-  <!-- Flight Summary Banner -->
-  <div class="card" style="border-top: 4px solid var(--color-primary); margin-bottom: 20px; padding: 20px;" id="selected-flight-summary-card">
-    <!-- Populated by JS -->
-  </div>
-
-  <!-- Crew Replacement Recommendation Banner (Hidden by default, shown when user clicks Recommend Replacements) -->
-  <div class="card" id="crew-replacement-recommendation-panel" style="display: none; border-color: var(--color-warning); background-color: var(--bg-warning); padding: 20px; margin-bottom: 20px; border-left: 6px solid var(--color-warning);">
-    <!-- Injected dynamically by JS -->
-  </div>
-
-  <!-- Main Grid: Crew Members & Assigned Tasks -->
-  <div class="grid-2col" style="margin-bottom: 20px;">
-
-    <!-- Left Column: Assigned Crew Members Roster List -->
-    <div class="card" style="margin-bottom: 0; padding: 20px;">
-      <div class="card-header" style="margin-bottom: 16px;">
-        <div>
-          <h3 class="card-title" style="font-size: 17px;">Flight Crew Roster</h3>
-          <span class="supporting-text" id="crew-roster-sub">Select a crew member to view detailed duty task statuses</span>
+  <div class="co-layout">
+    <div class="co-stack">
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Sara Rahimi · duty journey</h2>
+            <p class="co-help">Mirrors the five operational stages visible in the mobile CrewFlow app.</p>
+          </div>
+          <span id="co-journey-status"></span>
         </div>
-        <span class="chip chip-completed" id="crew-count-badge">4 Assigned</span>
-      </div>
+        <div class="co-steps" id="co-steps"></div>
+      </section>
 
-      <div style="display: flex; flex-direction: column; gap: 12px;" id="crew-members-list-container">
-        <!-- Injected by JS -->
-      </div>
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Flight crew roster</h2>
+            <p class="co-help">EK 001 assigned crew; select a member to inspect their assignment.</p>
+          </div>
+          <span class="co-chip co-chip-neutral" id="co-roster-count"></span>
+        </div>
+        <div class="co-roster" id="co-roster"></div>
+      </section>
+
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Crew reports & follow-up</h2>
+            <p class="co-help">Issues submitted in CrewFlow appear here and remain visible through resolution.</p>
+          </div>
+          <select class="input-field" id="co-issue-filter" style="width: 170px; height: 36px; font-size: 12px;">
+            <option value="active">Active reports</option>
+            <option value="all">All reports</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div id="co-issues" style="margin-top: 14px;"></div>
+      </section>
     </div>
 
-    <!-- Right Column: Individual Crew Member Task Status Inspector -->
-    <div class="card" style="margin-bottom: 0; padding: 20px;" id="crew-task-inspector-card">
-      <!-- Injected by JS -->
-    </div>
-
+    <aside class="co-stack">
+      <section class="co-card" id="co-member-detail"></section>
+      <section class="co-card">
+        <h2 class="co-section-title">Replacement eligibility</h2>
+        <p class="co-help" style="margin-top: 4px;">Candidates must be on standby, have 12+ hours rest and hold SEP, First Aid and A380 rating.</p>
+        <div id="co-standby" style="margin-top: 12px;"></div>
+      </section>
+      <section class="co-card">
+        <div class="co-between">
+          <h2 class="co-section-title">Audit trail</h2>
+          <span class="co-chip co-chip-neutral">Local prototype</span>
+        </div>
+        <div id="co-audit" style="margin-top: 8px;"></div>
+      </section>
+    </aside>
   </div>
-
-  <!-- Full Crew Task Matrix for Selected Flight -->
-  <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 20px;">
-    <div style="padding: 16px 20px; background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-      <div>
-        <h3 class="card-title" style="font-size: 16px;">Complete Flight Crew Task Matrix</h3>
-        <span class="supporting-text">Detailed real-time task status breakdown for all assigned crew members</span>
-      </div>
-      <button class="btn-primary" style="width: auto; height: 36px; padding: 0 16px; font-size: 13px;" onclick="confirmFlightCrewManifest()">
-        ✓ Confirm & Sign Off Crew Manifest
-      </button>
-    </div>
-
-    <div style="overflow-x: auto;">
-      <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
-        <thead>
-          <tr style="background-color: var(--bg-surface); border-bottom: 2px solid var(--border-color); color: var(--text-secondary); font-size: 12px; text-transform: uppercase;">
-            <th style="padding: 12px 16px;">Crew Member</th>
-            <th style="padding: 12px 16px;">Role</th>
-            <th style="padding: 12px 16px;">Assigned Task</th>
-            <th style="padding: 12px 16px;">Category</th>
-            <th style="padding: 12px 16px;">Scheduled Time</th>
-            <th style="padding: 12px 16px;">Status</th>
-            <th style="padding: 12px 16px; text-align: right;">Action</th>
-          </tr>
-        </thead>
-        <tbody id="crew-task-matrix-tbody">
-          <!-- Injected by JS -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
 </div>
 
-<!-- Interactive Engine for CrewFlow Roster, Tasks & Replacement Recommendations -->
 <script>
-  // Active Flights & Crew Roster Data
-  const CREW_FLIGHTS_DATA = [
-    {
-      flight: 'EK 001',
-      airline: 'Emirates',
-      aircraft: 'Airbus A380-800',
-      reg: 'A6-EOD',
-      route: 'DXB → LHR',
-      terminal: 'Terminal 3',
-      gate: 'A14',
-      date: 'Tue, 4 Aug',
-      boarding: '08:30',
-      departure: '09:15',
-      readiness: 92,
-      status: 'In Progress',
-      members: [
-        {
-          id: 'CR-101',
-          name: 'Capt. Tariq Al-Mansoor',
-          role: 'Commander',
-          fleet: 'A380 Fleet',
-          idBadge: 'EK-94821',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-101-1', title: 'Medical & Biometric Gate Sign-in', category: 'Pre-flight', time: '07:15', status: 'Completed' },
-            { id: 'T-101-2', title: 'Flight Plan & Weather Briefing', category: 'Pre-flight', time: '07:30', status: 'Completed' },
-            { id: 'T-101-3', title: 'Aircraft Exterior Walkaround Inspection', category: 'Safety', time: '08:00', status: 'Completed' },
-            { id: 'T-101-4', title: 'FMC Flight Computer Programming', category: 'Cockpit', time: '08:15', status: 'Completed' },
-            { id: 'T-101-5', title: 'Departure Briefing with Senior Purser', category: 'Briefing', time: '08:25', status: 'In Progress' }
-          ]
-        },
-        {
-          id: 'CR-102',
-          name: 'FO Sarah Jenkins',
-          role: 'First Officer',
-          fleet: 'A380 Fleet',
-          idBadge: 'EK-88210',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-102-1', title: 'Pre-flight Medical & Biometric Check', category: 'Pre-flight', time: '07:20', status: 'Completed' },
-            { id: 'T-102-2', title: 'ATC Clearance & Transponder Code Setup', category: 'Cockpit', time: '07:45', status: 'Completed' },
-            { id: 'T-102-3', title: 'Fuel Load Verification & Loadsheet Audit', category: 'Safety', time: '08:10', status: 'Completed' },
-            { id: 'T-102-4', title: 'Oxygen System & Emergency Equipment Check', category: 'Safety', time: '08:20', status: 'Completed' }
-          ]
-        },
-        {
-          id: 'CR-103',
-          name: 'Purser Omar Hassan',
-          role: 'Senior Purser',
-          fleet: 'Cabin Crew',
-          idBadge: 'EK-77401',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-103-1', title: 'Cabin Crew Safety Briefing', category: 'Briefing', time: '07:30', status: 'Completed' },
-            { id: 'T-103-2', title: 'Emergency Doors & Slide Pressure Check', category: 'Safety', time: '08:00', status: 'Completed' },
-            { id: 'T-103-3', title: 'First Class & Business Galley Inventory', category: 'Cabin', time: '08:15', status: 'Completed' },
-            { id: 'T-103-4', title: 'Passenger Boarding Door Supervision', category: 'Boarding', time: '08:30', status: 'In Progress' }
-          ]
-        },
-        {
-          id: 'CR-104',
-          name: 'FA Elena Rostova',
-          role: 'Cabin Attendant',
-          fleet: 'Cabin Crew',
-          idBadge: 'EK-65120',
-          verifiedBiometric: false,
-          tasks: [
-            { id: 'T-104-1', title: 'Security Sweep & Overhead Bin Inspection', category: 'Safety', time: '08:05', status: 'Completed' },
-            { id: 'T-104-2', title: 'Special Assistance & Medical Kit Audit', category: 'Cabin', time: '08:20', status: 'Action Required' },
-            { id: 'T-104-3', title: 'Economy Cabin Boarding Greeting', category: 'Boarding', time: '08:30', status: 'Pending' },
-            { id: 'T-104-4', title: 'Cabin Safety Demo Readiness', category: 'Safety', time: '08:55', status: 'Pending' }
-          ]
-        }
-      ]
-    },
-    {
-      flight: 'EK 202',
-      airline: 'Emirates',
-      aircraft: 'Airbus A380-800',
-      reg: 'A6-EBF',
-      route: 'LHR → DXB',
-      terminal: 'Terminal 3',
-      gate: 'A14',
-      date: 'Tue, 4 Aug',
-      boarding: '10:15',
-      departure: '10:45',
-      readiness: 100,
-      status: 'Verified',
-      members: [
-        {
-          id: 'CR-201',
-          name: 'Capt. Marcus Vance',
-          role: 'Commander',
-          fleet: 'A380 Fleet',
-          idBadge: 'EK-91204',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-201-1', title: 'Medical & Biometric Gate Sign-in', category: 'Pre-flight', time: '09:00', status: 'Completed' },
-            { id: 'T-201-2', title: 'Flight Plan & Oceanic Weather Audit', category: 'Pre-flight', time: '09:15', status: 'Completed' },
-            { id: 'T-201-3', title: 'Pre-flight Cockpit Checklist', category: 'Cockpit', time: '09:40', status: 'Completed' }
-          ]
-        },
-        {
-          id: 'CR-202',
-          name: 'FO Leila Al-Farsi',
-          role: 'First Officer',
-          fleet: 'A380 Fleet',
-          idBadge: 'EK-84102',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-202-1', title: 'Pre-flight Medical Clearance', category: 'Pre-flight', time: '09:05', status: 'Completed' },
-            { id: 'T-202-2', title: 'ATC Clearance Verification', category: 'Cockpit', time: '09:30', status: 'Completed' }
-          ]
-        },
-        {
-          id: 'CR-203',
-          name: 'Purser Rashid Khan',
-          role: 'Senior Purser',
-          fleet: 'Cabin Crew',
-          idBadge: 'EK-72390',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-203-1', title: 'Cabin Briefing & Equipment Audit', category: 'Briefing', time: '09:15', status: 'Completed' },
-            { id: 'T-203-2', title: 'Boarding Manifest Verification', category: 'Boarding', time: '10:15', status: 'Completed' }
-          ]
-        }
-      ]
-    },
-    {
-      flight: 'EK 501',
-      airline: 'Emirates',
-      aircraft: 'Boeing 777-300ER',
-      reg: 'A6-EBG',
-      route: 'DXB → CDG',
-      terminal: 'Terminal 3',
-      gate: 'B22',
-      date: 'Tue, 4 Aug',
-      boarding: '10:55',
-      departure: '11:20',
-      readiness: 65,
-      status: 'Action Required',
-      members: [
-        {
-          id: 'CR-301',
-          name: 'Capt. Faisal Al-Sabah',
-          role: 'Commander',
-          fleet: 'B777 Fleet',
-          idBadge: 'EK-93012',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-301-1', title: 'Biometric Gate Clearance', category: 'Pre-flight', time: '09:30', status: 'Completed' },
-            { id: 'T-301-2', title: 'Fuel Load Signoff & FMC Upload', category: 'Safety', time: '10:00', status: 'In Progress' }
-          ]
-        },
-        {
-          id: 'CR-302',
-          name: 'Purser Chloe Martin',
-          role: 'Senior Purser',
-          fleet: 'Cabin Crew',
-          idBadge: 'EK-71982',
-          verifiedBiometric: false,
-          tasks: [
-            { id: 'T-302-1', title: 'Pre-flight Medical Clearance', category: 'Pre-flight', time: '09:40', status: 'Action Required' },
-            { id: 'T-302-2', title: 'Galley Catering Audit', category: 'Cabin', time: '10:15', status: 'Pending' }
-          ]
-        }
-      ]
-    },
-    {
-      flight: 'FZ 812',
-      airline: 'flydubai',
-      aircraft: 'Boeing 737 MAX 8',
-      reg: 'A6-FDB',
-      route: 'DXB → RUH',
-      terminal: 'Terminal 2',
-      gate: 'C12',
-      date: 'Tue, 4 Aug',
-      boarding: '11:37',
-      departure: '12:00',
-      readiness: 85,
-      status: 'In Progress',
-      members: [
-        {
-          id: 'CR-401',
-          name: 'Capt. Hamad Al-Nuaimi',
-          role: 'Commander',
-          fleet: 'B737 Fleet',
-          idBadge: 'FZ-40129',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-401-1', title: 'Pre-flight Briefing & Biometrics', category: 'Pre-flight', time: '10:30', status: 'Completed' },
-            { id: 'T-401-2', title: 'Walkaround Flight Inspection', category: 'Safety', time: '11:00', status: 'Completed' }
-          ]
-        },
-        {
-          id: 'CR-402',
-          name: 'FA Sara Rahimi',
-          role: 'Cabin Attendant',
-          fleet: 'Cabin Crew',
-          idBadge: 'FZ-39120',
-          verifiedBiometric: true,
-          tasks: [
-            { id: 'T-402-1', title: 'Cabin Security Check', category: 'Safety', time: '11:05', status: 'Completed' },
-            { id: 'T-402-2', title: 'Passenger Boarding Prep', category: 'Boarding', time: '11:30', status: 'In Progress' }
-          ]
-        }
-      ]
-    }
-  ];
+  (function () {
+    var root = document.getElementById('crew-ops-control')
+    if (!root) return
 
-  // Database of Available Standby Replacement Crews at DXB Hub (Top 3 Candidates Per Role)
-  const STANDBY_REPLACEMENT_POOL = {
-    'Commander': [
-      { id: 'STB-101', name: 'Capt. Alexander Wright', role: 'Commander', fleet: 'A380 / B777 Fleet', idBadge: 'EK-99201', location: 'Standby T3 Lounge', restHours: '18h Rested', matchScore: '100% Match', verifiedBiometric: true },
-      { id: 'STB-102', name: 'Capt. Ziad Al-Husseini', role: 'Commander', fleet: 'A380 / A350 Fleet', idBadge: 'EK-97430', location: 'Standby Briefing Ctl', restHours: '14h Rested', matchScore: '98% Match', verifiedBiometric: true },
-      { id: 'STB-103', name: 'Capt. Viktor Novak', role: 'Commander', fleet: 'B777 / B787 Fleet', idBadge: 'EK-98124', location: 'Standby Crew Hotel', restHours: '22h Rested', matchScore: '95% Match', verifiedBiometric: true }
-    ],
-    'First Officer': [
-      { id: 'STB-201', name: 'FO Daniel Miller', role: 'First Officer', fleet: 'A380 Fleet', idBadge: 'EK-89401', location: 'Standby T3 Briefing Ctl', restHours: '16h Rested', matchScore: '100% Match', verifiedBiometric: true },
-      { id: 'STB-202', name: 'FO Hassan Al-Maktoum', role: 'First Officer', fleet: 'B777 / A350 Fleet', idBadge: 'EK-87612', location: 'Standby Briefing Ctl', restHours: '20h Rested', matchScore: '98% Match', verifiedBiometric: true },
-      { id: 'STB-203', name: 'FO Sofia Rossi', role: 'First Officer', fleet: 'B737 / A380 Fleet', idBadge: 'EK-86190', location: 'Standby T2 Lounge', restHours: '12h Rested', matchScore: '94% Match', verifiedBiometric: true }
-    ],
-    'Senior Purser': [
-      { id: 'STB-301', name: 'Purser Amira Al-Ghamdi', role: 'Senior Purser', fleet: 'Cabin Crew', idBadge: 'EK-78902', location: 'Standby T3 Concourse A', restHours: '16h Rested', matchScore: '100% Match', verifiedBiometric: true },
-      { id: 'STB-302', name: 'Purser Jean-Pierre Dubois', role: 'Senior Purser', fleet: 'Cabin Crew', idBadge: 'EK-76510', location: 'Standby Briefing Ctl', restHours: '19h Rested', matchScore: '97% Match', verifiedBiometric: true },
-      { id: 'STB-303', name: 'Purser Fatima Zahra', role: 'Senior Purser', fleet: 'Cabin Crew', idBadge: 'EK-75490', location: 'Standby T3 Lounge', restHours: '15h Rested', matchScore: '95% Match', verifiedBiometric: true }
-    ],
-    'Cabin Attendant': [
-      { id: 'STB-401', name: 'FA Kenji Takahashi', role: 'Cabin Attendant', fleet: 'Cabin Crew', idBadge: 'EK-67812', location: 'Standby T3 Briefing Ctl', restHours: '14h Rested', matchScore: '100% Match', verifiedBiometric: true },
-      { id: 'STB-402', name: 'FA Priyanka Sharma', role: 'Cabin Attendant', fleet: 'Cabin Crew', idBadge: 'EK-68940', location: 'Standby Concourse B', restHours: '18h Rested', matchScore: '98% Match', verifiedBiometric: true },
-      { id: 'STB-403', name: 'FA Carlos Mendoza', role: 'Cabin Attendant', fleet: 'Cabin Crew', idBadge: 'EK-69123', location: 'Standby Crew Duty Hub', restHours: '21h Rested', matchScore: '96% Match', verifiedBiometric: true }
-    ]
-  };
+    var OPS_KEY = 'crewflow_ops_v1'
+    var JOURNEY_KEY = 'crewflow_journey'
+    var CREW_ID = 'EK-CC-2847'
+    var selectedCrewId = CREW_ID
+    var issueFilter = 'active'
+    var replacementPickerIssueId = null
+    var selectedReplacementCandidateId = null
+    var state = readState()
 
-  // Active Selected State
-  let currentCrewFlightCode = 'EK 001';
-  let selectedCrewMemberId = 'CR-101';
-
-  document.addEventListener('DOMContentLoaded', () => {
-    initCrewFlowModule();
-  });
-
-  setTimeout(() => {
-    initCrewFlowModule();
-  }, 50);
-
-  function initCrewFlowModule() {
-    renderFlightSelectorChips();
-    selectCrewFlight(currentCrewFlightCode);
-  }
-
-  // Render Horizontal Flight Selector Scrollable Cards
-  function renderFlightSelectorChips() {
-    const container = document.getElementById('crew-flights-scroll-container');
-    if (!container) return;
-
-    container.innerHTML = CREW_FLIGHTS_DATA.map(f => {
-      const isSelected = f.flight === currentCrewFlightCode;
-      let chipClass = 'chip-completed';
-      if (f.status === 'In Progress') chipClass = 'chip-warning';
-      if (f.status === 'Action Required') chipClass = 'chip-error';
-
-      return `
-        <div onclick="selectCrewFlight('${f.flight}')" style="min-width: 170px; padding: 12px 14px; background: ${isSelected ? 'var(--bg-surface)' : 'var(--bg-secondary)'}; border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}; border-radius: 10px; cursor: pointer; transition: all 0.15s ease;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span style="font-weight: 800; font-size: 15px; color: var(--color-primary);">${f.flight}</span>
-            <span class="chip ${chipClass}" style="font-size: 10px; padding: 1px 6px;">${f.status}</span>
-          </div>
-          <div class="caption-text" style="font-weight: 700;">${f.route}</div>
-          <div class="supporting-text" style="font-size: 11px; margin-top: 2px;">Gate ${f.gate} • ${f.members.length} Crew</div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Filter flights by search text
-  function filterCrewFlights() {
-    const search = (document.getElementById('crew-flight-search')?.value || '').toUpperCase();
-    const chips = document.querySelectorAll('#crew-flights-scroll-container > div');
-    
-    CREW_FLIGHTS_DATA.forEach((f, idx) => {
-      const match = !search || f.flight.toUpperCase().includes(search) || f.route.toUpperCase().includes(search) || f.members.some(m => m.name.toUpperCase().includes(search));
-      if (chips[idx]) chips[idx].style.display = match ? 'block' : 'none';
-    });
-  }
-
-  // Select Flight
-  function selectCrewFlight(flightCode) {
-    currentCrewFlightCode = flightCode;
-    closeCrewReplacementPanel(); // Close replacement panel when switching flights
-    
-    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode) || CREW_FLIGHTS_DATA[0];
-    
-    // Select first crew member by default
-    if (flightObj.members.length > 0) {
-      selectedCrewMemberId = flightObj.members[0].id;
+    function nowIso() {
+      return new Date().toISOString()
     }
 
-    renderFlightSelectorChips();
-    renderFlightSummaryCard(flightObj);
-    renderCrewRosterList(flightObj);
-    renderCrewTaskInspector(flightObj);
-    renderCrewTaskMatrix(flightObj);
-  }
-
-  // Render Selected Flight Summary Card
-  function renderFlightSummaryCard(f) {
-    const card = document.getElementById('selected-flight-summary-card');
-    if (!card) return;
-
-    let chipClass = 'chip-completed';
-    if (f.status === 'In Progress') chipClass = 'chip-warning';
-    if (f.status === 'Action Required') chipClass = 'chip-error';
-
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px;">
-        <div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <h2 class="page-title" style="color: var(--color-primary); font-size: 26px;">${f.flight}</h2>
-            <span class="chip ${chipClass}" style="font-weight: 700; font-size: 13px;">${f.status.toUpperCase()}</span>
-            <span class="chip chip-info">${f.airline} • ${f.aircraft}</span>
-          </div>
-          <p class="supporting-text" style="margin-top: 4px;">
-            Route: <strong>${f.route}</strong> • Gate: <strong>${f.gate} (${f.terminal})</strong> • Boarding: <strong>${f.boarding}</strong> • Scheduled Departure: <strong>${f.departure}</strong>
-          </p>
-        </div>
-
-        <div style="display: flex; gap: 16px; background: var(--bg-secondary); padding: 10px 16px; border-radius: 10px; border: var(--border-standard);">
-          <div>
-            <span class="caption-text">Assigned Crew</span>
-            <div style="font-size: 18px; font-weight: 800;">${f.members.length} Members</div>
-          </div>
-          <div style="width: 1px; background: var(--border-color);"></div>
-          <div>
-            <span class="caption-text">Crew Readiness</span>
-            <div style="font-size: 18px; font-weight: 800; color: ${f.readiness === 100 ? 'var(--color-success)' : 'var(--color-warning)'};">${f.readiness}%</div>
-          </div>
-        </div>
-      </div>
-    `;
-  }
-
-  // Render Roster List for Selected Flight
-  function renderCrewRosterList(f) {
-    const container = document.getElementById('crew-members-list-container');
-    const badge = document.getElementById('crew-count-badge');
-    if (!container) return;
-
-    if (badge) badge.textContent = `${f.members.length} Members Assigned`;
-
-    container.innerHTML = f.members.map(m => {
-      const isSelected = m.id === selectedCrewMemberId;
-      const completedTasks = m.tasks.filter(t => t.status === 'Completed').length;
-      const totalTasks = m.tasks.length;
-      const hasActionReq = m.tasks.some(t => t.status === 'Action Required');
-
-      let statusChipClass = 'chip-completed';
-      let statusText = 'Ready';
-      if (completedTasks < totalTasks) {
-        statusChipClass = 'chip-in-progress';
-        statusText = `${completedTasks}/${totalTasks} Tasks`;
+    function defaultState() {
+      return {
+        version: 1,
+        updatedAt: nowIso(),
+        flight: {
+          id: 'EK001-2026-08-04',
+          number: 'EK 001',
+          route: 'DXB → LHR',
+          origin: 'DXB',
+          destination: 'LHR',
+          date: 'Tue, 4 Aug',
+          aircraft: 'Airbus A380',
+          gate: 'B22',
+          reportTime: '07:30',
+          briefingTime: '07:45',
+          briefingRoom: 'C14',
+          boardingTime: '08:30',
+          departure: '09:15'
+        },
+        roster: [
+          { id: 'EK-FD-1184', name: 'Omar Hassan', role: 'Captain', assignment: 'Flight deck · Commander', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: 'EK-FD-2291', name: 'David Chen', role: 'First Officer', assignment: 'Flight deck', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: 'EK-CC-1021', name: 'Maria Santos', role: 'Purser', assignment: 'Cabin lead', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: CREW_ID, name: 'Sara Rahimi', role: 'Cabin Crew', assignment: 'Zone B · Door 2L', fleet: 'A380', status: 'Awaiting check-in', progress: 0 }
+        ],
+        standby: [
+          { id: 'EK-CC-3118', name: 'Noura Al Falasi', role: 'Cabin Crew', fleet: 'A380', availability: 'Standby', restHours: 18, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 12 },
+          { id: 'EK-CC-3372', name: 'Leila Haddad', role: 'Cabin Crew', fleet: 'A380', availability: 'Standby', restHours: 14, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 25 },
+          { id: 'EK-CC-2044', name: 'Maya Singh', role: 'Cabin Crew', fleet: 'B777', availability: 'Standby', restHours: 20, certifications: ['SEP', 'FA', 'ATR-B777'], proximityMinutes: 8 },
+          { id: 'EK-CC-2980', name: 'Elena Petrova', role: 'Cabin Crew', fleet: 'A380', availability: 'Assigned', restHours: 9, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 10 }
+        ],
+        journey: {
+          crewMemberId: CREW_ID,
+          updateAcknowledged: false,
+          acknowledgedAt: null,
+          checkInComplete: false,
+          checkInAt: null,
+          briefingComplete: false,
+          briefingAt: null,
+          tasksComplete: false,
+          tasksAt: null,
+          readinessComplete: false,
+          readinessAt: null,
+          taskStates: {
+            task1: 'pending',
+            task2: 'pending',
+            task3: 'pending',
+            task4: 'pending',
+            task5: 'pending',
+            task6: 'pending'
+          }
+        },
+        issues: [],
+        notifications: [],
+        audit: []
       }
-      if (hasActionReq || !m.verifiedBiometric) {
-        statusChipClass = 'chip-action-required';
-        statusText = 'Action Required';
-      }
-
-      return `
-        <div onclick="selectCrewMember('${m.id}')" style="padding: 14px; background: ${isSelected ? 'var(--bg-surface)' : 'var(--bg-secondary)'}; border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}; border-radius: 12px; cursor: pointer; display: flex; flex-direction: column; gap: 8px; transition: all 0.15s ease;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-weight: 700; font-size: 15px; color: var(--text-main);">${m.name}</span>
-                ${m.verifiedBiometric ? '<span class="chip chip-completed" style="font-size: 10px; padding: 0 6px;">✓ One-ID</span>' : '<span class="chip chip-error" style="font-size: 10px; padding: 0 6px;">Unverified</span>'}
-              </div>
-              <div class="supporting-text" style="font-size: 12px; margin-top: 2px;">${m.role} • Staff ID: ${m.idBadge} • ${m.fleet}</div>
-            </div>
-            <span class="chip ${statusChipClass}" style="font-size: 12px;">${statusText}</span>
-          </div>
-
-          ${hasActionReq || !m.verifiedBiometric ? `
-            <div style="display: flex; justify-content: flex-end; margin-top: 4px;">
-              <button class="btn-primary" style="height: 28px; font-size: 11px; width: auto; padding: 0 10px; background-color: var(--color-warning); border: none;" onclick="event.stopPropagation(); triggerCrewReplacementModal('${f.flight}', '${m.id}')">
-                ⚠ Recommend 3 Replacements →
-              </button>
-            </div>
-          ` : ''}
-        </div>
-      `;
-    }).join('');
-  }
-
-  // Select Member to inspect
-  function selectCrewMember(memberId) {
-    selectedCrewMemberId = memberId;
-    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === currentCrewFlightCode) || CREW_FLIGHTS_DATA[0];
-    renderCrewRosterList(flightObj);
-    renderCrewTaskInspector(flightObj);
-  }
-
-  // Render Crew Task Inspector (Right Column)
-  function renderCrewTaskInspector(f) {
-    const inspector = document.getElementById('crew-task-inspector-card');
-    if (!inspector) return;
-
-    const member = f.members.find(m => m.id === selectedCrewMemberId) || f.members[0];
-    if (!member) {
-      inspector.innerHTML = `<p class="supporting-text">No crew member selected.</p>`;
-      return;
     }
 
-    const tasksHTML = member.tasks.map(t => {
-      let chipClass = 'chip-completed';
-      if (t.status === 'In Progress') chipClass = 'chip-in-progress';
-      if (t.status === 'Action Required') chipClass = 'chip-error';
-      if (t.status === 'Pending') chipClass = 'chip-info';
+    function safeParse(raw) {
+      try {
+        return raw ? JSON.parse(raw) : null
+      } catch (error) {
+        return null
+      }
+    }
 
-      return `
-        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 10px; border: var(--border-standard); display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-          <div>
-            <div style="font-weight: 700; font-size: 14px;">${t.title}</div>
-            <div class="caption-text">Category: ${t.category} • Scheduled: ${t.time}</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <span class="chip ${chipClass}" style="font-size: 11px;">${t.status}</span>
-            <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px;" onclick="toggleCrewTaskStatus('${f.flight}', '${member.id}', '${t.id}')">Toggle Status</button>
-          </div>
-        </div>
-      `;
-    }).join('');
+    function readState() {
+      var fallback = defaultState()
+      var parsed = safeParse(localStorage.getItem(OPS_KEY))
+      if (!parsed) parsed = fallback
+      var normalized = Object.assign({}, fallback, parsed)
+      normalized.flight = Object.assign({}, fallback.flight, parsed.flight || {})
+      normalized.journey = Object.assign({}, fallback.journey, parsed.journey || {})
+      normalized.roster = Array.isArray(parsed.roster) ? parsed.roster : fallback.roster
+      normalized.standby = Array.isArray(parsed.standby) ? parsed.standby : fallback.standby
+      normalized.issues = Array.isArray(parsed.issues) ? parsed.issues : []
+      normalized.notifications = Array.isArray(parsed.notifications) ? parsed.notifications : []
+      normalized.audit = Array.isArray(parsed.audit) ? parsed.audit : []
+      return mergeJourney(normalized)
+    }
 
-    const hasIssue = member.tasks.some(t => t.status === 'Action Required') || !member.verifiedBiometric;
+    function mergeJourney(ops) {
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey) return ops
+      var previousById = {}
+      ops.issues.forEach(function (issue) { previousById[issue.id] = issue })
+      var journeyIssues = Array.isArray(journey.issues) ? journey.issues : []
+      var mergedIssues = journeyIssues.map(function (issue) {
+        var existing = previousById[issue.id] || {}
+        return Object.assign({}, issue, existing, {
+          id: issue.id,
+          ref: issue.ref,
+          title: issue.title,
+          relatedItem: issue.relatedItem,
+          category: issue.category,
+          description: issue.description,
+          blocking: issue.blocking,
+          taskId: issue.taskId,
+          createdAt: issue.createdAt || existing.createdAt || nowIso(),
+          updatedAt: existing.updatedAt || issue.updatedAt || nowIso(),
+          flightId: issue.flightId || ops.flight.id,
+          crewMemberId: issue.crewMemberId || CREW_ID
+        })
+      })
+      ops.issues.forEach(function (issue) {
+        if (!mergedIssues.some(function (item) { return item.id === issue.id })) mergedIssues.push(issue)
+      })
+      ops.issues = mergedIssues
+      ops.journey = Object.assign({}, ops.journey, {
+        crewMemberId: journey.user && journey.user.employeeId ? journey.user.employeeId : CREW_ID,
+        updateAcknowledged: !!journey.updateAcknowledged,
+        acknowledgedAt: journey.acknowledgedAt || null,
+        checkInComplete: !!journey.checkInComplete,
+        checkInAt: journey.checkInAt || null,
+        briefingComplete: !!journey.briefingComplete,
+        briefingAt: journey.briefingAt || null,
+        tasksComplete: !!journey.tasksComplete,
+        tasksAt: journey.tasksAt || null,
+        readinessComplete: !!journey.readinessComplete,
+        readinessAt: journey.readinessAt || null,
+        taskStates: journey.taskStates || ops.journey.taskStates
+      })
+      updateCrewProgress(ops)
+      return ops
+    }
 
-    inspector.innerHTML = `
-      <div class="card-header" style="margin-bottom: 14px;">
-        <div>
-          <span class="caption-text">Crew Duty Task Breakdown</span>
-          <h3 class="card-title" style="font-size: 17px; color: var(--color-primary);">${member.name}</h3>
-        </div>
-        <span class="chip ${member.verifiedBiometric ? 'chip-completed' : 'chip-error'}">${member.role}</span>
-      </div>
+    function updateCrewProgress(ops) {
+      var activeBlocker = ops.issues.some(function (issue) {
+        return issue.crewMemberId === CREW_ID && issue.status !== 'Resolved' && (issue.blocking || isReplacementEligible(issue))
+      })
+      var status = 'Awaiting check-in'
+      var progress = 0
+      if (activeBlocker) {
+        status = 'Action required'
+        progress = 50
+      } else if (ops.journey.readinessComplete) {
+        status = 'Ready'
+        progress = 100
+      } else if (ops.journey.tasksComplete) {
+        status = 'Readiness pending'
+        progress = 90
+      } else if (ops.journey.briefingComplete) {
+        status = 'Tasks in progress'
+        progress = 66
+      } else if (ops.journey.checkInComplete) {
+        status = 'Briefing pending'
+        progress = 33
+      }
+      ops.roster = ops.roster.map(function (member) {
+        return member.id === CREW_ID && member.status !== 'Replaced' ? Object.assign({}, member, { status: status, progress: progress, assignmentStatus: status === 'Action required' ? 'unavailable' : 'active', active: status !== 'Action required', canOperate: status !== 'Action required' }) : member
+      })
+    }
 
-      <div style="background: var(--bg-secondary); padding: 12px; border-radius: 10px; margin-bottom: 16px; font-size: 13px;">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
-          <div><strong>Staff ID:</strong> ${member.idBadge}</div>
-          <div><strong>Biometric Status:</strong> ${member.verifiedBiometric ? 'Verified ✓' : 'Pending Verification ⚠'}</div>
-          <div><strong>Fleet Division:</strong> ${member.fleet}</div>
-          <div><strong>Assigned Flight:</strong> ${f.flight} (${f.route})</div>
-        </div>
-      </div>
+    function saveState(eventText) {
+      state.updatedAt = nowIso()
+      if (eventText) {
+        state.audit.unshift({
+          id: 'AUD-' + Date.now(),
+          at: state.updatedAt,
+          actor: 'Crew Control',
+          event: eventText
+        })
+        state.audit = state.audit.slice(0, 20)
+      }
+      localStorage.setItem(OPS_KEY, JSON.stringify(state))
+    }
 
-      <!-- Replacement Callout Action if Crew Member cannot handle tasks -->
-      <div style="padding: 12px; background-color: ${hasIssue ? 'var(--bg-error)' : 'var(--bg-secondary)'}; border: 1px solid ${hasIssue ? 'var(--border-error)' : 'var(--border-color)'}; border-radius: 10px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-        <div>
-          <strong style="font-size: 13px; color: ${hasIssue ? 'var(--color-error)' : 'var(--text-main)'};">
-            ${hasIssue ? '⚠ Crew Cannot Complete Tasks / Unverified' : 'Standby Replacement Available'}
-          </strong>
-          <div class="caption-text">Recommend top 3 standby crew candidates at DXB to take over</div>
-        </div>
-        <button class="btn-primary" style="height: 32px; width: auto; padding: 0 12px; font-size: 12px; background-color: var(--color-primary);" onclick="triggerCrewReplacementModal('${f.flight}', '${member.id}')">
-          Recommend 3 Replacements →
-        </button>
-      </div>
+    function patchJourneyIssue(issueId, patchData) {
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey || !Array.isArray(journey.issues)) return
+      journey.issues = journey.issues.map(function (issue) {
+        return issue.id === issueId ? Object.assign({}, issue, patchData) : issue
+      })
+      if (journey.crewJourneys) {
+        Object.keys(journey.crewJourneys).forEach(function (crewMemberId) {
+          var personalJourney = journey.crewJourneys[crewMemberId]
+          if (!personalJourney || !Array.isArray(personalJourney.issues)) return
+          personalJourney.issues = personalJourney.issues.map(function (issue) {
+            return issue.id === issueId ? Object.assign({}, issue, patchData) : issue
+          })
+        })
+      }
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(journey))
+    }
 
-      <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 10px;">Assigned Duty Tasks (${member.tasks.length}):</h4>
-      <div>${tasksHTML}</div>
-    `;
-  }
+    function applyJourneyTaskOutcome(issue, taskState) {
+      if (!issue || !issue.taskId) return
+      state.journey.taskStates = Object.assign({}, state.journey.taskStates, {})
+      state.journey.taskStates[issue.taskId] = taskState
+      state.journey.tasksComplete = false
+      state.journey.tasksAt = null
+      state.journey.readinessComplete = false
+      state.journey.readinessAt = null
 
-  // Render Full Crew Task Matrix Table
-  function renderCrewTaskMatrix(f) {
-    const tbody = document.getElementById('crew-task-matrix-tbody');
-    if (!tbody) return;
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey) return
+      journey.taskStates = Object.assign({}, journey.taskStates || {})
+      journey.taskStates[issue.taskId] = taskState
+      journey.tasksComplete = false
+      journey.tasksAt = null
+      journey.readinessDeclaration = false
+      journey.readinessComplete = false
+      journey.readinessAt = null
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(journey))
+    }
 
-    let rowsHTML = [];
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+    }
 
-    f.members.forEach(m => {
-      m.tasks.forEach(t => {
-        let chipClass = 'chip-completed';
-        if (t.status === 'In Progress') chipClass = 'chip-in-progress';
-        if (t.status === 'Action Required') chipClass = 'chip-error';
-        if (t.status === 'Pending') chipClass = 'chip-info';
+    function initials(name) {
+      return String(name).split(' ').map(function (part) { return part.charAt(0) }).slice(0, 2).join('').toUpperCase()
+    }
 
-        rowsHTML.push(`
-          <tr style="border-bottom: 1px solid var(--border-color);">
-            <td style="padding: 12px 16px; font-weight: 600;">${m.name}</td>
-            <td style="padding: 12px 16px;" class="caption-text">${m.role}</td>
-            <td style="padding: 12px 16px; font-weight: 600;">${t.title}</td>
-            <td style="padding: 12px 16px;">
-              <span class="chip chip-info" style="font-size: 11px;">${t.category}</span>
-            </td>
-            <td style="padding: 12px 16px;" class="mono">${t.time}</td>
-            <td style="padding: 12px 16px;">
-              <span class="chip ${chipClass}" style="font-size: 11px;">${t.status}</span>
-            </td>
-            <td style="padding: 12px 16px; text-align: right;">
-              <div style="display: flex; gap: 4px; justify-content: flex-end;">
-                <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px;" onclick="toggleCrewTaskStatus('${f.flight}', '${m.id}', '${t.id}')">Update</button>
-                <button class="btn-primary" style="height: 28px; width: auto; padding: 0 8px; font-size: 11px; background-color: var(--color-warning); border: none;" onclick="triggerCrewReplacementModal('${f.flight}', '${m.id}')">Replace</button>
-              </div>
-            </td>
-          </tr>
-        `);
-      });
-    });
+    function formatDate(value) {
+      if (!value) return 'Not recorded'
+      var date = new Date(value)
+      if (Number.isNaN(date.getTime())) return escapeHtml(value)
+      return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    }
 
-    tbody.innerHTML = rowsHTML.join('');
-  }
+    function statusClass(status) {
+      var normalized = String(status || '').toLowerCase()
+      if (normalized === 'ready' || normalized === 'resolved') return 'co-chip-ready'
+      if (normalized === 'open' || normalized === 'action required') return 'co-chip-open'
+      if (normalized === 'triaged') return 'co-chip-triaged'
+      if (normalized === 'replacement proposed') return 'co-chip-proposed'
+      return 'co-chip-neutral'
+    }
 
-  // --------------------------------------------------------------------------
-  // CREW REPLACEMENT RECOMMENDATION ENGINE (Top 3 Candidates per Role)
-  // --------------------------------------------------------------------------
-  function triggerCrewReplacementModal(flightCode, memberId) {
-    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode);
-    if (!flightObj) return;
+    function renderFlight() {
+      var f = state.flight
+      document.getElementById('co-flight').innerHTML =
+        '<div class="co-flight-grid">' +
+          '<div class="co-flight-main">' +
+            '<div class="co-flight-label">Current operation</div>' +
+            '<div class="co-route">' + escapeHtml(f.number) + ' · ' + escapeHtml(f.route) + '</div>' +
+            '<div style="font-size:12px;color:rgba(255,255,255,.76);margin-top:4px;">' + escapeHtml(f.date) + ' · ' + escapeHtml(f.aircraft) + '</div>' +
+          '</div>' +
+          flightFact('Report', f.reportTime) +
+          flightFact('Briefing', f.briefingTime + ' · ' + f.briefingRoom) +
+          flightFact('Boarding', f.boardingTime) +
+          flightFact('Gate', f.gate) +
+          flightFact('Departure', f.departure) +
+        '</div>'
+    }
 
-    const currentMember = flightObj.members.find(m => m.id === memberId);
-    if (!currentMember) return;
+    function flightFact(label, value) {
+      return '<div><div class="co-flight-label">' + escapeHtml(label) + '</div><div class="co-flight-value">' + escapeHtml(value) + '</div></div>'
+    }
 
-    const panel = document.getElementById('crew-replacement-recommendation-panel');
-    if (!panel) return;
+    function renderKpis() {
+      var ready = state.roster.filter(function (member) { return member.status === 'Ready' }).length
+      var activeIssues = state.issues.filter(function (issue) { return issue.status !== 'Resolved' }).length
+      var blocking = state.issues.filter(function (issue) { return issue.blocking && issue.status !== 'Resolved' }).length
+      var proposed = state.issues.filter(function (issue) { return issue.status === 'Replacement proposed' }).length
+      var data = [
+        ['Assigned crew', state.roster.length, state.flight.number],
+        ['Ready', ready, 'Manifest status'],
+        ['Active reports', activeIssues, blocking + ' blocking'],
+        ['Replacement cases', proposed, 'Awaiting decision']
+      ]
+      document.getElementById('co-kpis').innerHTML = data.map(function (item, index) {
+        var color = index === 2 && activeIssues ? '#b42318' : index === 1 ? '#067647' : 'var(--co-ink)'
+        return '<div class="co-kpi"><div class="co-kpi-label">' + escapeHtml(item[0]) + '</div><div class="co-kpi-value" style="color:' + color + ';">' + escapeHtml(item[1]) + '</div><div class="co-help">' + escapeHtml(item[2]) + '</div></div>'
+      }).join('')
+    }
 
-    // Get 3 Standby Candidates matched by Role
-    const roleKey = currentMember.role || 'Cabin Attendant';
-    const candidates = STANDBY_REPLACEMENT_POOL[roleKey] || STANDBY_REPLACEMENT_POOL['Cabin Attendant'];
+    function renderSteps() {
+      var j = state.journey
+      var taskDone = Object.values(j.taskStates || {}).filter(function (value) { return value === 'completed' }).length
+      var steps = [
+        { name: 'Update', done: j.updateAcknowledged, time: j.acknowledgedAt, note: 'Location acknowledged' },
+        { name: 'Check-in', done: j.checkInComplete, time: j.checkInAt, note: 'Duty declarations' },
+        { name: 'Briefing', done: j.briefingComplete, time: j.briefingAt, note: 'Operational review' },
+        { name: 'Tasks', done: j.tasksComplete, time: j.tasksAt, note: taskDone + ' of 6 complete' },
+        { name: 'Readiness', done: j.readinessComplete, time: j.readinessAt, note: 'Boarding release' }
+      ]
+      var firstPending = steps.findIndex(function (step) { return !step.done })
+      document.getElementById('co-steps').innerHTML = steps.map(function (step, index) {
+        var className = step.done ? 'co-done' : index === firstPending ? 'co-current' : ''
+        return '<div class="co-step ' + className + '">' +
+          '<span class="co-step-index">' + (step.done ? '✓' : index + 1) + '</span>' +
+          '<span class="co-step-name">' + escapeHtml(step.name) + '</span>' +
+          '<span class="co-step-time">' + escapeHtml(step.done ? (step.time || 'Completed') : step.note) + '</span>' +
+        '</div>'
+      }).join('')
+      var sara = state.roster.find(function (member) { return member.id === CREW_ID })
+      document.getElementById('co-journey-status').innerHTML =
+        '<span class="co-chip ' + statusClass(sara ? sara.status : '') + '">' + escapeHtml(sara ? sara.status : 'Unknown') + '</span>'
+    }
 
-    panel.style.display = 'block';
-    panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    function renderRoster() {
+      document.getElementById('co-roster-count').textContent = state.roster.length + ' assigned'
+      document.getElementById('co-roster').innerHTML = state.roster.map(function (member) {
+        return '<button class="co-person ' + (member.id === selectedCrewId ? 'co-selected' : '') + '" data-action="select-crew" data-id="' + escapeHtml(member.id) + '">' +
+          '<div class="co-between" style="align-items:flex-start;gap:8px;">' +
+            '<div class="co-row" style="align-items:flex-start;">' +
+              '<span class="co-avatar">' + escapeHtml(initials(member.name)) + '</span>' +
+              '<span><span class="co-name">' + escapeHtml(member.name) + '</span><span class="co-meta" style="display:block;">' + escapeHtml(member.role) + ' · ' + escapeHtml(member.assignment) + '</span><span class="co-meta" style="display:block;">' + escapeHtml(member.id) + ' · ' + escapeHtml(member.fleet) + '</span></span>' +
+            '</div>' +
+            '<span class="co-chip ' + statusClass(member.status) + '">' + escapeHtml(member.status) + '</span>' +
+          '</div>' +
+          '<div class="co-progress"><span style="width:' + Math.max(0, Math.min(100, member.progress || 0)) + '%;"></span></div>' +
+        '</button>'
+      }).join('')
+    }
 
-    panel.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
-        <div>
-          <span class="chip chip-action-required" style="margin-bottom: 6px; padding: 4px 12px; font-weight: 700;">
-            ⚠ Crew Duty Replacement Dispatch
-          </span>
-          <h3 class="card-title" style="font-size: 18px; color: var(--color-warning);">
-            Top 3 Recommended Standby Replacements for ${currentMember.name} (${currentMember.role})
-          </h3>
-          <p class="supporting-text" style="margin-top: 2px;">
-            Target Flight: <strong>${flightObj.flight} (${flightObj.route})</strong> • Reason: Tasks Delayed / Medical or Biometric Action Required
-          </p>
-        </div>
-        <button class="btn-secondary" style="height: 32px; width: auto; padding: 0 12px; font-size: 12px;" onclick="closeCrewReplacementPanel()">
-          ✕ Close Panel
-        </button>
-      </div>
+    function renderMemberDetail() {
+      var member = state.roster.find(function (item) { return item.id === selectedCrewId }) || state.roster[0]
+      if (!member) return
+      var html =
+        '<div class="co-between" style="align-items:flex-start;gap:10px;">' +
+          '<div class="co-row" style="align-items:flex-start;">' +
+            '<span class="co-avatar">' + escapeHtml(initials(member.name)) + '</span>' +
+            '<div><h2 class="co-section-title">' + escapeHtml(member.name) + '</h2><p class="co-help">' + escapeHtml(member.id) + '</p></div>' +
+          '</div>' +
+          '<span class="co-chip ' + statusClass(member.status) + '">' + escapeHtml(member.status) + '</span>' +
+        '</div>' +
+        '<div style="margin-top:14px;">' +
+          detailRow('Role', member.role) +
+          detailRow('Assignment', member.assignment) +
+          detailRow('Fleet qualification', member.fleet) +
+          detailRow('Duty progress', (member.progress || 0) + '%') +
+        '</div>'
+      if (member.id === CREW_ID) {
+        var taskNames = {
+          task1: 'Inspect Door 2L area',
+          task2: 'Verify safety equipment',
+          task3: 'Inspect Zone B cabin',
+          task4: 'Review special assistance',
+          task5: 'Confirm service setup',
+          task6: 'Confirm Zone B ready'
+        }
+        html += '<h3 style="font-size:12px;margin:16px 0 4px;">Mobile task status</h3>'
+        html += Object.keys(taskNames).map(function (taskId) {
+          var taskStatus = state.journey.taskStates[taskId] || 'pending'
+          return '<div class="co-task"><span>' + escapeHtml(taskNames[taskId]) + '</span><span class="co-chip ' + (taskStatus === 'completed' ? 'co-chip-ready' : taskStatus === 'blocked' ? 'co-chip-open' : 'co-chip-neutral') + '">' + escapeHtml(taskStatus) + '</span></div>'
+        }).join('')
+      }
+      document.getElementById('co-member-detail').innerHTML = html
+    }
 
-      <div class="grid-3col" style="gap: 12px; margin-bottom: 0;">
-        ${candidates.map((cand, idx) => `
-          <div style="background-color: var(--bg-surface); border: 2px solid ${idx === 0 ? 'var(--color-success)' : 'var(--border-color)'}; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span class="chip ${idx === 0 ? 'chip-completed' : 'chip-info'}" style="font-weight: 700; font-size: 11px;">
-                  ${idx === 0 ? '★ Top Recommendation #1' : `Recommendation #${idx + 1}`}
-                </span>
-                <span style="font-weight: 800; font-size: 13px; color: var(--color-success);">${cand.matchScore}</span>
-              </div>
+    function detailRow(label, value) {
+      return '<div class="co-between" style="padding:8px 0;border-bottom:1px solid #eee9e3;gap:12px;"><span class="co-help">' + escapeHtml(label) + '</span><strong style="font-size:12px;text-align:right;">' + escapeHtml(value) + '</strong></div>'
+    }
 
-              <h4 style="font-size: 16px; font-weight: 800; color: var(--text-main); margin-bottom: 4px;">${cand.name}</h4>
-              <div class="supporting-text" style="font-size: 12px; margin-bottom: 10px;">
-                ${cand.role} • Staff ID: <strong>${cand.idBadge}</strong>
-              </div>
+    function visibleIssues() {
+      if (issueFilter === 'resolved') return state.issues.filter(function (issue) { return issue.status === 'Resolved' })
+      if (issueFilter === 'all') return state.issues
+      return state.issues.filter(function (issue) { return issue.status !== 'Resolved' })
+    }
 
-              <div style="background: var(--bg-secondary); padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 14px;">
-                <div><strong>Fleet Qualification:</strong> ${cand.fleet}</div>
-                <div><strong>Current Location:</strong> ${cand.location}</div>
-                <div><strong>Rest Period:</strong> ${cand.restHours}</div>
-                <div><strong>Biometric Status:</strong> <span style="color: var(--color-success); font-weight: 700;">Verified ✓</span></div>
-              </div>
-            </div>
+    function isReplacementEligible(issue) {
+      return issue && (issue.category === 'Not fit for duty' || issue.category === 'Cannot complete assigned duty')
+    }
 
-            <button class="btn-primary" style="height: 40px; font-size: 13px; background-color: var(--color-primary);" onclick="executeCrewReplacement('${flightObj.flight}', '${currentMember.id}', '${cand.id}', '${cand.name}')">
-              Confirm & Swap Crew Member →
-            </button>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
+    function renderReplacementPicker(issue, member) {
+      if (replacementPickerIssueId !== issue.id) return ''
+      var candidates = member ? eligibleCandidates(member) : []
+      if (!candidates.length) {
+        return '<div class="co-candidate-picker"><strong style="font-size:12px;">No eligible replacement found</strong><p class="co-help" style="margin-top:4px;">No standby crew member currently matches role, fleet, rest and certification rules.</p><div class="co-actions"><button class="co-btn" data-action="cancel-replacement" data-id="' + escapeHtml(issue.id) + '">Close</button></div></div>'
+      }
+      var options = candidates.map(function (candidate, index) {
+        var selected = candidate.id === selectedReplacementCandidateId
+        return '<button type="button" class="co-candidate-option ' + (selected ? 'co-selected' : '') + '" data-action="select-replacement" data-id="' + escapeHtml(issue.id) + '" data-candidate-id="' + escapeHtml(candidate.id) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">' +
+          '<span class="co-row" style="align-items:flex-start;"><span class="co-radio"></span><span><strong style="display:block;font-size:12px;">' + escapeHtml(candidate.name) + (index === 0 ? ' · Recommended' : '') + '</strong><span class="co-meta" style="display:block;">' + escapeHtml(candidate.id) + ' · ' + escapeHtml(candidate.fleet) + ' · ' + candidate.restHours + 'h rest · ' + candidate.proximityMinutes + ' min away</span></span></span>' +
+          '<span class="co-chip co-chip-ready">' + candidateScore(candidate) + '% match</span>' +
+        '</button>'
+      }).join('')
+      return '<div class="co-candidate-picker">' +
+        '<strong style="font-size:12px;">Choose a standby replacement</strong>' +
+        '<p class="co-help" style="margin-top:4px;">Candidates are ranked by eligibility, but Crew Control must select one before confirmation.</p>' +
+        '<div class="co-candidate-list">' + options + '</div>' +
+        '<div class="co-actions"><button class="co-btn" data-action="cancel-replacement" data-id="' + escapeHtml(issue.id) + '">Cancel</button><button class="co-btn co-btn-primary" data-action="review-replacement" data-id="' + escapeHtml(issue.id) + '" ' + (selectedReplacementCandidateId ? '' : 'disabled') + '>Review selected candidate</button></div>' +
+      '</div>'
+    }
 
-  function closeCrewReplacementPanel() {
-    const panel = document.getElementById('crew-replacement-recommendation-panel');
-    if (panel) panel.style.display = 'none';
-  }
+    function renderIssues() {
+      var issues = visibleIssues()
+      var host = document.getElementById('co-issues')
+      if (!issues.length) {
+        host.innerHTML = '<div class="co-empty"><strong>No ' + (issueFilter === 'resolved' ? 'resolved' : 'active') + ' Crew reports</strong><br>Submit an issue in the CrewFlow app, then return here or press Refresh.</div>'
+        return
+      }
+      host.innerHTML = issues.map(function (issue) {
+        var member = state.roster.find(function (item) { return item.id === issue.crewMemberId })
+        var proposal = issue.replacementCandidateId ? state.standby.find(function (candidate) { return candidate.id === issue.replacementCandidateId }) : null
+        var actions = ''
+        if (isReplacementEligible(issue) && issue.status !== 'Resolved' && issue.status !== 'Replacement proposed' && replacementPickerIssueId !== issue.id) actions += '<button class="co-btn co-btn-primary" data-action="propose" data-id="' + escapeHtml(issue.id) + '">Suggest replacement</button>'
+        if (issue.status !== 'Resolved') actions += '<button class="co-btn co-btn-success" data-action="resolve" data-id="' + escapeHtml(issue.id) + '">Resolve</button>'
+        var proposalHtml = proposal ?
+          '<div class="co-proposal"><div class="co-between co-wrap" style="gap:8px;"><div><strong style="font-size:12px;">Replacement confirmation</strong><div class="co-help" style="margin-top:3px;">' + escapeHtml(member ? member.name : issue.crewMemberId || 'Crew member') + ' → ' + escapeHtml(proposal.name) + ' · ' + escapeHtml(state.flight.number) + ' · ' + escapeHtml(proposal.fleet) + '</div><div class="co-help">' + escapeHtml(proposal.id) + ' · ' + proposal.restHours + 'h rest · ' + proposal.proximityMinutes + ' min away</div></div>' +
+          (issue.status === 'Resolved' ? '<span class="co-chip co-chip-ready">Confirmed</span>' : '<button class="co-btn co-btn-primary" data-action="confirm-replacement" data-id="' + escapeHtml(issue.id) + '">Confirm replacement</button>') +
+          '</div></div>' : ''
+        var pickerHtml = renderReplacementPicker(issue, member)
+        return '<article class="co-issue ' + (issue.blocking && issue.status !== 'Resolved' ? 'co-blocking' : '') + '">' +
+          '<div class="co-between co-wrap" style="align-items:flex-start;gap:8px;">' +
+            '<div><div class="co-issue-title">' + escapeHtml(issue.ref || issue.id) + ' · ' + escapeHtml(issue.title) + '</div><div class="co-meta">' + escapeHtml(member ? member.name : issue.crewMemberId || 'Crew member') + ' · ' + escapeHtml(issue.relatedItem || state.flight.number) + ' · ' + formatDate(issue.createdAt) + '</div></div>' +
+            '<div class="co-row co-wrap"><span class="co-chip ' + statusClass(issue.status) + '">' + escapeHtml(issue.status || 'Open') + '</span>' + (issue.blocking ? '<span class="co-chip co-chip-open">Blocking</span>' : '') + '</div>' +
+          '</div>' +
+          '<p class="co-issue-copy">' + escapeHtml(issue.description || 'No description provided.') + '</p>' +
+          (issue.assignedTo ? '<p class="co-meta" style="margin-top:7px;">Owner: <strong>' + escapeHtml(issue.assignedTo) + '</strong></p>' : '') +
+          (issue.resolutionNote ? '<p class="co-meta" style="margin-top:5px;">Resolution: <strong>' + escapeHtml(issue.resolutionNote) + '</strong></p>' : '') +
+          '<div class="co-actions">' + actions + '</div>' +
+          pickerHtml +
+          proposalHtml +
+        '</article>'
+      }).join('')
+    }
 
-  // Execute Replacement Swap
-  function executeCrewReplacement(flightCode, oldMemberId, candidateId, newCandidateName) {
-    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode);
-    if (!flightObj) return;
+    function isEligible(candidate, member) {
+      return candidate.role === member.role &&
+        candidate.fleet === member.fleet &&
+        candidate.availability === 'Standby' &&
+        candidate.restHours >= 12 &&
+        ['SEP', 'FA', 'ATR-A380'].every(function (cert) { return candidate.certifications.indexOf(cert) >= 0 })
+    }
 
-    const oldMemberIndex = flightObj.members.findIndex(m => m.id === oldMemberId);
-    if (oldMemberIndex === -1) return;
+    function candidateScore(candidate) {
+      return Math.min(99, Math.round(70 + Math.min(12, candidate.restHours - 12) + Math.max(0, 20 - candidate.proximityMinutes) / 2))
+    }
 
-    const oldMember = flightObj.members[oldMemberIndex];
+    function eligibleCandidates(member) {
+      return state.standby.filter(function (candidate) { return isEligible(candidate, member) }).sort(function (a, b) {
+        return candidateScore(b) - candidateScore(a)
+      })
+    }
 
-    // Find candidate details from standby pool
-    let candidateObj = null;
-    Object.values(STANDBY_REPLACEMENT_POOL).forEach(list => {
-      const found = list.find(c => c.id === candidateId);
-      if (found) candidateObj = found;
-    });
+    function renderStandby() {
+      var target = state.roster.find(function (member) { return member.id === CREW_ID })
+      var eligible = target ? eligibleCandidates(target) : []
+      document.getElementById('co-standby').innerHTML = state.standby.map(function (candidate) {
+        var valid = !!target && isEligible(candidate, target)
+        return '<div style="padding:10px 0;border-bottom:1px solid #eee9e3;">' +
+          '<div class="co-between" style="gap:8px;"><strong style="font-size:12px;">' + escapeHtml(candidate.name) + '</strong><span class="co-chip ' + (valid ? 'co-chip-ready' : 'co-chip-neutral') + '">' + (valid ? candidateScore(candidate) + '% match' : 'Not eligible') + '</span></div>' +
+          '<div class="co-meta">' + escapeHtml(candidate.fleet) + ' · ' + candidate.restHours + 'h rest · ' + escapeHtml(candidate.availability) + '</div>' +
+        '</div>'
+      }).join('') + '<p class="co-help" style="margin-top:10px;">' + eligible.length + ' eligible candidate' + (eligible.length === 1 ? '' : 's') + ' for Sara Rahimi.</p>'
+    }
 
-    if (!candidateObj) return;
+    function renderAudit() {
+      var host = document.getElementById('co-audit')
+      if (!state.audit.length) {
+        host.innerHTML = '<div class="co-empty">No admin actions yet.</div>'
+        return
+      }
+      host.innerHTML = state.audit.slice(0, 6).map(function (entry) {
+        return '<div class="co-audit"><strong style="font-size:11px;">' + escapeHtml(entry.event) + '</strong><div class="co-meta">' + escapeHtml(entry.actor) + ' · ' + formatDate(entry.at) + '</div></div>'
+      }).join('')
+    }
 
-    // Create replacement crew member object with all tasks set to Completed/Verified
-    const updatedMember = {
-      id: candidateObj.id,
-      name: candidateObj.name,
-      role: candidateObj.role,
-      fleet: candidateObj.fleet,
-      idBadge: candidateObj.idBadge,
-      verifiedBiometric: true,
-      tasks: oldMember.tasks.map(t => ({
-        ...t,
-        status: 'Completed'
-      }))
-    };
+    function render() {
+      renderFlight()
+      renderKpis()
+      renderSteps()
+      renderRoster()
+      renderMemberDetail()
+      renderIssues()
+      renderStandby()
+      renderAudit()
+      document.getElementById('co-sync-badge').textContent = '● Synced ' + formatDate(state.updatedAt)
+    }
 
-    // Swap crew member in flight object
-    flightObj.members[oldMemberIndex] = updatedMember;
+    function findIssue(issueId) {
+      return state.issues.find(function (issue) { return issue.id === issueId })
+    }
 
-    // Recalculate flight readiness
-    let totalAllTasks = 0;
-    let completedAllTasks = 0;
-    flightObj.members.forEach(m => {
-      m.tasks.forEach(t => {
-        totalAllTasks++;
-        if (t.status === 'Completed') completedAllTasks++;
-      });
-    });
+    function updateIssue(issueId, patchData, eventText) {
+      state.issues = state.issues.map(function (issue) {
+        return issue.id === issueId ? Object.assign({}, issue, patchData, { updatedAt: nowIso() }) : issue
+      })
+      patchJourneyIssue(issueId, Object.assign({}, patchData, { updatedAt: nowIso() }))
+      updateCrewProgress(state)
+      saveState(eventText)
+      render()
+    }
 
-    flightObj.readiness = Math.round((completedAllTasks / (totalAllTasks || 1)) * 100);
-    if (flightObj.readiness === 100) flightObj.status = 'Verified';
-    else flightObj.status = 'In Progress';
+    function triageIssue(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      updateIssue(issueId, { status: 'Triaged', assignedTo: 'Crew Control' }, (issue.ref || issue.id) + ' assigned to Crew Control')
+    }
 
-    // Hide panel & notify user
-    closeCrewReplacementPanel();
-    alert(`✓ SUCCESS: ${oldMember.name} has been replaced by ${newCandidateName} on Flight ${flightCode}. Duty tasks & One-ID clearance verified!`);
+    function proposeReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      var candidates = member ? eligibleCandidates(member) : []
+      if (!candidates.length) {
+        window.alert('No eligible standby candidate matches role, fleet, rest and certification rules.')
+        return
+      }
+      replacementPickerIssueId = issueId
+      selectedReplacementCandidateId = null
+      renderIssues()
+    }
 
-    selectedCrewMemberId = updatedMember.id;
-    selectCrewFlight(flightCode);
-  }
+    function reviewReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue || !selectedReplacementCandidateId) return
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      var candidate = state.standby.find(function (item) { return item.id === selectedReplacementCandidateId })
+      if (!member || !candidate || !isEligible(candidate, member)) {
+        window.alert('The selected crew member is no longer eligible. Refresh the list and choose another candidate.')
+        return
+      }
+      replacementPickerIssueId = null
+      selectedReplacementCandidateId = null
+      updateIssue(
+        issueId,
+        { status: 'Replacement proposed', assignedTo: 'Crew Control', replacementCandidateId: candidate.id },
+        candidate.name + ' proposed for ' + (issue.ref || issue.id)
+      )
+    }
 
-  // Toggle Task Status Interactively
-  function toggleCrewTaskStatus(flightCode, memberId, taskId) {
-    const flightObj = CREW_FLIGHTS_DATA.find(f => f.flight === flightCode);
-    if (!flightObj) return;
+    function confirmReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue || !issue.replacementCandidateId) return
+      var candidate = state.standby.find(function (item) { return item.id === issue.replacementCandidateId })
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      if (!candidate || !member) return
+      var confirmed = window.confirm('Confirm ' + candidate.name + ' as replacement for ' + member.name + ' on ' + state.flight.number + '?')
+      if (!confirmed) return
+      state.roster = state.roster.map(function (item) {
+        return item.id === member.id ? Object.assign({}, item, { status: 'Replaced', assignmentStatus: 'replaced', active: false, canOperate: false, assignedFlightId: null, progress: 0 }) : item
+      })
+      if (!state.roster.some(function (item) { return item.id === candidate.id })) {
+        state.roster.push({
+          id: candidate.id,
+          name: candidate.name,
+          role: candidate.role,
+          assignment: member.assignment,
+          fleet: candidate.fleet,
+          status: 'Awaiting check-in',
+          assignmentStatus: 'active-replacement',
+          active: true,
+          canOperate: true,
+          assignedFlightId: state.flight.id,
+          progress: 100
+        })
+      }
+      state.standby = state.standby.map(function (item) {
+        return item.id === candidate.id ? Object.assign({}, item, { availability: 'Assigned' }) : item
+      })
+      var timestamp = nowIso()
+      state.notifications = Array.isArray(state.notifications) ? state.notifications : []
+      state.notifications.push({
+        id: 'NOT-' + Date.now(),
+        crewMemberId: member.id,
+        flightId: state.flight.id,
+        title: 'Duty reassigned',
+        message: 'Your duty has been reassigned. ' + candidate.name + ' has been confirmed as your replacement. No further action is required.',
+        createdAt: timestamp,
+        read: false
+      })
+      state.notifications.push({
+        id: 'NOT-' + (Date.now() + 1),
+        crewMemberId: candidate.id,
+        flightId: state.flight.id,
+        title: 'On-call duty activated',
+        message: 'Your on-call duty has been activated. You have been assigned as replacement crew for Flight ' + state.flight.number + '. Please report for duty.',
+        createdAt: timestamp,
+        read: false
+      })
+      updateIssue(
+        issueId,
+        { status: 'Resolved', resolutionNote: candidate.name + ' confirmed as replacement', replacementConfirmedAt: timestamp },
+        candidate.name + ' confirmed as replacement for ' + member.name
+      )
+    }
 
-    const member = flightObj.members.find(m => m.id === memberId);
-    if (!member) return;
+    function resolveIssue(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      var note = window.prompt('Resolution note:', 'Reviewed and cleared by Crew Control')
+      if (note === null) return
+      applyJourneyTaskOutcome(issue, 'pending')
+      updateIssue(issueId, { status: 'Resolved', assignedTo: 'Crew Control', resolutionNote: note || 'Resolved by Crew Control' }, (issue.ref || issue.id) + ' resolved')
+    }
 
-    const task = member.tasks.find(t => t.id === taskId);
-    if (!task) return;
+    root.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-action]')
+      if (!button) return
+      var action = button.getAttribute('data-action')
+      var id = button.getAttribute('data-id')
+      if (action === 'refresh') {
+        state = readState()
+        render()
+      } else if (action === 'open-app') {
+        var crewAppPath = window.location.pathname.indexOf('/pages/') !== -1
+          ? '../crew-app/#/crew'
+          : './crew-app/#/crew'
+        window.open(new URL(crewAppPath, window.location.href).href, '_blank')
+      } else if (action === 'select-crew' && id) {
+        selectedCrewId = id
+        renderRoster()
+        renderMemberDetail()
+      } else if (action === 'propose' && id) {
+        proposeReplacement(id)
+      } else if (action === 'select-replacement' && id) {
+        selectedReplacementCandidateId = button.getAttribute('data-candidate-id')
+        renderIssues()
+      } else if (action === 'cancel-replacement' && id) {
+        replacementPickerIssueId = null
+        selectedReplacementCandidateId = null
+        renderIssues()
+      } else if (action === 'review-replacement' && id) {
+        reviewReplacement(id)
+      } else if (action === 'confirm-replacement' && id) {
+        confirmReplacement(id)
+      } else if (action === 'resolve' && id) {
+        resolveIssue(id)
+      }
+    })
 
-    const statusCycle = ['Pending', 'In Progress', 'Completed', 'Action Required'];
-    const nextIdx = (statusCycle.indexOf(task.status) + 1) % statusCycle.length;
-    task.status = statusCycle[nextIdx];
+    document.getElementById('co-issue-filter').addEventListener('change', function (event) {
+      issueFilter = event.target.value
+      renderIssues()
+    })
 
-    // Recalculate flight readiness %
-    let totalAllTasks = 0;
-    let completedAllTasks = 0;
+    window.addEventListener('storage', function (event) {
+      if (event.key !== OPS_KEY && event.key !== JOURNEY_KEY) return
+      state = readState()
+      render()
+    })
 
-    flightObj.members.forEach(m => {
-      m.tasks.forEach(t => {
-        totalAllTasks++;
-        if (t.status === 'Completed') completedAllTasks++;
-      });
-    });
-
-    flightObj.readiness = Math.round((completedAllTasks / (totalAllTasks || 1)) * 100);
-    if (flightObj.readiness === 100) flightObj.status = 'Verified';
-    else if (flightObj.members.some(m => m.tasks.some(t => t.status === 'Action Required'))) flightObj.status = 'Action Required';
-    else flightObj.status = 'In Progress';
-
-    selectCrewFlight(flightCode);
-  }
-
-  function confirmFlightCrewManifest() {
-    alert(`✓ Flight Crew Manifest for ${currentCrewFlightCode} has been verified and signed off for departure!`);
-  }
+    saveState()
+    render()
+  })()
 </script>
