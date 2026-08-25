@@ -3,112 +3,124 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Emirates | Fly Better • Dubai International Airport</title>
-  <meta name="description" content="Book flights, search fares, manage bookings and access Dubai Airport Operations Control Center">
-
-  <!-- Vazirmatn Font & Official Emirates Design System Stylesheets -->
+  <title>DXB Airport Platform · Customer & OCC</title>
+  <meta name="description" content="Emirates customer portal and Dubai Airport Operations Control Center">
   <link rel="stylesheet" href="css/design-system.css">
   <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/tower-hub.css">
 </head>
 <body>
 
-  <!-- Responsive App Viewport Wrapper -->
   <div id="app-viewport">
-      
-    <!-- Top Utility Bar -->
-    <div class="emirates-top-strip">
+
+    <!-- Customer portal strip (signed-in passengers) -->
+    <div class="customer-portal-bar" id="customer-portal-bar">
+      <div>
+        Welcome, <strong id="customer-portal-name">Guest</strong>
+        <span style="opacity:0.7; margin-left:8px;">Customer portal</span>
+      </div>
+      <div class="customer-portal-links">
+        <button type="button" data-customer-route="landing">Book</button>
+        <button type="button" data-customer-route="my-trips">My Trips</button>
+        <button type="button" data-customer-route="manage">Manage booking</button>
+        <button type="button" data-customer-route="flight-status">Flight status</button>
+        <button type="button" onclick="window.location.href='crew-app/#/login'">CrewFlow</button>
+        <button type="button" onclick="window.location.href='crew-app/#/login'">CrewFlow</button>
+        <button type="button" id="btn-customer-logout">Sign out</button>
+      </div>
+    </div>
+
+    <!-- Public utility strip -->
+    <div class="emirates-top-strip" id="public-top-strip">
       <div style="display: flex; gap: 16px; align-items: center;">
-        <span class="emirates-top-link">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          United Kingdom (English)
-        </span>
+        <span class="emirates-top-link">United Kingdom (English)</span>
         <span class="emirates-top-link">GBP (£)</span>
       </div>
-
       <div class="emirates-top-links">
-        <span class="emirates-top-link" onclick="switchRoute('signin')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          Emirates Skywards Login
-        </span>
-        <span class="emirates-top-link">Help & Contact</span>
+        <span class="emirates-top-link" onclick="switchRoute('signin')">Emirates Skywards Login</span>
+        <span class="emirates-top-link" onclick="switchRoute('staff-login')">Staff / OCC</span>
         <span class="caption-text" style="color: var(--color-gold-bright); font-weight: 600;" id="user-status-display">Guest</span>
       </div>
     </div>
 
-    <!-- Main Official Emirates Header -->
-    <header class="emirates-main-header">
+    <!-- Customer header -->
+    <header class="emirates-main-header" id="public-header">
       <div class="emirates-brand-group">
-        <!-- Iconic Emirates Red Box Logo -->
         <div class="emirates-red-logo" onclick="switchRoute('landing')">
           <span class="emirates-logo-text">Emirates</span>
           <span class="emirates-logo-sub">FLY BETTER</span>
         </div>
-
-        <!-- Emirates Navigation Menu -->
         <nav class="emirates-nav-menu" id="public-main-nav">
           <a class="emirates-nav-item active" onclick="switchRoute('landing')">BOOK</a>
+          <a class="emirates-nav-item" onclick="switchRoute('manage')">MANAGE</a>
           <a class="emirates-nav-item" onclick="switchRoute('portal')">CHECK-IN</a>
           <a class="emirates-nav-item" onclick="switchRoute('landing')">EXPERIENCE</a>
-          <a class="emirates-nav-item" onclick="switchRoute('landing')">WHERE WE FLY</a>
+          <a class="emirates-nav-item" onclick="switchRoute('flight-status')">WHERE WE FLY</a>
           <a class="emirates-nav-item" onclick="switchRoute('signin')" style="color: var(--color-gold);">SKYWARDS</a>
+          <a class="emirates-nav-item" onclick="window.location.href='./crew-app/#/crew'">CREW</a>
         </nav>
       </div>
-
-      <!-- Right Action Buttons -->
       <div class="emirates-user-actions" id="user-actions-container">
-        <button class="btn-header-signin" id="btn-nav-signin" onclick="switchRoute('signin')">
-          Sign In
-        </button>
-        <button class="btn-header-signup" id="btn-nav-signup" onclick="switchRoute('signup')">
-          Sign Up
-        </button>
+        <button class="btn-header-signin" onclick="switchRoute('signin')">Sign In</button>
+        <button class="btn-header-signup" onclick="switchRoute('signup')">Sign Up</button>
       </div>
     </header>
 
-    <!-- Admin OCC Module Selector & Logout Bar (Shown ONLY inside /admin for authorized admin) -->
-    <nav class="module-selector-strip" id="admin-module-strip" style="display: none; justify-content: space-between; align-items: center;">
-      <div style="display: flex; gap: 12px; overflow-x: auto;">
-        <button class="module-chip active" data-module="dashboard">Dashboard</button>
-        <button class="module-chip" data-module="crew-flow">CrewFlow</button>
-        <button class="module-chip" data-module="aircraft-turnaround">Turnaround</button>
-        <button class="module-chip" data-module="user-management">User Management</button>
-        <button class="module-chip" data-module="gate-management">Gates</button>
-        <button class="module-chip" data-module="tower-control">Tower</button>
-        <button class="module-chip" data-module="passenger-journey">Passengers</button>
+    <!-- Legacy strip kept for compatibility (hidden when ops shell active) -->
+    <nav class="module-selector-strip" id="admin-module-strip" style="display: none;"></nav>
+
+    <!-- Customer / public content -->
+    <main id="main-content" class="content-area"></main>
+
+    <!-- Operations shell (staff roles) -->
+    <div class="ops-shell" id="ops-shell">
+      <aside class="ops-sidebar">
+        <div class="ops-brand">
+          <div class="ops-brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>DXB Smart Hub</h1>
+            <span>Operations Control</span>
+          </div>
+        </div>
+        <nav id="ops-nav" aria-label="OCC modules"></nav>
+        <div class="ops-sidebar-footer">
+          <div class="ops-role-badge" id="ops-role-badge">ROLE</div>
+          <button type="button" class="ops-nav-btn" onclick="handleStaffLogout()">
+            <span class="ops-ico">⎋</span> Sign out
+          </button>
+        </div>
+      </aside>
+      <div class="ops-main">
+        <div class="ops-topbar">
+          <div>
+            <h2 id="ops-page-title">Dashboard</h2>
+            <div class="ops-meta" id="ops-page-meta">DXB OCC</div>
+          </div>
+          <div class="ops-meta" id="ops-clock">--:--:--Z</div>
+        </div>
+        <div class="ops-content" id="ops-content"></div>
       </div>
+    </div>
 
-      <!-- Admin Logout Button -->
-      <button class="module-chip" style="background-color: var(--color-primary); color: #FFFFFF; border-color: var(--color-primary); font-weight: 700; flex-shrink: 0;" onclick="handleAdminLogout()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: inline-block; vertical-align: middle; margin-right: 4px;"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        Admin Logout
-      </button>
-    </nav>
-
-    <!-- Main Screen Content Area -->
-    <main id="main-content" class="content-area">
-      <!-- Dynamically rendered by js/app.js -->
-    </main>
-
-    <!-- Mobile Bottom Navigation Bar (Shown on Mobile screens <=768px) -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" id="public-bottom-nav">
       <a href="#" class="bottom-nav-item active" data-nav="home">
         <span class="bottom-nav-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
         </span>
         <span>Book</span>
       </a>
-
       <a href="#" class="bottom-nav-item" data-nav="signin">
         <span class="bottom-nav-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 4-4H9a4 4 0 0 4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         </span>
         <span>Account</span>
       </a>
     </nav>
-
   </div>
 
-  <!-- Application Engine JavaScript -->
+  <script src="js/roles.js"></script>
+  <script src="js/tower-hub.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
