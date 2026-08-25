@@ -21,15 +21,11 @@
         <span style="opacity:0.7; margin-left:8px;">Customer portal</span>
       </div>
       <div class="customer-portal-links">
-        <button type="button" data-customer-route="landing">Book</button>
-        <button type="button" data-customer-route="my-trips">My Trips</button>
-        <button type="button" data-customer-route="manage">Manage booking</button>
-        <button type="button" data-customer-route="flight-status">Flight status</button>
-<<<<<<< HEAD
-        <button type="button" onclick="window.location.href='crew-app/#/login'">CrewFlow</button>
-        <button type="button" onclick="window.location.href='crew-app/#/login'">CrewFlow</button>
-=======
->>>>>>> upstream/main
+        <button type="button" data-customer-route="landing" onclick="switchRoute('landing')">Book</button>
+        <button type="button" data-customer-route="my-trips" onclick="switchRoute('my-trips')">My Trips</button>
+        <button type="button" data-customer-route="manage" onclick="switchRoute('manage')">Manage booking</button>
+        <button type="button" data-customer-route="flight-status" onclick="switchRoute('flight-status')">Flight status</button>
+        <button type="button" onclick="window.location.href='./crew-app/#/login'">CrewFlow</button>
         <button type="button" id="btn-customer-logout">Sign out</button>
       </div>
     </div>
@@ -54,38 +50,18 @@
           <span class="emirates-logo-text">Emirates</span>
           <span class="emirates-logo-sub">FLY BETTER</span>
         </div>
-<<<<<<< HEAD
         <nav class="emirates-nav-menu" id="public-main-nav">
           <a class="emirates-nav-item active" onclick="switchRoute('landing')">BOOK</a>
           <a class="emirates-nav-item" onclick="switchRoute('manage')">MANAGE</a>
           <a class="emirates-nav-item" onclick="switchRoute('portal')">CHECK-IN</a>
-          <a class="emirates-nav-item" onclick="switchRoute('landing')">EXPERIENCE</a>
-          <a class="emirates-nav-item" onclick="switchRoute('flight-status')">WHERE WE FLY</a>
+          <a class="emirates-nav-item" onclick="switchRoute('flight-status')">FLIGHT STATUS</a>
           <a class="emirates-nav-item" onclick="switchRoute('signin')" style="color: var(--color-gold);">SKYWARDS</a>
           <a class="emirates-nav-item" onclick="window.location.href='./crew-app/#/crew'">CREW</a>
-=======
-        <!-- The passenger app is navigated from the bottom tab bar, so the desktop
-             mega-nav is gone. Only Book and Check-in exist as passenger tasks. -->
-        <nav class="emirates-nav-menu" id="public-main-nav">
-          <a class="emirates-nav-item active" data-app-tab="book" onclick="goToAppTab('book')">BOOK</a>
-          <a class="emirates-nav-item" data-app-tab="trips" onclick="goToAppTab('trips')">MY TRIPS</a>
-          <a class="emirates-nav-item" data-app-tab="pass" onclick="goToAppTab('pass')">BOARDING PASS</a>
->>>>>>> upstream/main
         </nav>
       </div>
       <div class="emirates-user-actions" id="user-actions-container">
         <button class="btn-header-signin" onclick="switchRoute('signin')">Sign In</button>
         <button class="btn-header-signup" onclick="switchRoute('signup')">Sign Up</button>
-<<<<<<< HEAD
-=======
-      </div>
-      <!-- Signed-in passenger: compact account chip replaces the sign-in buttons -->
-      <div class="emirates-user-actions" id="user-account-chip" style="display: none;">
-        <button class="app-account-chip" onclick="goToAppTab('account')">
-          <span class="app-account-avatar" id="app-account-initial">S</span>
-          <span class="app-account-name" id="app-account-name">Account</span>
-        </button>
->>>>>>> upstream/main
       </div>
     </header>
 
@@ -125,43 +101,32 @@
       </div>
     </div>
 
-<<<<<<< HEAD
+    <!-- Passenger app tab bar — mobile navigation -->
     <nav class="bottom-nav" id="public-bottom-nav">
-      <a href="#" class="bottom-nav-item active" data-nav="home">
-=======
-    <!-- Passenger app tab bar — the primary navigation on mobile -->
-    <nav class="bottom-nav" id="public-bottom-nav">
-      <a href="#" class="bottom-nav-item active" data-app-tab="book" onclick="event.preventDefault(); goToAppTab('book');">
->>>>>>> upstream/main
+      <a href="#" class="bottom-nav-item active" data-nav="home" onclick="event.preventDefault(); switchRoute('landing');">
         <span class="bottom-nav-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.7 5.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1z"/></svg>
         </span>
         <span>Book</span>
       </a>
-<<<<<<< HEAD
-      <a href="#" class="bottom-nav-item" data-nav="signin">
-        <span class="bottom-nav-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-=======
 
-      <a href="#" class="bottom-nav-item" data-app-tab="trips" onclick="event.preventDefault(); goToAppTab('trips');">
+      <a href="#" class="bottom-nav-item" data-nav="my-trips" onclick="event.preventDefault(); switchRoute('my-trips');">
         <span class="bottom-nav-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
         </span>
         <span>My Trips</span>
       </a>
 
-      <a href="#" class="bottom-nav-item" data-app-tab="pass" onclick="event.preventDefault(); goToAppTab('pass');">
+      <a href="#" class="bottom-nav-item" data-nav="portal" onclick="event.preventDefault(); switchRoute('portal');">
         <span class="bottom-nav-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M9 6v10"/></svg>
         </span>
         <span>Pass</span>
       </a>
 
-      <a href="#" class="bottom-nav-item" data-app-tab="account" onclick="event.preventDefault(); goToAppTab('account');">
+      <a href="#" class="bottom-nav-item" data-nav="signin" onclick="event.preventDefault(); switchRoute('signin');">
         <span class="bottom-nav-icon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
->>>>>>> upstream/main
         </span>
         <span>Account</span>
       </a>
