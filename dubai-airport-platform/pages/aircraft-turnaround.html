@@ -317,6 +317,9 @@
 
 <!-- Interactive Engine for Aircraft Turnaround Module -->
 <script>
+(function () {
+  'use strict';
+
   // Complete Mock Data Database for 6 Aircraft Turnarounds
   const TURNAROUND_FLIGHTS_DATA = [
     {
@@ -619,19 +622,10 @@
   let selectedFlightCode = 'EK202';
   let activeTurnaroundList = [...TURNAROUND_FLIGHTS_DATA];
 
-  // Initialize Module on Load
-  document.addEventListener('DOMContentLoaded', () => {
-    initTurnaroundModule();
-  });
-
-  // Call initialization immediately if loaded via SPA fetcher
-  setTimeout(() => {
-    initTurnaroundModule();
-  }, 50);
-
   function initTurnaroundModule() {
-    if (window.currentUser && window.currentUser.role) {
-      const userRole = typeof normalizeRole === 'function' ? normalizeRole(window.currentUser.role) : window.currentUser.role;
+    const curUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : (window.currentUser || null);
+    if (curUser && curUser.role) {
+      const userRole = typeof normalizeRole === 'function' ? normalizeRole(curUser.role) : curUser.role;
       const roleMap = {
         'admin': 'Airport Operations Manager',
         'ops': 'Ground Operations Manager',
@@ -641,14 +635,11 @@
       };
       if (roleMap[userRole]) {
         currentRBACRole = roleMap[userRole];
-        const rbacSelect = document.getElementById('rbac-role-select');
-        if (rbacSelect) rbacSelect.value = currentRBACRole;
-        updateRBACRole(currentRBACRole);
-        return;
       }
     }
-    applyTurnaroundFilters();
-    selectTurnaroundFlight(selectedFlightCode);
+    const rbacSelect = document.getElementById('rbac-role-select');
+    if (rbacSelect) rbacSelect.value = currentRBACRole;
+    updateRBACRole(currentRBACRole);
   }
 
   // 13. RBAC Permission System Implementation
@@ -1138,4 +1129,18 @@
       alert(`New Task '${taskName}' created and assigned by ${currentRBACRole}.`);
     }
   }
+
+  // Export handlers to window for inline HTML onclick/onchange attributes
+  window.updateRBACRole = updateRBACRole;
+  window.applyTurnaroundFilters = applyTurnaroundFilters;
+  window.resetTurnaroundFilters = resetTurnaroundFilters;
+  window.selectTurnaroundFlight = selectTurnaroundFlight;
+  window.handleTaskAction = handleTaskAction;
+  window.handleDelayAction = handleDelayAction;
+  window.handleCreateTaskPrompt = handleCreateTaskPrompt;
+  window.initTurnaroundModule = initTurnaroundModule;
+
+  // Immediately initialize module
+  initTurnaroundModule();
+})();
 </script>

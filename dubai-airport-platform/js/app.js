@@ -149,6 +149,7 @@ function restoreSession() {
   if (staffUser.role !== 'guest' && !isStaffRole(staffUser.role)) staffUser = { ...GUEST_USER }
 
   currentUser = { ...customerUser }
+  window.currentUser = currentUser
 }
 
 function writeSession(storageKey, user) {
@@ -314,6 +315,7 @@ function switchRoute(route) {
   // the OCC are fully independent: being signed in to one has no effect on the
   // other, and a staff member can browse the public site as a normal visitor.
   currentUser = STAFF_ROUTES.includes(route) ? staffUser : customerUser
+  window.currentUser = currentUser
 
   const role = normalizeRole(currentUser.role)
 
@@ -339,8 +341,10 @@ function switchRoute(route) {
   updateChrome()
 
   if (route === 'admin') {
-    const mod = canAccessModule(role, currentAdminModule)
-      ? currentAdminModule
+    const savedMod = sessionStorage.getItem('EMIRATES_DXB_OCC_MODULE')
+    const preferredMod = (savedMod && canAccessModule(role, savedMod)) ? savedMod : currentAdminModule
+    const mod = canAccessModule(role, preferredMod)
+      ? preferredMod
       : getDefaultModule(role)
     loadAdminModule(mod || 'dashboard')
     return
@@ -423,6 +427,7 @@ function initBottomNav() {
 function handleCustomerLogout() {
   customerUser = { ...GUEST_USER }
   persistCustomerSession()
+  window.currentUser = currentUser
   switchRoute('landing')
 }
 
@@ -430,8 +435,10 @@ function handleCustomerLogout() {
 function handleStaffLogout() {
   staffUser = { ...GUEST_USER }
   persistStaffSession()
+  sessionStorage.removeItem('EMIRATES_DXB_OCC_MODULE')
   applyThemeForRole('guest')
   setOpsShellVisible(false)
+  window.currentUser = currentUser
   switchRoute('staff-login')
 }
 
@@ -752,6 +759,7 @@ async function loadAdminModule(moduleId) {
   }
 
   currentAdminModule = moduleId
+  sessionStorage.setItem('EMIRATES_DXB_OCC_MODULE', moduleId)
   buildOpsNav()
 
   const title = document.getElementById('ops-page-title')
