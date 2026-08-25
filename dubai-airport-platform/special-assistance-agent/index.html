@@ -166,6 +166,17 @@
     }
     #sag-app .sag-panel-t { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); font-weight: 700; margin-bottom: 12px; }
 
+    /* "Your task" — the prominent, agent-specific responsibility */
+    #sag-app .sag-task-panel { border-left: 3px solid var(--color-primary); }
+    #sag-app .sag-task-title { font-size: 17px; line-height: 23px; font-weight: 700; color: var(--text-main); }
+    #sag-app .sag-task-instr { font-size: 14px; line-height: 20px; color: var(--text-secondary); margin-top: 8px; }
+    #sag-app .sag-task-route { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13.5px; font-weight: 600; color: var(--text-main); flex-wrap: wrap; }
+    #sag-app .sag-task-route .sag-arrow { color: var(--text-dim); }
+    #sag-app .sag-task-route .sag-pt { display: inline-flex; align-items: center; gap: 5px; }
+    #sag-app .sag-task-kv { margin-top: 12px; }
+    #sag-app .sag-task-kv .sag-tk { display: block; font-size: 12px; color: var(--text-secondary); font-weight: 600; margin-bottom: 2px; }
+    #sag-app .sag-task-kv .sag-tv { display: block; font-size: 15px; color: var(--text-main); font-weight: 700; }
+
     /* Where & when — the meet block */
     #sag-app .sag-meet { display: flex; flex-direction: column; gap: 14px; }
     #sag-app .sag-meet-row { display: flex; align-items: flex-start; gap: 12px; }
@@ -317,7 +328,7 @@
     var AGENT_KEY = 'DXB_ASSIST_AGENT';           // own key — never touches request state
     var DEFAULT_AGENT = 'AG-21';                   // in a real product this comes from the session
 
-    var state = { view: 'list', selectedId: null, reportOpen: false };
+    var state = { view: 'list', selectedId: null, reportOpen: false, handoffOpen: false };
 
     // Exception types an agent can report from the field.
     var EXC_TYPES = [
@@ -369,30 +380,80 @@
       return '<span class="chip ' + m[0] + '"><span aria-hidden="true">' + m[1] + '</span> ' + esc(m[2]) + '</span>';
     }
 
-    // The single next action for a given status (agent lifecycle).
-    function nextAction(status) {
+    // The single next action for THIS leg. At IN_PROGRESS the CTA depends on
+    // whether the leg is the final one (complete the journey) or a handoff leg.
+    function nextAction(leg) {
+      var status = leg ? leg.status : null;
       switch (status) {
         case 'ASSIGNED':          return { label: 'Accept assignment', fn: 'accept', hint: 'Confirm you are taking this task.' };
         case 'ACCEPTED':          return { label: "I'm on my way", fn: 'enroute', hint: 'Let the passenger know help is coming.' };
         case 'EN_ROUTE':          return { label: 'Confirm passenger located', fn: 'locate', hint: 'Tap when you have found the passenger.' };
         case 'PASSENGER_LOCATED': return { label: 'Start assistance', fn: 'start', hint: 'Begin escorting / supporting the passenger.' };
-        case 'IN_PROGRESS':       return { label: 'Complete assistance', fn: 'complete', hint: 'Tap when the passenger is handed over.' };
+        case 'IN_PROGRESS':
+          return leg.isFinal
+            ? { label: 'Complete assistance', fn: 'complete', hint: 'This finishes the whole assistance journey.' }
+            : { label: 'Hand off passenger', fn: 'handoff-open', hint: 'Hand over at ' + (leg.destination || 'the handoff point') + '. The coordinator assigns the next agent.' };
         default: return null;
       }
     }
-    function nextActionShort(status) {
-      var m = { ASSIGNED: 'Accept', ACCEPTED: 'Start travel', EN_ROUTE: 'Locate passenger',
-                PASSENGER_LOCATED: 'Start assistance', IN_PROGRESS: 'Complete' };
+    function nextActionShort(leg) {
+      var status = leg ? leg.status : null;
+      if (status === 'IN_PROGRESS') return leg.isFinal ? 'Complete' : 'Hand off';
+      var m = { ASSIGNED: 'Accept', ACCEPTED: 'Start travel', EN_ROUTE: 'Locate passenger', PASSENGER_LOCATED: 'Start assistance' };
       return m[status] || '';
     }
+    function legChip(r, L, active) {
+      if (active) return statusChip(L.status);
+      if (r.status === 'CANCELLED') return statusChip('CANCELLED');
+      if (L && L.handoff && L.handoff.status === 'done')
+        return '<span class="chip chip-completed"><span aria-hidden="true">✓</span> Handed off</span>';
+      return statusChip('COMPLETED');
+    }
 
-    /* ---- data (strictly scoped to this agent) -------------------------- */
-    var ACTIVE = ['ASSIGNED', 'ACCEPTED', 'EN_ROUTE', 'PASSENGER_LOCATED', 'IN_PROGRESS'];
+    /* ---- data (strictly scoped to this agent's assignments) ------------ */
     var PRIO_RANK = { P1: 0, P2: 1, P3: 2, P4: 3 };
 
-    function mine() {
-      return S.all().filter(function (r) { return r.agentId === ME; });
+    // The leg relevant to ME on a request: the current leg if I own it, else my
+    // most recent leg, else (legacy request without assignments) a synthesized
+    // leg from request-level fields.
+    // My COMPLETED legs (a future PENDING step assigned to me is NOT yet mine to
+    // see — it only appears once handoff activates it and it becomes current).
+    function myCompletedLegs(r) {
+      return (r.assignments || []).filter(function (a) { return a.agentId === ME && a.status === 'COMPLETED'; });
     }
+    function effLeg(r) {
+      var cur = S.currentAssignment(r);
+      if (cur && cur.agentId === ME) return cur;
+      var done = myCompletedLegs(r);
+      if (done.length) return done[done.length - 1];
+      if ((r.assignments || []).length === 0 && r.agentId === ME) {
+        return { assignmentId: null, agentId: r.agentId, agentName: r.agentName,
+          taskTitle: r.destination ? ('Escort to ' + r.destination) : 'Assist passenger',
+          taskInstruction: '', pickup: r.pickup, destination: r.destination,
+          isFinal: true, status: r.status, handoff: null };
+      }
+      return null;
+    }
+    // Is MY leg currently active (mine to work) vs. already handed off/closed?
+    function isActiveLeg(r) {
+      var cur = S.currentAssignment(r);
+      if (cur && cur.agentId === ME) return cur.status !== 'COMPLETED';
+      if (cur) return false; // current leg belongs to another agent
+      if ((r.assignments || []).length === 0 && r.agentId === ME) {
+        return ['ASSIGNED','ACCEPTED','EN_ROUTE','PASSENGER_LOCATED','IN_PROGRESS'].indexOf(r.status) !== -1;
+      }
+      return false;
+    }
+    // Involved = I am the current owner, or I have already completed a leg.
+    // (Upcoming PENDING steps stay hidden until activated.)
+    function involvesMe(r) {
+      var cur = S.currentAssignment(r);
+      if (cur && cur.agentId === ME) return true;
+      if (myCompletedLegs(r).length) return true;
+      if ((r.assignments || []).length === 0 && r.agentId === ME) return true;
+      return false;
+    }
+    function mine() { return S.all().filter(involvesMe); }
     function sortActive(list) {
       return list.slice().sort(function (a, b) {
         var ra = slaState(a) === 'at_risk' || slaState(a) === 'breached' ? 0 : 1;
@@ -403,11 +464,6 @@
         if (pa !== pb) return pa - pb;
         return String(a.flight.boarding || '').localeCompare(String(b.flight.boarding || ''));
       });
-    }
-    function laneClass(r) {
-      if (r.status === 'ASSIGNED') return 'is-new';
-      if (slaState(r) === 'at_risk' || slaState(r) === 'breached') return 'lane-risk';
-      return 'lane-active';
     }
 
     /* ================= Screen: My Work ================================= */
@@ -420,8 +476,8 @@
       window.scrollTo(0, 0);
 
       var all = mine();
-      var active = sortActive(all.filter(function (r) { return ACTIVE.indexOf(r.status) !== -1; }));
-      var closed = all.filter(function (r) { return r.status === 'COMPLETED' || r.status === 'CANCELLED'; });
+      var active = sortActive(all.filter(isActiveLeg));
+      var closed = all.filter(function (r) { return !isActiveLeg(r); });
 
       if (!active.length && !closed.length) {
         scroll.innerHTML = '<div class="sag-empty">'
@@ -450,19 +506,23 @@
     }
 
     function taskCard(r) {
-      var done = (r.status === 'COMPLETED' || r.status === 'CANCELLED');
-      var lane = done ? 'lane-done' : laneClass(r);
+      var L = effLeg(r);
+      var active = isActiveLeg(r);
+      var lane = !active ? 'lane-done'
+        : (L && L.status === 'ASSIGNED' ? 'is-new'
+          : (slaState(r) !== 'on_track' ? 'lane-risk' : 'lane-active'));
       var st = slaState(r);
       var timing = r.flight.boarding
         ? '<span class="sag-time' + slaClass(st) + '">◷ Boarding ' + esc(r.flight.boarding) + '</span>' : '';
       var needIc = (r.needs || []).slice(0, 4).map(function (k) {
         var n = S.needByKey(k); return n ? '<span class="sag-need-ic" aria-hidden="true">' + n.icon + '</span>' : '';
       }).join('');
-      var where = r.pickup || r.flight.terminal || '';
-      var na = nextActionShort(r.status);
-      var foot = done
-        ? '<span class="sag-next">' + (r.status === 'COMPLETED' ? '✓ Completed' : '✕ Cancelled') + '</span>'
-        : '<span class="sag-next">' + esc(na) + ' →</span>';
+      var task = L ? L.taskTitle : (r.pickup || '');
+      var foot;
+      if (active) foot = '<span class="sag-next">' + esc(nextActionShort(L)) + ' →</span>';
+      else if (r.status === 'CANCELLED') foot = '<span class="sag-next">✕ Cancelled</span>';
+      else if (L && L.handoff && L.handoff.status === 'done') foot = '<span class="sag-next">✓ Handed off</span>';
+      else foot = '<span class="sag-next">✓ Completed</span>';
 
       return '<button type="button" class="sag-card ' + lane + '" data-id="' + esc(r.id) + '">'
         + '<div class="sag-card-head">'
@@ -470,27 +530,28 @@
         +     '<span class="sag-prio ' + prioClass(r.priority) + '">' + esc(r.priority) + '</span>'
         +     '<span class="sag-card-pax">' + esc(r.passenger.name) + '</span>'
         +   '</div>'
-        +   statusChip(r.status)
+        +   legChip(r, L, active)
         + '</div>'
         + '<div class="sag-card-meta">'
         +   '<span class="sag-needline">' + needIc + '</span>'
-        +   (where ? '<span>· 📍 ' + esc(where) + '</span>' : '')
+        +   (task ? '<span>· ' + esc(task) + '</span>' : '')
         + '</div>'
         + '<div class="sag-card-foot">' + foot + timing + '</div>'
         + '</button>';
     }
 
     /* ================= Screen: Active Task ============================= */
-    function openTask(id) { state.selectedId = id; state.reportOpen = false; renderTask(); }
+    function openTask(id) { state.selectedId = id; state.reportOpen = false; state.handoffOpen = false; renderTask(); }
 
-    var STEP_LABELS = ['Assigned', 'Accepted', 'On the way', 'Passenger located', 'Assisting', 'Completed'];
     var STATUS_STEP = { ASSIGNED: 0, ACCEPTED: 1, EN_ROUTE: 2, PASSENGER_LOCATED: 3, IN_PROGRESS: 4, COMPLETED: 5 };
 
     function renderTask() {
       var r = S.get(state.selectedId);
-      // Guard: task must exist and still belong to this agent.
       if (!r) { toast('That request is no longer available'); return renderList(); }
-      if (r.agentId !== ME) { toast('This task was reassigned by the OCC'); return renderList(); }
+      var L = effLeg(r);
+      // Guard: this request must involve me (a current or past leg of mine).
+      if (!L) { toast('This task is no longer assigned to you'); return renderList(); }
+      var active = isActiveLeg(r);
 
       state.view = 'task';
       titleEl.textContent = 'Request ' + r.id;
@@ -498,36 +559,55 @@
       backBtn.style.display = 'flex';
       window.scrollTo(0, 0);
 
-      var terminal = (r.status === 'COMPLETED' || r.status === 'CANCELLED');
-      var excOpen = r.exception && r.exception.status !== 'resolved';
       var st = slaState(r);
+      var excOpen = r.exception && r.exception.status !== 'resolved';
+      var handedOff = L.handoff && L.handoff.status === 'done';
+      var finalLeg = !!L.isFinal;
 
-      // Header block
+      // Header
       var head = '<div class="sag-task-head">'
         + '<div class="sag-task-name">' + esc(r.passenger.name) + '</div>'
         + '<div class="sag-task-sub">' + esc(r.flight.number || '—') + ' · ' + esc(r.flight.route || '')
         +   (r.flight.date ? ' · ' + esc(r.flight.date) : '') + '</div>'
         + '<div class="sag-task-badges">'
         +   '<span class="sag-prio ' + prioClass(r.priority) + '">' + esc(r.priority) + '</span>'
-        +   statusChip(r.status)
+        +   legChip(r, L, active)
         +   (r.flight.boarding ? '<span class="sag-time' + slaClass(st) + '">◷ Boarding ' + esc(r.flight.boarding) + '</span>' : '')
         + '</div></div>';
 
-      // Completed / cancelled banner
-      var doneBanner = '';
-      if (r.status === 'COMPLETED') {
-        doneBanner = '<div class="sag-done"><span class="sag-done-ic" aria-hidden="true">✓</span>'
-          + '<div>Assistance completed<div style="font-weight:500;font-size:12.5px;">Thank you — this task is closed.</div></div></div>';
-      } else if (r.status === 'CANCELLED') {
-        doneBanner = '<div class="sag-done is-cancel"><span class="sag-done-ic" aria-hidden="true">✕</span>'
-          + '<div>Cancelled by OCC<div style="font-weight:500;font-size:12.5px;">No further action needed.</div></div></div>';
+      // Closed-state banner (handoff done / completed / cancelled)
+      var banner = '';
+      if (!active) {
+        if (r.status === 'CANCELLED') {
+          banner = '<div class="sag-done is-cancel"><span class="sag-done-ic" aria-hidden="true">✕</span>'
+            + '<div>Cancelled by OCC<div style="font-weight:500;font-size:12.5px;">No further action needed.</div></div></div>';
+        } else if (handedOff && r.status === 'AWAITING_ASSIGNMENT') {
+          banner = '<div class="sag-done"><span class="sag-done-ic" aria-hidden="true">✓</span>'
+            + '<div>Your task is complete.<div style="font-weight:500;font-size:12.5px;">The coordinator will assign the next assistance leg.</div></div></div>';
+        } else if (r.status === 'COMPLETED') {
+          banner = '<div class="sag-done"><span class="sag-done-ic" aria-hidden="true">✓</span>'
+            + '<div>Assistance completed<div style="font-weight:500;font-size:12.5px;">This journey is closed.</div></div></div>';
+        } else if (handedOff) {
+          banner = '<div class="sag-done"><span class="sag-done-ic" aria-hidden="true">✓</span>'
+            + '<div>Your task is complete.<div style="font-weight:500;font-size:12.5px;">The passenger journey has continued.</div></div></div>';
+        }
       }
 
-      // Where & when
-      var meet = '<div class="sag-panel"><div class="sag-panel-t">Where &amp; when</div><div class="sag-meet">'
-        + meetRow('📍', 'Meet the passenger', r.pickup || (r.flight.terminal ? r.flight.terminal + ' — check-in area' : '—'))
-        + meetRow('🎯', 'Take them to', r.destination || (r.flight.gate ? 'Gate ' + r.flight.gate : '—'))
-        + meetRow('🛫', 'Terminal / gate', (r.flight.terminal || '—') + (r.flight.gate ? ' · Gate ' + r.flight.gate : ''))
+      // "Your task" — the prominent, agent-specific responsibility
+      var pickupVal = L.pickup || (r.flight.terminal ? r.flight.terminal + ' — check-in area' : '—');
+      var destVal = L.destination || (r.flight.gate ? 'Gate ' + r.flight.gate : '—');
+      var taskPanel = '<div class="sag-panel sag-task-panel"><div class="sag-panel-t">Your task</div>'
+        + '<div class="sag-task-title">' + esc(L.taskTitle) + '</div>'
+        + (L.taskInstruction ? '<div class="sag-task-instr">' + esc(L.taskInstruction) + '</div>' : '')
+        + '<div class="sag-task-kv"><span class="sag-tk">Meet passenger at</span><span class="sag-tv">📍 ' + esc(pickupVal) + '</span></div>'
+        + '<div class="sag-task-kv"><span class="sag-tk">Assist passenger to</span><span class="sag-tv">🎯 ' + esc(destVal) + '</span></div>'
+        + (finalLeg ? '' : '<div class="sag-task-kv"><span class="sag-tk">Hand off at</span><span class="sag-tv">🤝 ' + esc(destVal) + '</span></div>')
+        + '</div>';
+
+      // Flight & timing context
+      var meet = '<div class="sag-panel"><div class="sag-panel-t">Flight &amp; timing</div><div class="sag-meet">'
+        + meetRow('🛫', 'Flight', (r.flight.number || '—') + (r.flight.route ? ' · ' + r.flight.route : ''))
+        + meetRow('🚪', 'Terminal / gate', (r.flight.terminal || '—') + (r.flight.gate ? ' · Gate ' + r.flight.gate : ''))
         + meetRow('⏱', 'Boarding',
             (r.flight.boarding ? '<span class="sag-time' + slaClass(st) + '">' + esc(r.flight.boarding)
               + (st === 'at_risk' ? ' · running tight' : (st === 'breached' ? ' · overdue' : '')) + '</span>' : '—'), true)
@@ -545,56 +625,73 @@
         + (r.needsNote ? '<p class="sag-note">“' + esc(r.needsNote) + '”</p>' : '')
         + '</div>';
 
-      // Progress stepper
-      var cur = STATUS_STEP[r.status];
+      // Progress stepper for THIS leg. Reached milestones show ✓; the step the
+      // primary action completes is highlighted. Last node reflects the leg
+      // outcome: "Completed" (final leg) or "Handed off".
+      var STEP_LABELS = ['Assigned', 'Accepted', 'On the way', 'Passenger located', 'Assisting', finalLeg ? 'Completed' : 'Handed off'];
+      var cur = STATUS_STEP[L.status];
+      var nextIdx = (L.status === 'COMPLETED') ? -1 : cur + 1;
       var stepsHtml = STEP_LABELS.map(function (lbl, i) {
-        var cls = r.status === 'CANCELLED' ? '' : (i < cur ? 'is-done' : (i === cur ? 'is-current' : ''));
-        var mark = (r.status !== 'CANCELLED' && i < cur) ? '✓' : (i + 1);
+        var done = i <= cur;
+        var cls = done ? 'is-done' : (i === nextIdx ? 'is-current' : '');
+        var mark = done ? '✓' : (i + 1);
         return '<li class="sag-step ' + cls + '"><span class="sag-dot" aria-hidden="true">' + mark + '</span>'
           + '<span class="sag-step-l">' + lbl + '</span></li>';
       }).join('');
       var steps = '<div class="sag-panel"><div class="sag-panel-t">Progress</div><ol class="sag-steps">' + stepsHtml + '</ol></div>';
 
-      // Exception / report issue
-      var excBlock = '';
+      // Exception banner / handoff panel / report panel / report trigger
+      var extra = '';
       if (excOpen) {
-        excBlock = '<div class="sag-exc"><span aria-hidden="true">⚠</span><div>'
+        extra = '<div class="sag-exc"><span aria-hidden="true">⚠</span><div>'
           + '<div class="sag-exc-t">Issue reported: ' + esc(excLabel(r.exception.type)) + '</div>'
           + (r.exception.note ? '<div class="sag-exc-sub">' + esc(r.exception.note) + '</div>' : '')
           + '<div class="sag-exc-sub">The OCC coordinator is handling it.</div>'
           + '</div></div>';
-      } else if (!terminal) {
-        if (state.reportOpen) {
-          var opts = EXC_TYPES.map(function (e) { return '<option value="' + e.v + '">' + esc(e.l) + '</option>'; }).join('');
-          excBlock = '<div class="sag-panel sag-report-panel"><div class="sag-panel-t">Report an issue</div>'
-            + '<div class="input-group"><label class="input-label" for="sag-exc-type">What’s wrong?</label>'
-            +   '<select id="sag-exc-type" class="input-field">' + opts + '</select></div>'
-            + '<div class="input-group"><label class="input-label" for="sag-exc-note">Add a note (optional)</label>'
-            +   '<input id="sag-exc-note" class="input-field" placeholder="e.g. Passenger not at check-in" /></div>'
-            + '<div class="sag-report-actions">'
-            +   '<button type="button" class="btn-secondary" data-act="report-cancel">Cancel</button>'
-            +   '<button type="button" class="btn-primary" data-act="report-submit">Report to OCC</button>'
-            + '</div></div>';
-        } else {
-          excBlock = '<button type="button" class="sag-report-btn" data-act="report-open">'
-            + '<span aria-hidden="true">⚠</span> Report an issue</button>';
-        }
+      } else if (active && state.handoffOpen) {
+        extra = '<div class="sag-panel sag-report-panel"><div class="sag-panel-t">Hand off passenger</div>'
+          + '<p class="sag-note" style="font-style:normal;margin:0 0 12px;">Confirm you have handed the passenger over at '
+          +   '<strong>' + esc(L.destination || 'the handoff point') + '</strong>. The coordinator will assign the next agent.</p>'
+          + '<div class="input-group"><label class="input-label" for="sag-handoff-note">Handoff note (optional)</label>'
+          +   '<input id="sag-handoff-note" class="input-field" placeholder="e.g. Settled at gate, needs boarding help" /></div>'
+          + '<div class="sag-report-actions">'
+          +   '<button type="button" class="btn-secondary" data-act="handoff-cancel">Cancel</button>'
+          +   '<button type="button" class="btn-primary" data-act="handoff-confirm">Confirm handoff</button>'
+          + '</div></div>';
+      } else if (active && state.reportOpen) {
+        var opts = EXC_TYPES.map(function (e) { return '<option value="' + e.v + '">' + esc(e.l) + '</option>'; }).join('');
+        extra = '<div class="sag-panel sag-report-panel"><div class="sag-panel-t">Report an issue</div>'
+          + '<div class="input-group"><label class="input-label" for="sag-exc-type">What’s wrong?</label>'
+          +   '<select id="sag-exc-type" class="input-field">' + opts + '</select></div>'
+          + '<div class="input-group"><label class="input-label" for="sag-exc-note">Add a note (optional)</label>'
+          +   '<input id="sag-exc-note" class="input-field" placeholder="e.g. Passenger not at check-in" /></div>'
+          + '<div class="sag-report-actions">'
+          +   '<button type="button" class="btn-secondary" data-act="report-cancel">Cancel</button>'
+          +   '<button type="button" class="btn-primary" data-act="report-submit">Report to OCC</button>'
+          + '</div></div>';
+      } else if (active) {
+        extra = '<button type="button" class="sag-report-btn" data-act="report-open">'
+          + '<span aria-hidden="true">⚠</span> Report an issue</button>';
       }
 
-      scroll.innerHTML = head + doneBanner + meet + needs + steps + excBlock;
+      scroll.innerHTML = head + banner + taskPanel + meet + needs + steps + extra;
 
-      // Sticky primary action
-      var na = nextAction(r.status);
-      if (na) {
-        ctaHost.innerHTML = '<div class="sag-cta">'
-          + '<button type="button" class="btn-primary" data-act="' + na.fn + '">' + esc(na.label) + '</button>'
-          + '<span class="sag-cta-hint">' + esc(na.hint) + '</span></div>';
-      } else {
+      // Sticky primary action (hidden while the handoff panel is open — it owns its own confirm)
+      if (active && !state.handoffOpen) {
+        var na = nextAction(L);
+        ctaHost.innerHTML = na
+          ? '<div class="sag-cta">'
+            + '<button type="button" class="btn-primary" data-act="' + na.fn + '">' + esc(na.label) + '</button>'
+            + '<span class="sag-cta-hint">' + esc(na.hint) + '</span></div>'
+          : '';
+      } else if (!active) {
         ctaHost.innerHTML = '<div class="sag-cta">'
           + '<button type="button" class="btn-secondary" data-act="back">Back to my work</button></div>';
+      } else {
+        ctaHost.innerHTML = '';
       }
 
-      wire(r);
+      wire(r, L);
     }
 
     function meetRow(icon, k, v, isHtml) {
@@ -608,8 +705,7 @@
     }
 
     /* ---- actions ------------------------------------------------------- */
-    function wire(r) {
-      var host = document.getElementById('sag-app');
+    function wire(r, L) {
       scroll.querySelectorAll('[data-act]').forEach(function (b) { b.addEventListener('click', onAct); });
       ctaHost.querySelectorAll('[data-act]').forEach(function (b) { b.addEventListener('click', onAct); });
 
@@ -621,6 +717,12 @@
         else if (act === 'locate')  { S.locatePassenger(id, ME);  toast('Passenger located'); }
         else if (act === 'start')   { S.startAssistance(id, ME);  toast('Assistance started'); }
         else if (act === 'complete'){ S.completeAssistance(id, ME); toast('Assistance completed'); }
+        else if (act === 'handoff-open')   { state.handoffOpen = true; renderTask(); return; }
+        else if (act === 'handoff-cancel') { state.handoffOpen = false; renderTask(); return; }
+        else if (act === 'handoff-confirm') {
+          var hn = document.getElementById('sag-handoff-note').value.trim();
+          S.handoffPassenger(id, hn, ME); state.handoffOpen = false; toast('Passenger handed off');
+        }
         else if (act === 'report-open')   { state.reportOpen = true; renderTask(); return; }
         else if (act === 'report-cancel') { state.reportOpen = false; renderTask(); return; }
         else if (act === 'report-submit') {
@@ -668,20 +770,27 @@
       toastTimer = setTimeout(function () { el.classList.remove('is-show'); }, 1800);
     }
 
-    // Demo convenience: if the shared store is completely empty, seed ONE
-    // request already assigned to the default agent so this surface is
-    // demonstrable on its own. Uses the same store/key — no parallel source.
+    // Demo convenience: if the shared store is empty, seed the SAME canonical
+    // requests the OCC module seeds (same store/key — no parallel source), so
+    // the multi-agent demo is consistent whichever surface is opened first.
+    // Nothing is assigned here — the OCC coordinator assigns each leg live.
     function seedIfEmpty() {
       if (S.all().length > 0) return;
-      var req = S.create({
+      S.create({
         source: 'seed',
         passenger: { name: 'Mariam Youssef', bookingRef: 'EK4R8T' },
-        flight: { number: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', gate: 'A14', date: 'Tue, 11 Aug', boarding: '08:30', journeyType: 'departing' },
+        flight: { number: 'EK 001', route: 'DXB → LHR', terminal: 'Terminal 3', gate: 'B12', date: 'Tue, 11 Aug', boarding: '08:30', journeyType: 'departing' },
         needs: ['wheelchair_push', 'long_walk'], needsNote: 'Prefers early boarding assistance.',
-        pickup: 'Terminal 3 — check-in area', destination: 'Gate A14'
+        pickup: 'Terminal 3 — check-in area', destination: 'Gate B12'
       });
-      S.confirmRequest(req.id, 'coordinator');
-      S.assign(req.id, DEFAULT_AGENT, 'coordinator');
+      var b = S.create({
+        source: 'seed',
+        passenger: { name: 'Daniel Okoro', bookingRef: 'EK2M5K' },
+        flight: { number: 'EK 072', route: 'DXB → CDG', terminal: 'Terminal 3', gate: 'B22', date: 'Tue, 11 Aug', boarding: '09:10', journeyType: 'departing' },
+        needs: ['visual'], needsNote: '', pickup: 'Terminal 3 — check-in area', destination: 'Gate B22'
+      });
+      S.confirmRequest(b.id, 'coordinator');
+      S.escalate(b.id, 'sla_risk', 'Tight connection — boarding soon.', 'coordinator');
     }
 
     /* ---- boot ---------------------------------------------------------- */
