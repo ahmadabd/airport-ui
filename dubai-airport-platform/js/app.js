@@ -617,6 +617,7 @@ function initBottomNav() {
 }
 
 async function loadAdminModule(moduleId) {
+  console.log("LOAD ADMIN MODULE START:", moduleId);
   const contentArea = document.getElementById('main-content');
   if (!contentArea) return;
 
@@ -645,7 +646,7 @@ async function loadAdminModule(moduleId) {
   }
 
   try {
-    const pagePath = `pages/${moduleId}.html`;
+   const pagePath = `pages/${moduleId}.html?v=${Date.now()}`;
     const response = await fetch(pagePath);
     if (response.ok) {
       const htmlText = await response.text();
@@ -661,6 +662,17 @@ async function loadAdminModule(moduleId) {
           newScript.appendChild(document.createTextNode(oldScript.innerHTML));
           oldScript.parentNode.replaceChild(newScript, oldScript);
         });
+
+        if (moduleId === 'gate-management') {
+  filterGateTable();
+
+  if (
+    window.GateIntelligence &&
+    typeof window.GateIntelligence.renderGateRecommendation === "function"
+  ) {
+    window.GateIntelligence.renderGateRecommendation();
+  }
+}
         return;
       }
     }
@@ -670,9 +682,19 @@ async function loadAdminModule(moduleId) {
     contentArea.innerHTML = htmlText;
 
     // Initialize Gate Management after HTML is loaded
+console.log("ADMIN MODULE:", moduleId);
     if (moduleId === 'gate-management') {
-      filterGateTable();
-    }
+  console.log("GATE MANAGEMENT INIT REACHED");
+
+  filterGateTable();
+
+  if (
+    window.GateIntelligence &&
+    typeof window.GateIntelligence.renderGateRecommendation === "function"
+  ) {
+    window.GateIntelligence.renderGateRecommendation();
+  }
+}
 
   } catch (error) {
     console.error(
