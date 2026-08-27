@@ -34,7 +34,157 @@
     return Math.abs(a - b);
   }
 
-  /**
+  function addMinutesToTime(time, minutesToAdd) {
+  const total = timeToMinutes(time);
+
+  if (total === null) return null;
+
+  const updated = total + minutesToAdd;
+
+  const hours = Math.floor(updated / 60) % 24;
+  const minutes = updated % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+function analyzeDelayImpact({
+  plannedDeparture,
+  delayMinutes,
+  nextBoardingTime,
+  requiredBuffer = 15
+}) {
+  const delayedDeparture = addMinutesToTime(
+    plannedDeparture,
+    delayMinutes
+  );
+
+  const delayedDepartureMinutes = timeToMinutes(delayedDeparture);
+  const nextBoardingMinutes = timeToMinutes(nextBoardingTime);
+
+  if (
+    delayedDepartureMinutes === null ||
+    nextBoardingMinutes === null
+  ) {
+    return null;
+  }
+
+  const availableGap =
+    nextBoardingMinutes - delayedDepartureMinutes;
+
+  const conflict = availableGap < requiredBuffer;
+
+  return {
+    plannedDeparture,
+    delayMinutes,
+    delayedDeparture,
+    nextBoardingTime,
+    requiredBuffer,
+    availableGap,
+    conflict,
+    severity: conflict
+      ? availableGap < 0
+        ? "HIGH"
+        : "MEDIUM"
+      : "LOW"
+  };
+}
+function hasTimeOverlap({
+  firstStart,
+  firstEnd,
+  secondStart,
+  secondEnd,
+  bufferMinutes = 15
+}) {
+  const firstStartMin = timeToMinutes(firstStart);
+  const firstEndMin = timeToMinutes(firstEnd);
+  const secondStartMin = timeToMinutes(secondStart);
+  const secondEndMin = timeToMinutes(secondEnd);
+
+  if (
+    firstStartMin === null ||
+    firstEndMin === null ||
+    secondStartMin === null ||
+    secondEndMin === null
+  ) {
+    return false;
+  }
+
+  const firstBufferedEnd = firstEndMin + bufferMinutes;
+  const secondBufferedEnd = secondEndMin + bufferMinutes;
+
+  return (
+    firstStartMin < secondBufferedEnd &&
+    secondStartMin < firstBufferedEnd
+  );
+}
+function detectTemporalGateConflicts(operations, bufferMinutes = 15) {
+  if (!Array.isArray(operations)) return [];
+
+  const conflicts = [];
+
+  for (let i = 0; i < operations.length; i++) {
+    for (let j = i + 1; j < operations.length; j++) {
+      const first = operations[i];
+      const second = operations[j];
+
+      if (first.gate !== second.gate) continue;
+
+      const overlap = hasTimeOverlap({
+        firstStart: first.start,
+        firstEnd: first.end,
+        secondStart: second.start,
+        secondEnd: second.end,
+        bufferMinutes
+      });
+
+      if (overlap) {
+        conflicts.push({
+          gate: first.gate,
+          firstFlight: first.flight,
+          secondFlight: second.flight,
+          firstWindow: `${first.start} - ${first.end}`,
+          secondWindow: `${second.start} - ${second.end}`,
+          bufferMinutes,
+          conflict: true,
+          severity: "HIGH"
+        });
+      }
+    }
+  }
+
+  return conflicts;
+}
+function buildGateOperationsFromTable() {
+  const flights = getGateTableData();
+
+  const operations = flights
+    .filter(flight =>
+      flight.gate &&
+      flight.boardingTime &&
+      flight.departureTime &&
+      flight.boardingTime !== "—" &&
+      flight.departureTime !== "—"
+    )
+    .map(flight => ({
+      gate: flight.gate,
+      flight: flight.flight || "UNASSIGNED",
+      start: flight.boardingTime,
+      end: addMinutesToTime(
+        flight.departureTime,
+        flight.delayMinutes || 0
+      )
+    }));
+
+  Object.entries(upcomingGateOperations).forEach(([gate, operation]) => {
+    operations.push({
+      gate,
+      flight: operation.nextFlight,
+      start: operation.nextBoardingTime,
+      end: addMinutesToTime(operation.nextBoardingTime, 45)
+    });
+  });
+
+  return operations;
+}  /**
    * Public API
    */
   /**
@@ -88,7 +238,12 @@ const gateCapabilities = {
   D14: ["A380-800", "B777-300ER"],
   E02: ["A350-900", "B777-300ER"]
 };
-
+const upcomingGateOperations = {
+  D14: {
+    nextFlight: "EK509",
+    nextBoardingTime: "10:50"
+  }
+};
 /**
  * Find available gates.
  * Returns gates that are:
@@ -417,6 +572,7 @@ function getGateTableData() {
       status: row.dataset.status,
       terminal: row.dataset.terminal,
       timeWindow: row.dataset.time,
+      delayMinutes: Number(row.dataset.delay || 0),
 
       aircraft: cells[3]?.innerText.trim() || "",
       boardingTime: cells[5]?.innerText.trim() || "",
@@ -432,6 +588,176 @@ function getActiveGateConflict() {
     flight => flight.status === "Conflict"
   ) || null;
 }
+function getDelayedFlightImpact() {
+  const flights = getGateTableData();
+
+  const delayedFlight = flights.find(
+    flight => flight.delayMinutes > 0
+  );
+
+  if (!delayedFlight) return null;
+
+  return {
+    flight: delayedFlight.flight,
+    gate: delayedFlight.gate,
+    plannedDeparture: delayedFlight.departureTime,
+    delayMinutes: delayedFlight.delayMinutes,
+    delayedDeparture: addMinutesToTime(
+      delayedFlight.departureTime,
+      delayedFlight.delayMinutes
+    )
+  };
+}
+function evaluateDelayedFlightConflict() {
+  const delayedFlight = getDelayedFlightImpact();
+
+  if (!delayedFlight) return null;
+
+  const nextOperation = upcomingGateOperations[delayedFlight.gate];
+
+  if (!nextOperation) {
+    return {
+      ...delayedFlight,
+      conflict: false,
+      reason: "No upcoming gate operation found."
+    };
+  }
+
+  const impact = analyzeDelayImpact({
+    plannedDeparture: delayedFlight.plannedDeparture,
+    delayMinutes: delayedFlight.delayMinutes,
+    nextBoardingTime: nextOperation.nextBoardingTime,
+    requiredBuffer: 15
+  });
+
+  return {
+    ...delayedFlight,
+    nextFlight: nextOperation.nextFlight,
+    nextBoardingTime: nextOperation.nextBoardingTime,
+    ...impact
+  };
+}
+function renderDelayImpactAlert() {
+  const impact = evaluateDelayedFlightConflict();
+
+  if (!impact || !impact.conflict) return;
+
+  const alertList = document.querySelector(".gate-alert-list");
+
+  if (!alertList) return;
+
+  if (document.querySelector('[data-delay-alert="true"]')) {
+    return;
+  }
+
+  const alert = document.createElement("div");
+
+  alert.className = "gate-alert-item";
+  alert.setAttribute("data-delay-alert", "true");
+
+  alert.innerHTML = `
+    <div class="gate-alert-content">
+
+      <div class="gate-alert-icon">
+        !
+      </div>
+
+      <div>
+
+        <div class="gate-alert-title">
+          Gate ${impact.gate} — Delay Impact Detected
+        </div>
+
+        <div class="gate-alert-description">
+          ${impact.flight} is delayed by ${impact.delayMinutes} minutes.
+          Only ${impact.availableGap} minutes remain before boarding for
+          ${impact.nextFlight}. Required operational buffer is
+          ${impact.requiredBuffer} minutes.
+        </div>
+
+      </div>
+
+    </div>
+
+    <span class="chip chip-warning">
+      ${impact.severity}
+    </span>
+  `;
+
+  alertList.prepend(alert);
+  const alertCount = document.getElementById("operational-alert-count");
+const totalAlerts = document.querySelectorAll(".gate-alert-item").length;
+
+if (alertCount) {
+  alertCount.textContent = `${totalAlerts} Attention Required`;
+}
+}
+function renderTemporalConflictAlert() {
+  const conflicts = detectTemporalGateConflicts(
+    buildGateOperationsFromTable(),
+    15
+  );
+
+  if (!conflicts.length) return;
+
+  const alertList = document.querySelector(".gate-alert-list");
+
+  if (!alertList) return;
+
+  if (document.querySelector('[data-temporal-alert="true"]')) {
+    return;
+  }
+
+  const conflict = conflicts[0];
+
+  const alert = document.createElement("div");
+
+  alert.className = "gate-alert-item";
+  alert.setAttribute("data-temporal-alert", "true");
+
+  alert.innerHTML = `
+    <div class="gate-alert-content">
+
+      <div class="gate-alert-icon error">
+        !
+      </div>
+
+      <div>
+
+        <div class="gate-alert-title">
+          Gate ${conflict.gate} — Temporal Conflict Detected
+        </div>
+
+        <div class="gate-alert-description">
+          ${conflict.firstFlight} and ${conflict.secondFlight}
+          overlap within the required ${conflict.bufferMinutes}-minute
+          operational buffer.
+        </div>
+
+      </div>
+
+    </div>
+
+    <span class="chip chip-error">
+      Conflict
+    </span>
+  `;
+
+  alertList.prepend(alert);
+
+  const alertCount = document.getElementById(
+    "operational-alert-count"
+  );
+
+  const totalAlerts =
+    document.querySelectorAll(".gate-alert-item").length;
+
+  if (alertCount) {
+    alertCount.textContent =
+      `${totalAlerts} Attention Required`;
+  }
+}
+
 
 window.GateIntelligence = {
   timeToMinutes,
@@ -444,7 +770,16 @@ window.GateIntelligence = {
   acceptRecommendation,
   rejectRecommendation,
   getGateTableData,
-  getActiveGateConflict
+  getActiveGateConflict,
+  addMinutesToTime,
+  analyzeDelayImpact,
+  getDelayedFlightImpact,
+  evaluateDelayedFlightConflict,
+  renderDelayImpactAlert,
+  hasTimeOverlap,
+  detectTemporalGateConflicts,
+  buildGateOperationsFromTable,
+  renderTemporalConflictAlert
 };
 
 })();

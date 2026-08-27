@@ -671,6 +671,18 @@ async function loadAdminModule(moduleId) {
     typeof window.GateIntelligence.renderGateRecommendation === "function"
   ) {
     window.GateIntelligence.renderGateRecommendation();
+    if (
+  window.GateIntelligence &&
+  typeof window.GateIntelligence.renderDelayImpactAlert === "function"
+) {
+  window.GateIntelligence.renderDelayImpactAlert();
+  if (
+  window.GateIntelligence &&
+  typeof window.GateIntelligence.renderTemporalConflictAlert === "function"
+) {
+  window.GateIntelligence.renderTemporalConflictAlert();
+}
+}
   }
 }
         return;
