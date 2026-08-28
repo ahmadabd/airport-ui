@@ -16,26 +16,45 @@ window.TowerHub = (function () {
   function resetData() {
     flights = {
       arr: [
-        { id: 'UAE123', type: 'A388', from: 'LHR', rwy: '12L', eta: '14:02', status: 'FINAL', wake: 'HEAVY', seq: 1, alert: true, x: 28, y: 28, hdg: 120, kind: 'arr' },
-        { id: 'QTR456', type: 'A359', from: 'DOH', rwy: '12L', eta: '14:05', status: 'APP', wake: 'HEAVY', seq: 2, x: 42, y: 24, hdg: 118, kind: 'arr' },
-        { id: 'BAW789', type: 'B789', from: 'LHR', rwy: '12R', eta: '14:08', status: 'APP', wake: 'MEDIUM', seq: 3, x: 58, y: 68, hdg: 122, kind: 'arr' },
-        { id: 'DLH221', type: 'A321', from: 'FRA', rwy: '12L', eta: '14:11', status: 'SEQ', wake: 'MEDIUM', seq: 4, x: 72, y: 20, hdg: 120, kind: 'arr' },
+        { id: 'EK123', callsign: 'UAE123', type: 'A388', from: 'LHR', rwy: '12L', eta: '14:02', status: 'FINAL', wake: 'HEAVY', seq: 1, alert: true, x: 28, y: 28, hdg: 120, kind: 'arr' },
+        { id: 'QR456', callsign: 'QTR456', type: 'A359', from: 'DOH', rwy: '12L', eta: '14:05', status: 'APP', wake: 'HEAVY', seq: 2, x: 42, y: 24, hdg: 118, kind: 'arr' },
+        { id: 'BA789', callsign: 'BAW789', type: 'B789', from: 'LHR', rwy: '12R', eta: '14:08', status: 'APP', wake: 'MEDIUM', seq: 3, x: 58, y: 68, hdg: 122, kind: 'arr' },
+        { id: 'LH221', callsign: 'DLH221', type: 'A321', from: 'FRA', rwy: '12L', eta: '14:11', status: 'SEQ', wake: 'MEDIUM', seq: 4, x: 72, y: 20, hdg: 120, kind: 'arr' },
       ],
       dep: [
-        { id: 'EK205', type: 'B77W', to: 'JFK', rwy: '12R', etd: '14:03', status: 'ROLLOUT', wake: 'HEAVY', seq: 1, x: 55, y: 72, hdg: 120, kind: 'dep' },
-        { id: 'FDB312', type: 'B738', to: 'CAI', rwy: '12L', etd: '14:06', status: 'HOLD SHORT', wake: 'MEDIUM', seq: 2, x: 22, y: 48, hdg: 30, kind: 'gnd' },
-        { id: 'UAE501', type: 'A380', to: 'SYD', rwy: '12L', etd: '14:10', status: 'TAXI', wake: 'HEAVY', seq: 3, x: 18, y: 55, hdg: 45, kind: 'gnd' },
-        { id: 'RYR882', type: 'B738', to: 'BUD', rwy: '12R', etd: '14:14', status: 'PUSHBACK', wake: 'MEDIUM', seq: 4, x: 12, y: 78, hdg: 90, kind: 'gnd' },
+        { id: 'EK501', callsign: 'UAE501', type: 'B77W', to: 'CDG', rwy: '12L', etd: '11:20Z', status: 'DELAYED (+9m)', wake: 'HEAVY', seq: 1, alert: true, x: 24, y: 56, hdg: 45, kind: 'gnd' },
+        { id: 'EK303', callsign: 'UAE303', type: 'A359', to: 'FRA', rwy: '12L', etd: '11:35Z', status: 'DELAYED (+15m)', wake: 'HEAVY', seq: 2, alert: true, x: 18, y: 64, hdg: 45, kind: 'gnd' },
+        { id: 'EK205', callsign: 'UAE205', type: 'B77W', to: 'JFK', rwy: '12R', etd: '14:03', status: 'ROLLOUT', wake: 'HEAVY', seq: 3, x: 55, y: 72, hdg: 120, kind: 'dep' },
+        { id: 'FZ312', callsign: 'FDB312', type: 'B738', to: 'CAI', rwy: '12L', etd: '14:06', status: 'HOLD SHORT', wake: 'MEDIUM', seq: 4, x: 22, y: 48, hdg: 30, kind: 'gnd' },
+        { id: 'FR882', callsign: 'RYR882', type: 'B738', to: 'BUD', rwy: '12R', etd: '14:14', status: 'PUSHBACK', wake: 'MEDIUM', seq: 5, x: 12, y: 78, hdg: 90, kind: 'gnd' },
       ],
     }
     recommendations = [
       {
         id: 'rec-1',
-        title: 'Go-Around · UAE123',
-        body: 'Predicted runway conflict on 12L: hold-short / FDB312 vs arrival on short final. Recommend go-around.',
+        title: 'Go-Around · EK123 (UAE123)',
+        body: 'Predicted runway conflict on 12L: hold-short / FZ312 vs arrival on short final. Recommend go-around.',
         rationale: 'CD&R · ETA conflict window 42s',
         level: 'critical',
         action: 'Issue Go-Around',
+        resolved: false,
+      },
+      {
+        id: 'rec-4',
+        title: 'Slot Reassign · EK 501 ➔ 12R (11:29Z)',
+        body: 'Baggage loading delay (+9m) at Gate B22. Reroute departure to 12R at 11:29Z to bypass 12L pushback congestion.',
+        rationale: 'DMAN slot swap · 11:29Z slot available',
+        level: 'priority',
+        action: 'Reassign 12R',
+        resolved: false,
+      },
+      {
+        id: 'rec-5',
+        title: 'Slot Reassign · EK 303 ➔ 12L (11:50Z)',
+        body: 'Refueling delay (+15m) at Gate B07. Resequence departure slot to 11:50Z on 12L.',
+        rationale: 'DMAN pushback sequence · 11:50Z clearance',
+        level: 'priority',
+        action: 'Reassign 12L',
         resolved: false,
       },
       {
@@ -108,7 +127,7 @@ window.TowerHub = (function () {
       el.innerHTML = `
         <div class="th-strip-bar"></div>
         <div>
-          <div><span class="th-strip-cs">${f.id}</span><span class="th-strip-type">${f.type} · ${f.wake}</span></div>
+          <div><span class="th-strip-cs">${f.id}</span><span class="th-strip-type">${f.type} · ${f.wake} ${f.callsign ? '· <span style="font-size:0.75rem;color:var(--text-secondary,#888)">' + f.callsign + '</span>' : ''}</span></div>
           <div class="th-strip-meta"><span>${route}</span><span>RWY <b>${f.rwy}</b></span><span>${time}</span></div>
         </div>
         <div style="text-align:right">
@@ -221,6 +240,14 @@ window.TowerHub = (function () {
     if (id === 'rec-1') {
       setConflictUI(false)
       showToast('Go-Around approved · UAE123')
+    } else if (id === 'rec-4') {
+      reassignFlightSlot('EK 501', '12R', '11:29Z')
+      const topBtn = document.getElementById('btn-reassign-tower-ek501')
+      if (topBtn) topBtn.style.display = 'none'
+    } else if (id === 'rec-5') {
+      reassignFlightSlot('EK 303', '12L', '11:50Z')
+      const topBtn = document.getElementById('btn-reassign-tower-ek303')
+      if (topBtn) topBtn.style.display = 'none'
     } else if (id === 'rec-2') {
       const a = flights.arr.find((f) => f.id === 'BAW789')
       const b = flights.arr.find((f) => f.id === 'DLH221')
@@ -364,6 +391,46 @@ window.TowerHub = (function () {
     motionTimer = null
   }
 
+  function reassignFlightSlot(flightCode, newRunway, newSlot) {
+    if (!flights || !flights.dep) return
+    const flightId = flightCode.replace(/\s+/g, '').replace('EK', 'UAE')
+    const f = flights.dep.find(d => d.id === flightId || d.id === flightCode || d.id === flightCode.replace(' ', ''))
+    if (f) {
+      f.rwy = newRunway
+      f.etd = newSlot
+      f.status = 'PUSHBACK'
+      f.alert = false
+      if (newRunway === '12R') {
+        f.x = 45
+        f.y = 72
+        f.hdg = 120
+      }
+    }
+    const recId = flightCode.includes('501') ? 'rec-4' : flightCode.includes('303') ? 'rec-5' : null
+    if (recId && recommendations) {
+      const rec = recommendations.find(r => r.id === recId)
+      if (rec) rec.resolved = true
+    }
+    renderStrips()
+    renderAircraft()
+    renderRecommendations()
+    showToast(`Slot reassigned: ${flightCode} ➔ RWY ${newRunway} (${newSlot})`)
+  }
+
+  function focusFlight(flightCode) {
+    if (!flights) return
+    const code = flightCode.replace(/\s+/g, '').toUpperCase()
+    const target = allFlights().find(f => f.id === code || (f.callsign && f.callsign === code) || code.includes(f.id) || f.id.includes(code))
+    if (target) {
+      selectedId = target.id
+      activeTab = flights.arr.some((a) => a.id === target.id) ? 'arr' : 'dep'
+      qsa('.th-tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === activeTab))
+      renderStrips()
+      renderAircraft()
+      showToast(`Focused ${target.id} (${target.kind === 'arr' ? 'Arrival' : 'Departure'}) · RWY ${target.rwy}`)
+    }
+  }
+
   function init() {
     root = document.getElementById('tower-hub-root')
     if (!root) return
@@ -379,5 +446,5 @@ window.TowerHub = (function () {
     motionTimer = setInterval(simulateMotion, 1200)
   }
 
-  return { init, destroyTimers }
+  return { init, destroyTimers, reassignFlightSlot, focusFlight }
 })()

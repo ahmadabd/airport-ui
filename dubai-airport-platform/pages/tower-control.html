@@ -48,18 +48,18 @@
           <span class="caption-text" style="font-size: 11px;">Cross-Module Integration</span>
         </div>
         <div style="font-weight: 700; font-size: 14px; color: var(--color-warning); margin-top: 4px;">
-          Pushback Bottleneck: EK 501 (+9m at Gate B22) & EK 303 (+15m at Gate B07) Delayed
+          Pushback Bottleneck: <a href="javascript:void(0)" onclick="window.TowerHub && window.TowerHub.focusFlight('EK501')" style="color: var(--color-primary); text-decoration: underline; font-weight: 800;">EK 501</a> (+9m at Gate B22) & <a href="javascript:void(0)" onclick="window.TowerHub && window.TowerHub.focusFlight('EK303')" style="color: var(--color-primary); text-decoration: underline; font-weight: 800;">EK 303</a> (+15m at Gate B07) Delayed
         </div>
         <div class="supporting-text" style="font-size: 12px; margin-top: 2px;">
           Reassign departure slots & runway sequence to prevent pushback congestion on Taxiway K & Runway 12L/12R
         </div>
       </div>
 
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-primary" style="height: 34px; width: auto; padding: 0 12px; font-size: 11px; background-color: var(--color-primary);" onclick="if(window.OCC_SHARED_STATE){window.OCC_SHARED_STATE.reassignTowerSlot('EK 501', '12R', '11:29Z');}">
+      <div style="display: flex; gap: 8px;" id="turnaround-tower-actions">
+        <button class="btn-primary" style="height: 34px; width: auto; padding: 0 12px; font-size: 11px; background-color: var(--color-primary);" onclick="reassignTowerAlert('EK 501', '12R', '11:29Z', this)">
           Reassign EK 501 ➔ Runway 12R (11:29Z)
         </button>
-        <button class="btn-primary" style="height: 34px; width: auto; padding: 0 12px; font-size: 11px; background-color: var(--color-warning); border: none;" onclick="if(window.OCC_SHARED_STATE){window.OCC_SHARED_STATE.reassignTowerSlot('EK 303', '12L', '11:50Z');}">
+        <button class="btn-primary" style="height: 34px; width: auto; padding: 0 12px; font-size: 11px; background-color: var(--color-warning); border: none;" onclick="reassignTowerAlert('EK 303', '12L', '11:50Z', this)">
           Reassign EK 303 ➔ Runway 12L (11:50Z)
         </button>
       </div>
@@ -167,5 +167,41 @@
 
 <script src="js/tower-hub.js"></script>
 <script>
-  if (window.TowerHub) window.TowerHub.init()
+  function reassignTowerAlert(flightCode, newRunway, newSlot, btnElement) {
+    if (window.OCC_SHARED_STATE) {
+      window.OCC_SHARED_STATE.reassignTowerSlot(flightCode, newRunway, newSlot);
+    } else {
+      alert(`[Tower Control] Departure Slot Reassigned for ${flightCode}: Moved to Runway ${newRunway} at ${newSlot}!`);
+    }
+
+    if (window.TowerHub && typeof window.TowerHub.reassignFlightSlot === 'function') {
+      window.TowerHub.reassignFlightSlot(flightCode, newRunway, newSlot);
+    }
+
+    // Hide the clicked button
+    if (btnElement) {
+      btnElement.style.display = 'none';
+    }
+
+    // Check if any buttons remain visible in the action container
+    const container = document.getElementById('turnaround-tower-actions');
+    if (container) {
+      const visibleButtons = Array.from(container.querySelectorAll('button')).filter(b => b.style.display !== 'none');
+      if (visibleButtons.length === 0) {
+        const banner = document.getElementById('turnaround-tower-telemetry-banner');
+        if (banner) {
+          banner.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          banner.style.opacity = '0';
+          banner.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            banner.style.display = 'none';
+          }, 300);
+        }
+      }
+    }
+  }
+
+  window.reassignTowerAlert = reassignTowerAlert;
+
+  if (window.TowerHub) window.TowerHub.init();
 </script>

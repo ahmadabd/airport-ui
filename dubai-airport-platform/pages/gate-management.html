@@ -475,11 +475,11 @@
         </p>
       </div>
 
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-primary" style="height: 36px; width: auto; padding: 0 14px; font-size: 12px; background-color: var(--color-primary);" onclick="if(window.OCC_SHARED_STATE){window.OCC_SHARED_STATE.reassignGate('EK 501', 'A18');}">
+      <div style="display: flex; gap: 8px;" id="turnaround-gate-actions">
+        <button id="btn-reassign-gate-ek501" class="btn-primary" style="height: 36px; width: auto; padding: 0 14px; font-size: 12px; background-color: var(--color-primary);" onclick="reassignGateAlert('EK 501', 'A18', this)">
           Reassign EK 501 ➔ Gate A18
         </button>
-        <button class="btn-primary" style="height: 36px; width: auto; padding: 0 14px; font-size: 12px; background-color: var(--color-warning); border: none;" onclick="if(window.OCC_SHARED_STATE){window.OCC_SHARED_STATE.reassignGate('EK 303', 'C07');}">
+        <button id="btn-reassign-gate-ek303" class="btn-primary" style="height: 36px; width: auto; padding: 0 14px; font-size: 12px; background-color: var(--color-warning); border: none;" onclick="reassignGateAlert('EK 303', 'C07', this)">
           Reassign EK 303 ➔ Gate C07
         </button>
       </div>
@@ -887,11 +887,56 @@
 
 
           <tr
+            data-gate="A18"
+            data-flight=""
+            data-route=""
+            data-status="Available"
+            data-terminal="T3"
+            data-time=""
+          >
+
+            <td>
+              <span class="gate-code">A18</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="route-text">—</span>
+            </td>
+
+            <td>—</td>
+
+            <td>
+              <span class="chip chip-success">
+                Available
+              </span>
+            </td>
+
+            <td>—</td>
+
+            <td>—</td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('A18')"
+              >
+                Assign
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
             data-gate="B07"
-            data-flight="EK317"
+            data-flight="EK303"
             data-route="FRA"
             data-status="Change Required"
-            data-terminal="T1"
+            data-terminal="T3"
             data-time="next"
           >
 
@@ -900,7 +945,7 @@
             </td>
 
             <td>
-              <span class="flight-number">EK317</span>
+              <span class="flight-number">EK303</span>
             </td>
 
             <td>
@@ -918,19 +963,72 @@
             </td>
 
             <td>
-              <span class="time-main">09:10</span>
+              <span class="time-main">10:55</span>
             </td>
 
             <td>
-              <span class="time-main">09:55</span>
+              <span class="time-main">11:35</span>
             </td>
 
-            <td>T1</td>
+            <td>T3</td>
 
             <td>
               <button
                 class="gate-action-btn"
                 onclick="openGateDetails('B07')"
+              >
+                Change
+              </button>
+            </td>
+
+          </tr>
+
+
+          <tr
+            data-gate="B22"
+            data-flight="EK501"
+            data-route="CDG"
+            data-status="Change Required"
+            data-terminal="T3"
+            data-time="next"
+          >
+
+            <td>
+              <span class="gate-code">B22</span>
+            </td>
+
+            <td>
+              <span class="flight-number">EK501</span>
+            </td>
+
+            <td>
+              <span class="route-text">DXB → CDG</span>
+            </td>
+
+            <td>
+              <span class="aircraft-text">B777-300ER</span>
+            </td>
+
+            <td>
+              <span class="chip chip-warning">
+                Change Required
+              </span>
+            </td>
+
+            <td>
+              <span class="time-main">10:55</span>
+            </td>
+
+            <td>
+              <span class="time-main">11:20</span>
+            </td>
+
+            <td>T3</td>
+
+            <td>
+              <button
+                class="gate-action-btn"
+                onclick="openGateDetails('B22')"
               >
                 Change
               </button>
@@ -1277,91 +1375,48 @@
     </div>
 
 
-    <div class="gate-alert-list">
+    <div class="gate-alert-list" id="operational-gate-alert-list">
 
-<div class="gate-alert-item" data-alert-gate="A04">
+      <div class="gate-alert-item" data-alert-gate="A04" id="alert-item-a04">
         <div class="gate-alert-content">
-
-          <div class="gate-alert-icon error">
-            !
-          </div>
-
+          <div class="gate-alert-icon error">!</div>
           <div>
-
-            <div class="gate-alert-title">
-              Gate A04 — Assignment Conflict
-            </div>
-
-            <div class="gate-alert-description">
-              Gate occupancy overlaps with the planned turnaround window for EK412.
-            </div>
-
+            <div class="gate-alert-title">Gate A04 — Assignment Conflict</div>
+            <div class="gate-alert-description">Gate occupancy overlaps with the planned turnaround window for EK412.</div>
           </div>
-
         </div>
-
-        <span class="chip chip-error">
-          Conflict
-        </span>
-
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="chip chip-error">Conflict</span>
+          <button class="btn-primary" style="height: 28px; width: auto; padding: 0 10px; font-size: 11px; background-color: var(--color-primary);" onclick="reassignOperationalAlert('A04', 'A03', 'EK412', this)">Reassign ➔ A03</button>
+        </div>
       </div>
 
-
-      <div class="gate-alert-item">
-
+      <div class="gate-alert-item" data-alert-gate="B07" id="alert-item-b07">
         <div class="gate-alert-content">
-
-          <div class="gate-alert-icon">
-            !
-          </div>
-
+          <div class="gate-alert-icon">!</div>
           <div>
-
-            <div class="gate-alert-title">
-              Gate B07 — Change Required
-            </div>
-
-            <div class="gate-alert-description">
-              Aircraft compatibility requires reassignment before boarding starts.
-            </div>
-
+            <div class="gate-alert-title">Gate B07 — Change Required</div>
+            <div class="gate-alert-description">Aircraft compatibility requires reassignment before boarding starts.</div>
           </div>
-
         </div>
-
-        <span class="chip chip-warning">
-          Action Required
-        </span>
-
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="chip chip-warning">Action Required</span>
+          <button class="btn-primary" style="height: 28px; width: auto; padding: 0 10px; font-size: 11px; background-color: var(--color-warning); border: none;" onclick="reassignOperationalAlert('B07', 'C07', 'EK303', this)">Reassign ➔ C07</button>
+        </div>
       </div>
 
-
-      <div class="gate-alert-item">
-
+      <div class="gate-alert-item" data-alert-gate="C07" id="alert-item-c07">
         <div class="gate-alert-content">
-
-          <div class="gate-alert-icon">
-            !
-          </div>
-
+          <div class="gate-alert-icon">!</div>
           <div>
-
-            <div class="gate-alert-title">
-              Gate C07 — Assignment Opportunity
-            </div>
-
-            <div class="gate-alert-description">
-              Gate is currently available for the next eligible flight.
-            </div>
-
+            <div class="gate-alert-title">Gate C07 — Assignment Opportunity</div>
+            <div class="gate-alert-description">Gate is currently available for the next eligible flight.</div>
           </div>
-
         </div>
-
-        <span class="chip chip-info">
-          Available
-        </span>
-
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="chip chip-info">Available</span>
+          <button class="btn-secondary" style="height: 28px; width: auto; padding: 0 10px; font-size: 11px;" onclick="reassignOperationalAlert('C07', 'C07', 'EK303', this)">Assign EK303</button>
+        </div>
       </div>
 
     </div>
@@ -1504,7 +1559,7 @@
       <button
         class="btn-primary"
         style="width:auto; flex:1;"
-        onclick="alert('Gate change workflow opened for this demo.')"
+        onclick="handleChangeGatePrompt()"
       >
         Change Gate
       </button>
@@ -1730,6 +1785,142 @@
       .classList.add('open');
 
   }
+
+  let activeGateId = null;
+
+  function handleChangeGatePrompt() {
+    const titleEl = document.getElementById('gate-detail-title');
+    const currentGate = titleEl ? titleEl.textContent.replace('Gate', '').trim() : '';
+    const flightEl = document.getElementById('detail-flight');
+    const currentFlight = flightEl ? flightEl.textContent.trim() : '';
+    
+    const newGate = prompt(`Reassign flight ${currentFlight} from Gate ${currentGate} to:`, 'C07');
+    if (!newGate || newGate.trim().toUpperCase() === currentGate.toUpperCase()) return;
+
+    reassignOperationalAlert(currentGate, newGate.trim().toUpperCase(), currentFlight);
+    closeGateDetails();
+  }
+
+  function reassignGateAlert(flightCode, newGate, btnElement) {
+    if (window.OCC_SHARED_STATE) {
+      window.OCC_SHARED_STATE.reassignGate(flightCode, newGate);
+    } else {
+      alert(`[OCC Dispatch] Gate Reassigned for ${flightCode} ➔ Gate ${newGate}!`);
+    }
+
+    if (flightCode.includes('303')) {
+      updateGateTableRow('B07', '', '', 'Available', '', '—', '—', '—', '—', '—');
+      updateGateTableRow('C07', 'EK303', 'FRA', 'Assigned', 'next', 'EK303', 'DXB → FRA', 'A350-900', '10:55', '11:35');
+      resolveAlertItem('alert-item-b07');
+    }
+
+    if (flightCode.includes('501')) {
+      updateGateTableRow('B22', '', '', 'Available', '', '—', '—', '—', '—', '—');
+      updateGateTableRow('A18', 'EK501', 'CDG', 'Assigned', 'next', 'EK501', 'DXB → CDG', 'B777-300ER', '10:55', '11:20');
+    }
+
+    if (btnElement) {
+      btnElement.style.display = 'none';
+    }
+
+    const container = document.getElementById('turnaround-gate-actions');
+    if (container) {
+      const visibleButtons = Array.from(container.querySelectorAll('button')).filter(b => b.style.display !== 'none');
+      if (visibleButtons.length === 0) {
+        const banner = document.getElementById('turnaround-gate-telemetry-banner');
+        if (banner) {
+          banner.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          banner.style.opacity = '0';
+          banner.style.transform = 'translateY(-10px)';
+          setTimeout(() => {
+            banner.style.display = 'none';
+          }, 300);
+        }
+      }
+    }
+
+    filterGateTable();
+  }
+
+  function reassignOperationalAlert(oldGate, newGate, flightCode, btnElement) {
+    if (window.OCC_SHARED_STATE) {
+      window.OCC_SHARED_STATE.reassignGate(flightCode, newGate);
+    } else {
+      alert(`[OCC Dispatch] Gate Reassigned: ${flightCode} moved from Gate ${oldGate} ➔ Gate ${newGate}!`);
+    }
+
+    if (oldGate === 'A04') {
+      updateGateTableRow('A04', '', '', 'Available', '', '—', '—', '—', '—', '—');
+      updateGateTableRow('A03', 'EK412', 'SYD', 'Assigned', 'next', 'EK412', 'DXB → SYD', 'A380-800', '10:15', '11:00');
+      resolveAlertItem('alert-item-a04');
+    } else if (oldGate === 'B07') {
+      updateGateTableRow('B07', '', '', 'Available', '', '—', '—', '—', '—', '—');
+      updateGateTableRow('C07', 'EK303', 'FRA', 'Assigned', 'next', 'EK303', 'DXB → FRA', 'A350-900', '10:55', '11:35');
+      resolveAlertItem('alert-item-b07');
+      const topBtn = document.getElementById('btn-reassign-gate-ek303');
+      if (topBtn) topBtn.style.display = 'none';
+    } else if (oldGate === 'C07') {
+      updateGateTableRow('C07', 'EK303', 'FRA', 'Assigned', 'next', 'EK303', 'DXB → FRA', 'A350-900', '10:55', '11:35');
+      resolveAlertItem('alert-item-c07');
+    }
+
+    filterGateTable();
+  }
+
+  function updateGateTableRow(gateCode, flight, route, status, time, flightText, routeText, aircraftText, boardingText, departureText) {
+    const row = document.querySelector(`#gate-table-body tr[data-gate="${gateCode}"]`);
+    if (!row) return;
+
+    row.dataset.flight = flight;
+    row.dataset.route = route;
+    row.dataset.status = status;
+    row.dataset.time = time;
+
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 8) {
+      cells[1].innerHTML = flightText !== '—' ? `<span class="flight-number">${flightText}</span>` : '—';
+      cells[2].innerHTML = routeText !== '—' ? `<span class="route-text">${routeText}</span>` : '—';
+      cells[3].innerHTML = aircraftText !== '—' ? `<span class="aircraft-text">${aircraftText}</span>` : '—';
+      cells[4].innerHTML = `<span class="chip ${getGateStatusClass(status)}">${status}</span>`;
+      cells[5].innerHTML = boardingText !== '—' ? `<span class="time-main">${boardingText}</span>` : '—';
+      cells[6].innerHTML = departureText !== '—' ? `<span class="time-main">${departureText}</span>` : '—';
+      if (cells[8]) {
+        const actionBtn = cells[8].querySelector('button');
+        if (actionBtn) {
+          actionBtn.textContent = status === 'Available' ? 'Assign' : status.includes('Required') || status === 'Conflict' ? 'Resolve' : 'View';
+        }
+      }
+    }
+  }
+
+  function resolveAlertItem(itemId) {
+    const item = document.getElementById(itemId);
+    if (!item) return;
+
+    item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+    item.style.opacity = '0';
+    item.style.transform = 'translateX(20px)';
+    setTimeout(() => {
+      item.style.display = 'none';
+      updateAlertCounters();
+    }, 300);
+  }
+
+  function updateAlertCounters() {
+    const list = document.getElementById('operational-gate-alert-list');
+    if (!list) return;
+    const visibleAlerts = Array.from(list.querySelectorAll('.gate-alert-item')).filter(el => el.style.display !== 'none').length;
+    
+    const countBadge = document.getElementById('operational-alert-count');
+    if (countBadge) countBadge.textContent = `${visibleAlerts} Attention Required`;
+
+    const kpiBadge = document.getElementById('gate-alert-count');
+    if (kpiBadge) kpiBadge.textContent = visibleAlerts;
+  }
+
+  window.reassignGateAlert = reassignGateAlert;
+  window.reassignOperationalAlert = reassignOperationalAlert;
+  window.handleChangeGatePrompt = handleChangeGatePrompt;
 
 
   function getGateStatusClass(status) {
