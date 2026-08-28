@@ -1097,6 +1097,7 @@
             data-status="Assigned"
             data-terminal="T1"
             data-time="next"
+            data-delay="20"
           >
 
             <td>
@@ -1211,7 +1212,43 @@
     </div>
 
   </div>
+<!-- =======================================================
+     INTELLIGENT RECOMMENDATION PANEL
+     ======================================================= -->
 
+<div class="gate-section-card" id="gate-ai-section">
+
+  <div class="gate-section-header">
+
+    <div class="gate-section-title">
+      <h2 class="section-title">
+        AI Operational Recommendation
+      </h2>
+
+      <span class="supporting-text">
+        Automated gate conflict analysis and recommended operational action
+      </span>
+    </div>
+
+    <span class="chip chip-info">
+      Decision Support
+    </span>
+
+  </div>
+
+  <div id="gate-ai-recommendation">
+
+    <div style="padding: 24px;">
+
+      <p class="supporting-text">
+        No active recommendation. The system is continuously analyzing gate operations.
+      </p>
+
+    </div>
+
+  </div>
+
+</div>
 
   <!-- =======================================================
        ALERTS
@@ -1233,17 +1270,16 @@
 
       </div>
 
-      <span class="chip chip-warning">
-        3 Attention Required
-      </span>
+<span class="chip chip-warning" id="operational-alert-count">
+  3 Attention Required
+</span>
 
     </div>
 
 
     <div class="gate-alert-list">
 
-      <div class="gate-alert-item">
-
+<div class="gate-alert-item" data-alert-gate="A04">
         <div class="gate-alert-content">
 
           <div class="gate-alert-icon error">

@@ -753,6 +753,7 @@ function handleStaffLogin() {
 /* —— OCC modules —— */
 async function loadAdminModule(moduleId) {
   const role = normalizeRole(currentUser.role)
+
   if (!canAccessModule(role, moduleId)) {
     alert(`Role "${getAccess(role).label}" cannot access this module.`)
     moduleId = getDefaultModule(role) || 'dashboard'
@@ -781,30 +782,80 @@ async function loadAdminModule(moduleId) {
   }
 
   try {
-    const response = await fetch(`pages/${moduleId}.html`)
+
+    const response = await fetch(`pages/${moduleId}.html?v=${Date.now()}`)
+
     if (response.ok) {
       const htmlText = await response.text()
       const cleaned = htmlText.replace(/<!--[\s\S]*?-->/g, '').trim()
+
       if (cleaned.length > 40) {
-        if (window.TowerHub && window.TowerHub.destroyTimers) window.TowerHub.destroyTimers()
+        if (
+          window.TowerHub &&
+          window.TowerHub.destroyTimers
+        ) {
+          window.TowerHub.destroyTimers()
+        }
+
         host.innerHTML = htmlText
-        // Re-run inline scripts only (tower-hub.js is loaded globally from index.html)
+
+        // Re-run inline scripts only
         host.querySelectorAll('script').forEach((oldScript) => {
           if (oldScript.src) {
             oldScript.remove()
             return
           }
+
           const newScript = document.createElement('script')
           newScript.textContent = oldScript.textContent
           oldScript.parentNode.replaceChild(newScript, oldScript)
         })
-        if (moduleId === 'tower-control' && window.TowerHub) window.TowerHub.init()
+
+        // Initialize Tower module
+        if (
+          moduleId === 'tower-control' &&
+          window.TowerHub
+        ) {
+          window.TowerHub.init()
+        }
+
+        // Initialize Gate Management Intelligence
+        if (moduleId === 'gate-management') {
+          if (typeof filterGateTable === 'function') {
+            filterGateTable()
+          }
+
+          if (window.GateIntelligence) {
+            if (
+              typeof window.GateIntelligence.renderGateRecommendation === 'function'
+            ) {
+              window.GateIntelligence.renderGateRecommendation()
+            }
+
+            if (
+              typeof window.GateIntelligence.renderDelayImpactAlert === 'function'
+            ) {
+              window.GateIntelligence.renderDelayImpactAlert()
+            }
+
+            if (
+              typeof window.GateIntelligence.renderTemporalConflictAlert === 'function'
+            ) {
+              window.GateIntelligence.renderTemporalConflictAlert()
+            }
+          }
+        }
+
         return
       }
     }
-  } catch {
-    /* fallback */
+  } catch (error) {
+    console.error(
+      `[Emirates-DXB] Failed to load module: ${moduleId}`,
+      error
+    )
   }
+    /* fallback */
 
   renderModulePlaceholder(host, moduleId)
 }
