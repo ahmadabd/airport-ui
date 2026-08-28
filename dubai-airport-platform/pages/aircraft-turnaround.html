@@ -222,19 +222,19 @@
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">Gate Management</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-gate-text">Gate A14 • Boarding</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('gate-management');">Open Gate Ops</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('gate-management')">Open Gate Ops</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">CrewFlow</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-crew-text">24/24 Crew Verified</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('crew-flow');">Open CrewFlow</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('crew-flow')">Open CrewFlow</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
                 <span class="caption-text">Tower Control</span>
                 <p style="font-weight: 600; font-size: 13px; margin: 2px 0 6px;" id="rel-tower-text">Pushback Pending</p>
-                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="switchRoute('admin'); loadAdminModule('tower-control');">Open Tower Control</button>
+                <button class="btn-secondary" style="height: 30px; font-size: 11px;" onclick="loadAdminModule('tower-control')">Open Tower Control</button>
               </div>
 
               <div style="padding: 10px; background: var(--bg-secondary); border-radius: 8px;">
@@ -317,6 +317,9 @@
 
 <!-- Interactive Engine for Aircraft Turnaround Module -->
 <script>
+(function () {
+  'use strict';
+
   // Complete Mock Data Database for 6 Aircraft Turnarounds
   const TURNAROUND_FLIGHTS_DATA = [
     {
@@ -619,19 +622,24 @@
   let selectedFlightCode = 'EK202';
   let activeTurnaroundList = [...TURNAROUND_FLIGHTS_DATA];
 
-  // Initialize Module on Load
-  document.addEventListener('DOMContentLoaded', () => {
-    initTurnaroundModule();
-  });
-
-  // Call initialization immediately if loaded via SPA fetcher
-  setTimeout(() => {
-    initTurnaroundModule();
-  }, 50);
-
   function initTurnaroundModule() {
-    applyTurnaroundFilters();
-    selectTurnaroundFlight(selectedFlightCode);
+    const curUser = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : (window.currentUser || null);
+    if (curUser && curUser.role) {
+      const userRole = typeof normalizeRole === 'function' ? normalizeRole(curUser.role) : curUser.role;
+      const roleMap = {
+        'admin': 'Airport Operations Manager',
+        'ops': 'Ground Operations Manager',
+        'tower': 'Tower Controller',
+        'customer': 'Passenger',
+        'guest': 'Passenger'
+      };
+      if (roleMap[userRole]) {
+        currentRBACRole = roleMap[userRole];
+      }
+    }
+    const rbacSelect = document.getElementById('rbac-role-select');
+    if (rbacSelect) rbacSelect.value = currentRBACRole;
+    updateRBACRole(currentRBACRole);
   }
 
   // 13. RBAC Permission System Implementation
@@ -954,10 +962,11 @@
             </div>
           </div>
 
-          <!-- Actions based on RBAC -->
-          <div style="display: flex; gap: 8px;">
-            <button class="btn-primary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Escalate', '${flight.flight}')">Escalate Delay</button>
-            <button class="btn-secondary" style="height: 38px; font-size: 13px;" onclick="handleDelayAction('Reassign', '${flight.flight}')">Reassign Baggage Team</button>
+          <!-- Cross-module Action Controls -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button class="btn-primary" style="height: 36px; font-size: 12px;" onclick="handleDelayAction('Escalate', '${flight.flight}')">Escalate Delay</button>
+            <button class="btn-secondary" style="height: 36px; font-size: 12px;" onclick="window.OCC_SHARED_STATE ? window.OCC_SHARED_STATE.reassignGate('${flight.flight}', 'A18') : alert('Gate reassigned')">Reassign Gate ➔ A18</button>
+            <button class="btn-primary" style="height: 36px; font-size: 12px; background-color: var(--color-warning); border: none;" onclick="window.OCC_SHARED_STATE ? window.OCC_SHARED_STATE.reassignTowerSlot('${flight.flight}', '12R', '11:29Z') : alert('Slot reassigned')">Reassign Tower Slot ➔ 12R</button>
           </div>
         `;
       }
@@ -1120,4 +1129,18 @@
       alert(`New Task '${taskName}' created and assigned by ${currentRBACRole}.`);
     }
   }
+
+  // Export handlers to window for inline HTML onclick/onchange attributes
+  window.updateRBACRole = updateRBACRole;
+  window.applyTurnaroundFilters = applyTurnaroundFilters;
+  window.resetTurnaroundFilters = resetTurnaroundFilters;
+  window.selectTurnaroundFlight = selectTurnaroundFlight;
+  window.handleTaskAction = handleTaskAction;
+  window.handleDelayAction = handleDelayAction;
+  window.handleCreateTaskPrompt = handleCreateTaskPrompt;
+  window.initTurnaroundModule = initTurnaroundModule;
+
+  // Immediately initialize module
+  initTurnaroundModule();
+})();
 </script>

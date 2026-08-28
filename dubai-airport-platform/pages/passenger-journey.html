@@ -2,6 +2,45 @@
      Displays live booking & online check-in records submitted from the public Passenger
      Portal (#portal). Data is shared via the DXB_PASSENGER_BOOKINGS localStorage key. -->
 
+<style>
+  /* Passenger Journey (admin) motion — scoped to #pj-wrapper only. */
+  #pj-wrapper .pj-row-enter {
+    opacity: 0;
+    animation: pjRowEnter 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes pjRowEnter {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  #pj-wrapper .btn-secondary {
+    transition: background-color 0.15s ease, transform 0.12s ease;
+  }
+  #pj-wrapper .btn-secondary:active {
+    transform: scale(0.96);
+  }
+
+  #pj-wrapper [id^="pj-kpi-"] {
+    display: inline-block;
+    transition: transform 0.2s ease;
+  }
+  #pj-wrapper .pj-kpi-pulse {
+    animation: pjKpiPulse 0.4s ease;
+  }
+  @keyframes pjKpiPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #pj-wrapper .pj-row-enter,
+    #pj-wrapper .pj-kpi-pulse {
+      animation: none !important;
+    }
+  }
+</style>
+
 <div id="pj-wrapper">
 
   <!-- Page Header -->
@@ -113,6 +152,7 @@
             <th style="padding: 12px 16px; text-align: left;">Route</th>
             <th style="padding: 12px 16px; text-align: left;">Class</th>
             <th style="padding: 12px 16px; text-align: left;">Seat</th>
+            <th style="padding: 12px 16px; text-align: left;">Meal</th>
             <th style="padding: 12px 16px; text-align: left;">Gate</th>
             <th style="padding: 12px 16px; text-align: left;">Boarding</th>
             <th style="padding: 12px 16px; text-align: left;">Status</th>
@@ -166,16 +206,25 @@
       pjRenderTable(rows);
     }
 
+    function pjSetKpi(id, value) {
+      const el = document.getElementById(id);
+      if (el.textContent === String(value)) return;
+      el.textContent = value;
+      el.classList.remove('pj-kpi-pulse');
+      void el.offsetWidth; // force reflow so the pulse re-triggers on repeated changes
+      el.classList.add('pj-kpi-pulse');
+    }
+
     function pjRenderKPIs(all) {
       const checkedIn = all.filter(pjIsCheckedIn).length;
       const revenue = all.reduce((sum, b) => sum + (b.fare || 0), 0);
       const rate = all.length ? Math.round((checkedIn / all.length) * 100) : 0;
 
-      document.getElementById('pj-kpi-total').textContent = all.length;
-      document.getElementById('pj-kpi-checkedin').textContent = checkedIn;
-      document.getElementById('pj-kpi-pending').textContent = all.length - checkedIn;
-      document.getElementById('pj-kpi-rate').textContent = rate + '%';
-      document.getElementById('pj-kpi-revenue').textContent = '$' + revenue.toLocaleString('en-US');
+      pjSetKpi('pj-kpi-total', all.length);
+      pjSetKpi('pj-kpi-checkedin', checkedIn);
+      pjSetKpi('pj-kpi-pending', all.length - checkedIn);
+      pjSetKpi('pj-kpi-rate', rate + '%');
+      pjSetKpi('pj-kpi-revenue', '$' + revenue.toLocaleString('en-US'));
     }
 
     function pjRenderTable(rows) {
@@ -186,7 +235,7 @@
       if (rows.length === 0) {
         body.innerHTML = `
           <tr>
-            <td colspan="9" style="padding: 32px; text-align: center;">
+            <td colspan="10" style="padding: 32px; text-align: center;">
               <p class="supporting-text" style="margin-bottom: 12px;">
                 No passenger bookings yet. Records appear here as soon as a passenger books a flight
                 or completes online check-in in the public Passenger Portal.
@@ -200,16 +249,17 @@
         return;
       }
 
-      body.innerHTML = rows.map(b => {
+      body.innerHTML = rows.map((b, index) => {
         const checkedIn = pjIsCheckedIn(b);
         return `
-          <tr style="border-bottom: 1px solid var(--border-color);">
+          <tr class="pj-row-enter" style="border-bottom: 1px solid var(--border-color); animation-delay: ${index * 45}ms;">
             <td style="padding: 12px 16px; font-weight: 600; color: var(--color-gold);">${b.ref}</td>
             <td style="padding: 12px 16px; font-weight: 600;">${b.name}</td>
             <td style="padding: 12px 16px;">${b.flight}</td>
             <td style="padding: 12px 16px;">${b.route}</td>
             <td style="padding: 12px 16px;">${b.cabinClass}</td>
             <td style="padding: 12px 16px;">${b.seat}${b.seat === '—' ? '' : ' <span class="caption-text">(' + b.seatPreference + ')</span>'}</td>
+            <td style="padding: 12px 16px;">${b.mealPreference || 'Standard'}</td>
             <td style="padding: 12px 16px;">${b.gate}</td>
             <td style="padding: 12px 16px;">${b.boarding}</td>
             <td style="padding: 12px 16px;">

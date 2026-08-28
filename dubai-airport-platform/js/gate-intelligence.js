@@ -481,6 +481,13 @@ if (conflict) {
     }
   }
 }
+const availableGateRow = Array.from(
+  document.querySelectorAll('tr[data-gate="A03"]')
+).find(row => row.dataset.status === "Available");
+
+if (availableGateRow) {
+  availableGateRow.remove();
+}
 const remainingConflict = getActiveGateConflict();
 const resolvedAlert = document.querySelector(
   '[data-alert-gate="A04"]'
@@ -496,7 +503,12 @@ const remainingAlerts = document.querySelectorAll(".gate-alert-item").length;
 if (alertCount) {
   alertCount.textContent = `${remainingAlerts} Attention Required`;
 }
-  container.innerHTML = `
+const kpiAlertCount = document.getElementById("gate-alert-count");
+
+if (kpiAlertCount) {
+  kpiAlertCount.textContent = remainingAlerts;
+}  
+container.innerHTML = `
   <div style="padding:24px;">
 
     <div style="font-size:14px; margin-bottom:8px;">
@@ -690,6 +702,11 @@ const totalAlerts = document.querySelectorAll(".gate-alert-item").length;
 
 if (alertCount) {
   alertCount.textContent = `${totalAlerts} Attention Required`;
+}
+const kpiAlertCount = document.getElementById("gate-alert-count");
+
+if (kpiAlertCount) {
+  kpiAlertCount.textContent = totalAlerts;
 }
 }
 function renderTemporalConflictAlert() {

@@ -1,116 +1,984 @@
-<!-- CrewFlow Module — Emirates–DXB Prototype -->
+<!-- Crew Operations Control — synchronized with the CrewFlow mobile prototype -->
 
-<!-- Header Card -->
-<div class="card">
-  <div class="card-header">
+<style>
+  #crew-ops-control {
+    --co-ink: #1d1b1a;
+    --co-muted: #716c66;
+    --co-line: #ded8d1;
+    --co-soft: #faf8f5;
+    --co-red: #c8102e;
+    color: var(--co-ink);
+  }
+
+  #crew-ops-control * { box-sizing: border-box; }
+  #crew-ops-control .co-header,
+  #crew-ops-control .co-row,
+  #crew-ops-control .co-between { display: flex; align-items: center; }
+  #crew-ops-control .co-header,
+  #crew-ops-control .co-between { justify-content: space-between; }
+  #crew-ops-control .co-header { gap: 16px; margin-bottom: 16px; }
+  #crew-ops-control .co-row { gap: 8px; }
+  #crew-ops-control .co-wrap { flex-wrap: wrap; }
+  #crew-ops-control .co-stack { display: flex; flex-direction: column; gap: 12px; }
+
+  #crew-ops-control .co-flight {
+    background: linear-gradient(135deg, #b90e29, #d71a21);
+    color: #fff;
+    border: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  #crew-ops-control .co-flight::after {
+    content: "";
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border: 36px solid rgba(255, 255, 255, .08);
+    border-radius: 50%;
+    right: -70px;
+    top: -95px;
+  }
+  #crew-ops-control .co-flight-grid {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) repeat(5, minmax(90px, 1fr));
+    gap: 16px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  #crew-ops-control .co-route { font-size: 28px; font-weight: 800; letter-spacing: -.02em; }
+  #crew-ops-control .co-flight-label { color: rgba(255,255,255,.72); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  #crew-ops-control .co-flight-value { color: #fff; font-size: 14px; font-weight: 700; margin-top: 3px; }
+
+  #crew-ops-control .co-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  #crew-ops-control .co-kpi {
+    background: #fff;
+    border: 1px solid var(--co-line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03);
+  }
+  #crew-ops-control .co-kpi-label { color: var(--co-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  #crew-ops-control .co-kpi-value { font-size: 26px; font-weight: 800; margin-top: 4px; }
+
+  #crew-ops-control .co-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, .9fr);
+    gap: 16px;
+    align-items: start;
+  }
+  #crew-ops-control .co-card {
+    background: #fff;
+    border: 1px solid var(--co-line);
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  }
+  #crew-ops-control .co-section-title { font-size: 16px; font-weight: 750; margin: 0; }
+  #crew-ops-control .co-help { color: var(--co-muted); font-size: 12px; line-height: 1.5; }
+
+  #crew-ops-control .co-steps {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px;
+    margin-top: 14px;
+  }
+  #crew-ops-control .co-step {
+    min-height: 88px;
+    border: 1px solid var(--co-line);
+    border-radius: 10px;
+    padding: 10px;
+    background: var(--co-soft);
+  }
+  #crew-ops-control .co-step.co-done { border-color: #a6f4c5; background: #ecfdf3; }
+  #crew-ops-control .co-step.co-current { border-color: #fdb022; background: #fffaeb; }
+  #crew-ops-control .co-step-index {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #eee9e3;
+    color: var(--co-muted);
+    font-size: 11px;
+    font-weight: 800;
+  }
+  #crew-ops-control .co-step.co-done .co-step-index { background: #067647; color: #fff; }
+  #crew-ops-control .co-step-name { display: block; font-size: 12px; font-weight: 700; margin-top: 8px; }
+  #crew-ops-control .co-step-time { display: block; color: var(--co-muted); font-size: 10px; margin-top: 3px; }
+
+  #crew-ops-control .co-roster {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  #crew-ops-control .co-person {
+    width: 100%;
+    border: 1px solid var(--co-line);
+    border-radius: 11px;
+    padding: 12px;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+  }
+  #crew-ops-control .co-person:hover,
+  #crew-ops-control .co-person.co-selected { border-color: var(--co-red); box-shadow: 0 0 0 2px rgba(200,16,46,.08); }
+  #crew-ops-control .co-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f3efe9;
+    color: var(--co-red);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex: 0 0 auto;
+  }
+  #crew-ops-control .co-name { font-size: 13px; font-weight: 750; }
+  #crew-ops-control .co-meta { color: var(--co-muted); font-size: 11px; margin-top: 2px; }
+  #crew-ops-control .co-progress { height: 5px; background: #eee9e3; border-radius: 99px; overflow: hidden; margin-top: 10px; }
+  #crew-ops-control .co-progress > span { display: block; height: 100%; background: var(--co-red); border-radius: inherit; }
+
+  #crew-ops-control .co-chip {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    border: 1px solid;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+  }
+  #crew-ops-control .co-chip-ready,
+  #crew-ops-control .co-chip-resolved { color: #067647; background: #ecfdf3; border-color: #a6f4c5; }
+  #crew-ops-control .co-chip-open,
+  #crew-ops-control .co-chip-action { color: #b42318; background: #fef3f2; border-color: #fecdca; }
+  #crew-ops-control .co-chip-triaged,
+  #crew-ops-control .co-chip-proposed { color: #b54708; background: #fffaeb; border-color: #fedf89; }
+  #crew-ops-control .co-chip-neutral { color: #344054; background: #f2f4f7; border-color: #d0d5dd; }
+
+  #crew-ops-control .co-issue {
+    border: 1px solid var(--co-line);
+    border-left: 4px solid #fdb022;
+    border-radius: 10px;
+    padding: 13px;
+    background: #fff;
+  }
+  #crew-ops-control .co-issue.co-blocking { border-left-color: #d92d20; background: #fffafa; }
+  #crew-ops-control .co-issue + .co-issue { margin-top: 10px; }
+  #crew-ops-control .co-issue-title { font-size: 13px; font-weight: 750; }
+  #crew-ops-control .co-issue-copy { color: var(--co-muted); font-size: 12px; line-height: 1.45; margin-top: 6px; }
+  #crew-ops-control .co-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 11px; }
+  #crew-ops-control .co-btn {
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--co-line);
+    background: #fff;
+    color: var(--co-ink);
+    padding: 0 11px;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #crew-ops-control .co-btn:hover { background: #f8f5f1; }
+  #crew-ops-control .co-btn:disabled { opacity: .5; cursor: not-allowed; }
+  #crew-ops-control .co-btn:disabled:hover { background: #fff; }
+  #crew-ops-control .co-btn-primary { background: var(--co-red); border-color: var(--co-red); color: #fff; }
+  #crew-ops-control .co-btn-primary:hover { background: #a60f2d; }
+  #crew-ops-control .co-btn-primary:disabled:hover { background: var(--co-red); }
+  #crew-ops-control .co-btn-success { color: #067647; border-color: #75e0a7; background: #ecfdf3; }
+  #crew-ops-control .co-task {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 0;
+    border-bottom: 1px solid #eee9e3;
+    font-size: 12px;
+  }
+  #crew-ops-control .co-task:last-child { border-bottom: 0; }
+  #crew-ops-control .co-proposal { border: 1px solid #fdb022; background: #fffaeb; border-radius: 11px; padding: 13px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-picker { border: 1px solid #d0d5dd; background: #f9fafb; border-radius: 11px; padding: 13px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-list { display: grid; gap: 8px; margin-top: 10px; }
+  #crew-ops-control .co-candidate-option {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid var(--co-line);
+    border-radius: 9px;
+    background: #fff;
+    padding: 10px;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+  #crew-ops-control .co-candidate-option:hover { border-color: #fda29b; }
+  #crew-ops-control .co-candidate-option.co-selected { border-color: var(--co-red); box-shadow: 0 0 0 2px rgba(200,16,46,.08); }
+  #crew-ops-control .co-radio {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border: 1px solid #98a2b3;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: inset 0 0 0 4px #fff;
+  }
+  #crew-ops-control .co-candidate-option.co-selected .co-radio { border-color: var(--co-red); background: var(--co-red); }
+  #crew-ops-control .co-audit { padding: 9px 0; border-bottom: 1px solid #eee9e3; }
+  #crew-ops-control .co-audit:last-child { border-bottom: 0; }
+  #crew-ops-control .co-empty { padding: 24px 12px; text-align: center; border: 1px dashed var(--co-line); border-radius: 10px; color: var(--co-muted); font-size: 12px; }
+
+  @media (max-width: 980px) {
+    #crew-ops-control .co-flight-grid { grid-template-columns: repeat(3, 1fr); }
+    #crew-ops-control .co-flight-main { grid-column: 1 / -1; }
+    #crew-ops-control .co-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 680px) {
+    #crew-ops-control .co-header { align-items: flex-start; flex-direction: column; }
+    #crew-ops-control .co-kpis { grid-template-columns: repeat(2, 1fr); }
+    #crew-ops-control .co-steps { grid-template-columns: 1fr; }
+    #crew-ops-control .co-roster { grid-template-columns: 1fr; }
+    #crew-ops-control .co-flight-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+
+<div id="crew-ops-control">
+  <div class="co-header">
     <div>
-      <span class="caption-text">Flight Operations • EK 001</span>
-      <h1 class="page-title">CrewFlow Roster</h1>
+      <span class="caption-text">DXB Operations · Crew control</span>
+      <h1 class="page-title" style="margin: 2px 0 4px;">Crew Operations Control</h1>
+      <p class="supporting-text">The admin view uses the same flight, roster, journey and issue records as the CrewFlow app.</p>
     </div>
-    <span class="chip chip-completed">
-      <span class="chip-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      </span>
-      In progress
-    </span>
+    <div class="co-row co-wrap">
+      <span class="co-chip co-chip-ready" id="co-sync-badge">● Synced</span>
+      <button class="co-btn" data-action="refresh">↻ Refresh</button>
+      <button class="co-btn co-btn-primary" data-action="open-app">Open Crew App ↗</button>
+    </div>
   </div>
 
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    Flight crew assignment and duty roster for flight EK 001 (DXB → LHR).
-  </p>
+  <section class="card co-flight" id="co-flight"></section>
+  <section class="co-kpis" id="co-kpis"></section>
 
-  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: var(--bg-secondary); padding: 12px; border-radius: 12px;">
-    <div>
-      <span class="caption-text">Flight</span>
-      <p class="body-text" style="font-weight: 600;">EK 001</p>
+  <div class="co-layout">
+    <div class="co-stack">
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Sara Rahimi · duty journey</h2>
+            <p class="co-help">Mirrors the five operational stages visible in the mobile CrewFlow app.</p>
+          </div>
+          <span id="co-journey-status"></span>
+        </div>
+        <div class="co-steps" id="co-steps"></div>
+      </section>
+
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Flight crew roster</h2>
+            <p class="co-help">EK 001 assigned crew; select a member to inspect their assignment.</p>
+          </div>
+          <span class="co-chip co-chip-neutral" id="co-roster-count"></span>
+        </div>
+        <div class="co-roster" id="co-roster"></div>
+      </section>
+
+      <section class="co-card">
+        <div class="co-between co-wrap" style="gap: 10px;">
+          <div>
+            <h2 class="co-section-title">Crew reports & follow-up</h2>
+            <p class="co-help">Issues submitted in CrewFlow appear here and remain visible through resolution.</p>
+          </div>
+          <select class="input-field" id="co-issue-filter" style="width: 170px; height: 36px; font-size: 12px;">
+            <option value="active">Active reports</option>
+            <option value="all">All reports</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div id="co-issues" style="margin-top: 14px;"></div>
+      </section>
     </div>
-    <div>
-      <span class="caption-text">Route</span>
-      <p class="body-text" style="font-weight: 600;">DXB → LHR</p>
-    </div>
-    <div>
-      <span class="caption-text">Date</span>
-      <p class="body-text" style="font-weight: 600;">Tue, 4 Aug</p>
-    </div>
-    <div>
-      <span class="caption-text">Boarding</span>
-      <p class="body-text" style="font-weight: 600;">08:30</p>
-    </div>
+
+    <aside class="co-stack">
+      <section class="co-card" id="co-member-detail"></section>
+      <section class="co-card">
+        <h2 class="co-section-title">Replacement eligibility</h2>
+        <p class="co-help" style="margin-top: 4px;">Candidates must be on standby, have 12+ hours rest and hold SEP, First Aid and A380 rating.</p>
+        <div id="co-standby" style="margin-top: 12px;"></div>
+      </section>
+      <section class="co-card">
+        <div class="co-between">
+          <h2 class="co-section-title">Audit trail</h2>
+          <span class="co-chip co-chip-neutral">Local prototype</span>
+        </div>
+        <div id="co-audit" style="margin-top: 8px;"></div>
+      </section>
+    </aside>
   </div>
 </div>
 
-<!-- Active Crew Members Card -->
-<div class="card">
-  <div class="card-header">
-    <h2 class="card-title">Assigned Crew Members</h2>
-    <span class="supporting-text">4 Verified</span>
-  </div>
+<script>
+  (function () {
+    var root = document.getElementById('crew-ops-control')
+    if (!root) return
 
-  <div style="display: flex; flex-direction: column; gap: 12px;">
-    <!-- Crew Member 1 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Capt. Tariq Al-Mansoor</p>
-        <span class="supporting-text">Commander • B777 Fleet</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
+    var OPS_KEY = 'crewflow_ops_v1'
+    var JOURNEY_KEY = 'crewflow_journey'
+    var CREW_ID = 'EK-CC-2847'
+    var selectedCrewId = CREW_ID
+    var issueFilter = 'active'
+    var replacementPickerIssueId = null
+    var selectedReplacementCandidateId = null
+    var state = readState()
 
-    <!-- Crew Member 2 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">FO Sarah Jenkins</p>
-        <span class="supporting-text">First Officer • A380 Fleet</span>
-      </div>
-      <span class="chip chip-completed">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        </span>
-        Completed
-      </span>
-    </div>
+    function nowIso() {
+      return new Date().toISOString()
+    }
 
-    <!-- Crew Member 3 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">Purser Omar Hassan</p>
-        <span class="supporting-text">Senior Purser • Cabin Crew</span>
-      </div>
-      <span class="chip chip-in-progress">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        </span>
-        In progress
-      </span>
-    </div>
+    function defaultState() {
+      return {
+        version: 1,
+        updatedAt: nowIso(),
+        flight: {
+          id: 'EK001-2026-08-04',
+          number: 'EK 001',
+          route: 'DXB → LHR',
+          origin: 'DXB',
+          destination: 'LHR',
+          date: 'Tue, 4 Aug',
+          aircraft: 'Airbus A380',
+          gate: 'B22',
+          reportTime: '07:30',
+          briefingTime: '07:45',
+          briefingRoom: 'C14',
+          boardingTime: '08:30',
+          departure: '09:15'
+        },
+        roster: [
+          { id: 'EK-FD-1184', name: 'Omar Hassan', role: 'Captain', assignment: 'Flight deck · Commander', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: 'EK-FD-2291', name: 'David Chen', role: 'First Officer', assignment: 'Flight deck', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: 'EK-CC-1021', name: 'Maria Santos', role: 'Purser', assignment: 'Cabin lead', fleet: 'A380', status: 'Ready', progress: 100 },
+          { id: CREW_ID, name: 'Sara Rahimi', role: 'Cabin Crew', assignment: 'Zone B · Door 2L', fleet: 'A380', status: 'Awaiting check-in', progress: 0 }
+        ],
+        standby: [
+          { id: 'EK-CC-3118', name: 'Noura Al Falasi', role: 'Cabin Crew', fleet: 'A380', availability: 'Standby', restHours: 18, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 12 },
+          { id: 'EK-CC-3372', name: 'Leila Haddad', role: 'Cabin Crew', fleet: 'A380', availability: 'Standby', restHours: 14, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 25 },
+          { id: 'EK-CC-2044', name: 'Maya Singh', role: 'Cabin Crew', fleet: 'B777', availability: 'Standby', restHours: 20, certifications: ['SEP', 'FA', 'ATR-B777'], proximityMinutes: 8 },
+          { id: 'EK-CC-2980', name: 'Elena Petrova', role: 'Cabin Crew', fleet: 'A380', availability: 'Assigned', restHours: 9, certifications: ['SEP', 'FA', 'ATR-A380'], proximityMinutes: 10 }
+        ],
+        journey: {
+          crewMemberId: CREW_ID,
+          updateAcknowledged: false,
+          acknowledgedAt: null,
+          checkInComplete: false,
+          checkInAt: null,
+          briefingComplete: false,
+          briefingAt: null,
+          tasksComplete: false,
+          tasksAt: null,
+          readinessComplete: false,
+          readinessAt: null,
+          taskStates: {
+            task1: 'pending',
+            task2: 'pending',
+            task3: 'pending',
+            task4: 'pending',
+            task5: 'pending',
+            task6: 'pending'
+          }
+        },
+        issues: [],
+        notifications: [],
+        audit: []
+      }
+    }
 
-    <!-- Crew Member 4 -->
-    <div style="padding: 12px; background: var(--bg-secondary); border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <p class="body-text" style="font-weight: 600; font-size: 15px;">FA Elena Rostova</p>
-        <span class="supporting-text">Cabin Attendant • Standby</span>
-      </div>
-      <span class="chip chip-action-required">
-        <span class="chip-icon">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        </span>
-        Action required
-      </span>
-    </div>
-  </div>
-</div>
+    function safeParse(raw) {
+      try {
+        return raw ? JSON.parse(raw) : null
+      } catch (error) {
+        return null
+      }
+    }
 
-<!-- Primary CTA Card (Single Primary CTA per screen rule) -->
-<div class="card">
-  <p class="supporting-text" style="margin-bottom: 12px;">
-    One required task is still incomplete. Confirm crew check-in to finalize the flight duty manifest.
-  </p>
-  <button class="btn-primary" onclick="alert('Crew check-in manifest confirmed for EK 001')">
-    Confirm Crew Check-In
-  </button>
-</div>
+    function readState() {
+      var fallback = defaultState()
+      var parsed = safeParse(localStorage.getItem(OPS_KEY))
+      if (!parsed) parsed = fallback
+      var normalized = Object.assign({}, fallback, parsed)
+      normalized.flight = Object.assign({}, fallback.flight, parsed.flight || {})
+      normalized.journey = Object.assign({}, fallback.journey, parsed.journey || {})
+      normalized.roster = Array.isArray(parsed.roster) ? parsed.roster : fallback.roster
+      normalized.standby = Array.isArray(parsed.standby) ? parsed.standby : fallback.standby
+      normalized.issues = Array.isArray(parsed.issues) ? parsed.issues : []
+      normalized.notifications = Array.isArray(parsed.notifications) ? parsed.notifications : []
+      normalized.audit = Array.isArray(parsed.audit) ? parsed.audit : []
+      return mergeJourney(normalized)
+    }
+
+    function mergeJourney(ops) {
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey) return ops
+      var previousById = {}
+      ops.issues.forEach(function (issue) { previousById[issue.id] = issue })
+      var journeyIssues = Array.isArray(journey.issues) ? journey.issues : []
+      var mergedIssues = journeyIssues.map(function (issue) {
+        var existing = previousById[issue.id] || {}
+        return Object.assign({}, issue, existing, {
+          id: issue.id,
+          ref: issue.ref,
+          title: issue.title,
+          relatedItem: issue.relatedItem,
+          category: issue.category,
+          description: issue.description,
+          blocking: issue.blocking,
+          taskId: issue.taskId,
+          createdAt: issue.createdAt || existing.createdAt || nowIso(),
+          updatedAt: existing.updatedAt || issue.updatedAt || nowIso(),
+          flightId: issue.flightId || ops.flight.id,
+          crewMemberId: issue.crewMemberId || CREW_ID
+        })
+      })
+      ops.issues.forEach(function (issue) {
+        if (!mergedIssues.some(function (item) { return item.id === issue.id })) mergedIssues.push(issue)
+      })
+      ops.issues = mergedIssues
+      ops.journey = Object.assign({}, ops.journey, {
+        crewMemberId: journey.user && journey.user.employeeId ? journey.user.employeeId : CREW_ID,
+        updateAcknowledged: !!journey.updateAcknowledged,
+        acknowledgedAt: journey.acknowledgedAt || null,
+        checkInComplete: !!journey.checkInComplete,
+        checkInAt: journey.checkInAt || null,
+        briefingComplete: !!journey.briefingComplete,
+        briefingAt: journey.briefingAt || null,
+        tasksComplete: !!journey.tasksComplete,
+        tasksAt: journey.tasksAt || null,
+        readinessComplete: !!journey.readinessComplete,
+        readinessAt: journey.readinessAt || null,
+        taskStates: journey.taskStates || ops.journey.taskStates
+      })
+      updateCrewProgress(ops)
+      return ops
+    }
+
+    function updateCrewProgress(ops) {
+      var activeBlocker = ops.issues.some(function (issue) {
+        return issue.crewMemberId === CREW_ID && issue.status !== 'Resolved' && (issue.blocking || isReplacementEligible(issue))
+      })
+      var status = 'Awaiting check-in'
+      var progress = 0
+      if (activeBlocker) {
+        status = 'Action required'
+        progress = 50
+      } else if (ops.journey.readinessComplete) {
+        status = 'Ready'
+        progress = 100
+      } else if (ops.journey.tasksComplete) {
+        status = 'Readiness pending'
+        progress = 90
+      } else if (ops.journey.briefingComplete) {
+        status = 'Tasks in progress'
+        progress = 66
+      } else if (ops.journey.checkInComplete) {
+        status = 'Briefing pending'
+        progress = 33
+      }
+      ops.roster = ops.roster.map(function (member) {
+        return member.id === CREW_ID && member.status !== 'Replaced' ? Object.assign({}, member, { status: status, progress: progress, assignmentStatus: status === 'Action required' ? 'unavailable' : 'active', active: status !== 'Action required', canOperate: status !== 'Action required' }) : member
+      })
+    }
+
+    function saveState(eventText) {
+      state.updatedAt = nowIso()
+      if (eventText) {
+        state.audit.unshift({
+          id: 'AUD-' + Date.now(),
+          at: state.updatedAt,
+          actor: 'Crew Control',
+          event: eventText
+        })
+        state.audit = state.audit.slice(0, 20)
+      }
+      localStorage.setItem(OPS_KEY, JSON.stringify(state))
+    }
+
+    function patchJourneyIssue(issueId, patchData) {
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey || !Array.isArray(journey.issues)) return
+      journey.issues = journey.issues.map(function (issue) {
+        return issue.id === issueId ? Object.assign({}, issue, patchData) : issue
+      })
+      if (journey.crewJourneys) {
+        Object.keys(journey.crewJourneys).forEach(function (crewMemberId) {
+          var personalJourney = journey.crewJourneys[crewMemberId]
+          if (!personalJourney || !Array.isArray(personalJourney.issues)) return
+          personalJourney.issues = personalJourney.issues.map(function (issue) {
+            return issue.id === issueId ? Object.assign({}, issue, patchData) : issue
+          })
+        })
+      }
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(journey))
+    }
+
+    function applyJourneyTaskOutcome(issue, taskState) {
+      if (!issue || !issue.taskId) return
+      state.journey.taskStates = Object.assign({}, state.journey.taskStates, {})
+      state.journey.taskStates[issue.taskId] = taskState
+      state.journey.tasksComplete = false
+      state.journey.tasksAt = null
+      state.journey.readinessComplete = false
+      state.journey.readinessAt = null
+
+      var journey = safeParse(localStorage.getItem(JOURNEY_KEY))
+      if (!journey) return
+      journey.taskStates = Object.assign({}, journey.taskStates || {})
+      journey.taskStates[issue.taskId] = taskState
+      journey.tasksComplete = false
+      journey.tasksAt = null
+      journey.readinessDeclaration = false
+      journey.readinessComplete = false
+      journey.readinessAt = null
+      localStorage.setItem(JOURNEY_KEY, JSON.stringify(journey))
+    }
+
+    function escapeHtml(value) {
+      return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
+    }
+
+    function initials(name) {
+      return String(name).split(' ').map(function (part) { return part.charAt(0) }).slice(0, 2).join('').toUpperCase()
+    }
+
+    function formatDate(value) {
+      if (!value) return 'Not recorded'
+      var date = new Date(value)
+      if (Number.isNaN(date.getTime())) return escapeHtml(value)
+      return date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    }
+
+    function statusClass(status) {
+      var normalized = String(status || '').toLowerCase()
+      if (normalized === 'ready' || normalized === 'resolved') return 'co-chip-ready'
+      if (normalized === 'open' || normalized === 'action required') return 'co-chip-open'
+      if (normalized === 'triaged') return 'co-chip-triaged'
+      if (normalized === 'replacement proposed') return 'co-chip-proposed'
+      return 'co-chip-neutral'
+    }
+
+    function renderFlight() {
+      var f = state.flight
+      document.getElementById('co-flight').innerHTML =
+        '<div class="co-flight-grid">' +
+          '<div class="co-flight-main">' +
+            '<div class="co-flight-label">Current operation</div>' +
+            '<div class="co-route">' + escapeHtml(f.number) + ' · ' + escapeHtml(f.route) + '</div>' +
+            '<div style="font-size:12px;color:rgba(255,255,255,.76);margin-top:4px;">' + escapeHtml(f.date) + ' · ' + escapeHtml(f.aircraft) + '</div>' +
+          '</div>' +
+          flightFact('Report', f.reportTime) +
+          flightFact('Briefing', f.briefingTime + ' · ' + f.briefingRoom) +
+          flightFact('Boarding', f.boardingTime) +
+          flightFact('Gate', f.gate) +
+          flightFact('Departure', f.departure) +
+        '</div>'
+    }
+
+    function flightFact(label, value) {
+      return '<div><div class="co-flight-label">' + escapeHtml(label) + '</div><div class="co-flight-value">' + escapeHtml(value) + '</div></div>'
+    }
+
+    function renderKpis() {
+      var ready = state.roster.filter(function (member) { return member.status === 'Ready' }).length
+      var activeIssues = state.issues.filter(function (issue) { return issue.status !== 'Resolved' }).length
+      var blocking = state.issues.filter(function (issue) { return issue.blocking && issue.status !== 'Resolved' }).length
+      var proposed = state.issues.filter(function (issue) { return issue.status === 'Replacement proposed' }).length
+      var data = [
+        ['Assigned crew', state.roster.length, state.flight.number],
+        ['Ready', ready, 'Manifest status'],
+        ['Active reports', activeIssues, blocking + ' blocking'],
+        ['Replacement cases', proposed, 'Awaiting decision']
+      ]
+      document.getElementById('co-kpis').innerHTML = data.map(function (item, index) {
+        var color = index === 2 && activeIssues ? '#b42318' : index === 1 ? '#067647' : 'var(--co-ink)'
+        return '<div class="co-kpi"><div class="co-kpi-label">' + escapeHtml(item[0]) + '</div><div class="co-kpi-value" style="color:' + color + ';">' + escapeHtml(item[1]) + '</div><div class="co-help">' + escapeHtml(item[2]) + '</div></div>'
+      }).join('')
+    }
+
+    function renderSteps() {
+      var j = state.journey
+      var taskDone = Object.values(j.taskStates || {}).filter(function (value) { return value === 'completed' }).length
+      var steps = [
+        { name: 'Update', done: j.updateAcknowledged, time: j.acknowledgedAt, note: 'Location acknowledged' },
+        { name: 'Check-in', done: j.checkInComplete, time: j.checkInAt, note: 'Duty declarations' },
+        { name: 'Briefing', done: j.briefingComplete, time: j.briefingAt, note: 'Operational review' },
+        { name: 'Tasks', done: j.tasksComplete, time: j.tasksAt, note: taskDone + ' of 6 complete' },
+        { name: 'Readiness', done: j.readinessComplete, time: j.readinessAt, note: 'Boarding release' }
+      ]
+      var firstPending = steps.findIndex(function (step) { return !step.done })
+      document.getElementById('co-steps').innerHTML = steps.map(function (step, index) {
+        var className = step.done ? 'co-done' : index === firstPending ? 'co-current' : ''
+        return '<div class="co-step ' + className + '">' +
+          '<span class="co-step-index">' + (step.done ? '✓' : index + 1) + '</span>' +
+          '<span class="co-step-name">' + escapeHtml(step.name) + '</span>' +
+          '<span class="co-step-time">' + escapeHtml(step.done ? (step.time || 'Completed') : step.note) + '</span>' +
+        '</div>'
+      }).join('')
+      var sara = state.roster.find(function (member) { return member.id === CREW_ID })
+      document.getElementById('co-journey-status').innerHTML =
+        '<span class="co-chip ' + statusClass(sara ? sara.status : '') + '">' + escapeHtml(sara ? sara.status : 'Unknown') + '</span>'
+    }
+
+    function renderRoster() {
+      document.getElementById('co-roster-count').textContent = state.roster.length + ' assigned'
+      document.getElementById('co-roster').innerHTML = state.roster.map(function (member) {
+        return '<button class="co-person ' + (member.id === selectedCrewId ? 'co-selected' : '') + '" data-action="select-crew" data-id="' + escapeHtml(member.id) + '">' +
+          '<div class="co-between" style="align-items:flex-start;gap:8px;">' +
+            '<div class="co-row" style="align-items:flex-start;">' +
+              '<span class="co-avatar">' + escapeHtml(initials(member.name)) + '</span>' +
+              '<span><span class="co-name">' + escapeHtml(member.name) + '</span><span class="co-meta" style="display:block;">' + escapeHtml(member.role) + ' · ' + escapeHtml(member.assignment) + '</span><span class="co-meta" style="display:block;">' + escapeHtml(member.id) + ' · ' + escapeHtml(member.fleet) + '</span></span>' +
+            '</div>' +
+            '<span class="co-chip ' + statusClass(member.status) + '">' + escapeHtml(member.status) + '</span>' +
+          '</div>' +
+          '<div class="co-progress"><span style="width:' + Math.max(0, Math.min(100, member.progress || 0)) + '%;"></span></div>' +
+        '</button>'
+      }).join('')
+    }
+
+    function renderMemberDetail() {
+      var member = state.roster.find(function (item) { return item.id === selectedCrewId }) || state.roster[0]
+      if (!member) return
+      var html =
+        '<div class="co-between" style="align-items:flex-start;gap:10px;">' +
+          '<div class="co-row" style="align-items:flex-start;">' +
+            '<span class="co-avatar">' + escapeHtml(initials(member.name)) + '</span>' +
+            '<div><h2 class="co-section-title">' + escapeHtml(member.name) + '</h2><p class="co-help">' + escapeHtml(member.id) + '</p></div>' +
+          '</div>' +
+          '<span class="co-chip ' + statusClass(member.status) + '">' + escapeHtml(member.status) + '</span>' +
+        '</div>' +
+        '<div style="margin-top:14px;">' +
+          detailRow('Role', member.role) +
+          detailRow('Assignment', member.assignment) +
+          detailRow('Fleet qualification', member.fleet) +
+          detailRow('Duty progress', (member.progress || 0) + '%') +
+        '</div>'
+      if (member.id === CREW_ID) {
+        var taskNames = {
+          task1: 'Inspect Door 2L area',
+          task2: 'Verify safety equipment',
+          task3: 'Inspect Zone B cabin',
+          task4: 'Review special assistance',
+          task5: 'Confirm service setup',
+          task6: 'Confirm Zone B ready'
+        }
+        html += '<h3 style="font-size:12px;margin:16px 0 4px;">Mobile task status</h3>'
+        html += Object.keys(taskNames).map(function (taskId) {
+          var taskStatus = state.journey.taskStates[taskId] || 'pending'
+          return '<div class="co-task"><span>' + escapeHtml(taskNames[taskId]) + '</span><span class="co-chip ' + (taskStatus === 'completed' ? 'co-chip-ready' : taskStatus === 'blocked' ? 'co-chip-open' : 'co-chip-neutral') + '">' + escapeHtml(taskStatus) + '</span></div>'
+        }).join('')
+      }
+      document.getElementById('co-member-detail').innerHTML = html
+    }
+
+    function detailRow(label, value) {
+      return '<div class="co-between" style="padding:8px 0;border-bottom:1px solid #eee9e3;gap:12px;"><span class="co-help">' + escapeHtml(label) + '</span><strong style="font-size:12px;text-align:right;">' + escapeHtml(value) + '</strong></div>'
+    }
+
+    function visibleIssues() {
+      if (issueFilter === 'resolved') return state.issues.filter(function (issue) { return issue.status === 'Resolved' })
+      if (issueFilter === 'all') return state.issues
+      return state.issues.filter(function (issue) { return issue.status !== 'Resolved' })
+    }
+
+    function isReplacementEligible(issue) {
+      return issue && (issue.category === 'Not fit for duty' || issue.category === 'Cannot complete assigned duty')
+    }
+
+    function renderReplacementPicker(issue, member) {
+      if (replacementPickerIssueId !== issue.id) return ''
+      var candidates = member ? eligibleCandidates(member) : []
+      if (!candidates.length) {
+        return '<div class="co-candidate-picker"><strong style="font-size:12px;">No eligible replacement found</strong><p class="co-help" style="margin-top:4px;">No standby crew member currently matches role, fleet, rest and certification rules.</p><div class="co-actions"><button class="co-btn" data-action="cancel-replacement" data-id="' + escapeHtml(issue.id) + '">Close</button></div></div>'
+      }
+      var options = candidates.map(function (candidate, index) {
+        var selected = candidate.id === selectedReplacementCandidateId
+        return '<button type="button" class="co-candidate-option ' + (selected ? 'co-selected' : '') + '" data-action="select-replacement" data-id="' + escapeHtml(issue.id) + '" data-candidate-id="' + escapeHtml(candidate.id) + '" aria-pressed="' + (selected ? 'true' : 'false') + '">' +
+          '<span class="co-row" style="align-items:flex-start;"><span class="co-radio"></span><span><strong style="display:block;font-size:12px;">' + escapeHtml(candidate.name) + (index === 0 ? ' · Recommended' : '') + '</strong><span class="co-meta" style="display:block;">' + escapeHtml(candidate.id) + ' · ' + escapeHtml(candidate.fleet) + ' · ' + candidate.restHours + 'h rest · ' + candidate.proximityMinutes + ' min away</span></span></span>' +
+          '<span class="co-chip co-chip-ready">' + candidateScore(candidate) + '% match</span>' +
+        '</button>'
+      }).join('')
+      return '<div class="co-candidate-picker">' +
+        '<strong style="font-size:12px;">Choose a standby replacement</strong>' +
+        '<p class="co-help" style="margin-top:4px;">Candidates are ranked by eligibility, but Crew Control must select one before confirmation.</p>' +
+        '<div class="co-candidate-list">' + options + '</div>' +
+        '<div class="co-actions"><button class="co-btn" data-action="cancel-replacement" data-id="' + escapeHtml(issue.id) + '">Cancel</button><button class="co-btn co-btn-primary" data-action="review-replacement" data-id="' + escapeHtml(issue.id) + '" ' + (selectedReplacementCandidateId ? '' : 'disabled') + '>Review selected candidate</button></div>' +
+      '</div>'
+    }
+
+    function renderIssues() {
+      var issues = visibleIssues()
+      var host = document.getElementById('co-issues')
+      if (!issues.length) {
+        host.innerHTML = '<div class="co-empty"><strong>No ' + (issueFilter === 'resolved' ? 'resolved' : 'active') + ' Crew reports</strong><br>Submit an issue in the CrewFlow app, then return here or press Refresh.</div>'
+        return
+      }
+      host.innerHTML = issues.map(function (issue) {
+        var member = state.roster.find(function (item) { return item.id === issue.crewMemberId })
+        var proposal = issue.replacementCandidateId ? state.standby.find(function (candidate) { return candidate.id === issue.replacementCandidateId }) : null
+        var actions = ''
+        if (isReplacementEligible(issue) && issue.status !== 'Resolved' && issue.status !== 'Replacement proposed' && replacementPickerIssueId !== issue.id) actions += '<button class="co-btn co-btn-primary" data-action="propose" data-id="' + escapeHtml(issue.id) + '">Suggest replacement</button>'
+        if (issue.status !== 'Resolved') actions += '<button class="co-btn co-btn-success" data-action="resolve" data-id="' + escapeHtml(issue.id) + '">Resolve</button>'
+        var proposalHtml = proposal ?
+          '<div class="co-proposal"><div class="co-between co-wrap" style="gap:8px;"><div><strong style="font-size:12px;">Replacement confirmation</strong><div class="co-help" style="margin-top:3px;">' + escapeHtml(member ? member.name : issue.crewMemberId || 'Crew member') + ' → ' + escapeHtml(proposal.name) + ' · ' + escapeHtml(state.flight.number) + ' · ' + escapeHtml(proposal.fleet) + '</div><div class="co-help">' + escapeHtml(proposal.id) + ' · ' + proposal.restHours + 'h rest · ' + proposal.proximityMinutes + ' min away</div></div>' +
+          (issue.status === 'Resolved' ? '<span class="co-chip co-chip-ready">Confirmed</span>' : '<button class="co-btn co-btn-primary" data-action="confirm-replacement" data-id="' + escapeHtml(issue.id) + '">Confirm replacement</button>') +
+          '</div></div>' : ''
+        var pickerHtml = renderReplacementPicker(issue, member)
+        return '<article class="co-issue ' + (issue.blocking && issue.status !== 'Resolved' ? 'co-blocking' : '') + '">' +
+          '<div class="co-between co-wrap" style="align-items:flex-start;gap:8px;">' +
+            '<div><div class="co-issue-title">' + escapeHtml(issue.ref || issue.id) + ' · ' + escapeHtml(issue.title) + '</div><div class="co-meta">' + escapeHtml(member ? member.name : issue.crewMemberId || 'Crew member') + ' · ' + escapeHtml(issue.relatedItem || state.flight.number) + ' · ' + formatDate(issue.createdAt) + '</div></div>' +
+            '<div class="co-row co-wrap"><span class="co-chip ' + statusClass(issue.status) + '">' + escapeHtml(issue.status || 'Open') + '</span>' + (issue.blocking ? '<span class="co-chip co-chip-open">Blocking</span>' : '') + '</div>' +
+          '</div>' +
+          '<p class="co-issue-copy">' + escapeHtml(issue.description || 'No description provided.') + '</p>' +
+          (issue.assignedTo ? '<p class="co-meta" style="margin-top:7px;">Owner: <strong>' + escapeHtml(issue.assignedTo) + '</strong></p>' : '') +
+          (issue.resolutionNote ? '<p class="co-meta" style="margin-top:5px;">Resolution: <strong>' + escapeHtml(issue.resolutionNote) + '</strong></p>' : '') +
+          '<div class="co-actions">' + actions + '</div>' +
+          pickerHtml +
+          proposalHtml +
+        '</article>'
+      }).join('')
+    }
+
+    function isEligible(candidate, member) {
+      return candidate.role === member.role &&
+        candidate.fleet === member.fleet &&
+        candidate.availability === 'Standby' &&
+        candidate.restHours >= 12 &&
+        ['SEP', 'FA', 'ATR-A380'].every(function (cert) { return candidate.certifications.indexOf(cert) >= 0 })
+    }
+
+    function candidateScore(candidate) {
+      return Math.min(99, Math.round(70 + Math.min(12, candidate.restHours - 12) + Math.max(0, 20 - candidate.proximityMinutes) / 2))
+    }
+
+    function eligibleCandidates(member) {
+      return state.standby.filter(function (candidate) { return isEligible(candidate, member) }).sort(function (a, b) {
+        return candidateScore(b) - candidateScore(a)
+      })
+    }
+
+    function renderStandby() {
+      var target = state.roster.find(function (member) { return member.id === CREW_ID })
+      var eligible = target ? eligibleCandidates(target) : []
+      document.getElementById('co-standby').innerHTML = state.standby.map(function (candidate) {
+        var valid = !!target && isEligible(candidate, target)
+        return '<div style="padding:10px 0;border-bottom:1px solid #eee9e3;">' +
+          '<div class="co-between" style="gap:8px;"><strong style="font-size:12px;">' + escapeHtml(candidate.name) + '</strong><span class="co-chip ' + (valid ? 'co-chip-ready' : 'co-chip-neutral') + '">' + (valid ? candidateScore(candidate) + '% match' : 'Not eligible') + '</span></div>' +
+          '<div class="co-meta">' + escapeHtml(candidate.fleet) + ' · ' + candidate.restHours + 'h rest · ' + escapeHtml(candidate.availability) + '</div>' +
+        '</div>'
+      }).join('') + '<p class="co-help" style="margin-top:10px;">' + eligible.length + ' eligible candidate' + (eligible.length === 1 ? '' : 's') + ' for Sara Rahimi.</p>'
+    }
+
+    function renderAudit() {
+      var host = document.getElementById('co-audit')
+      if (!state.audit.length) {
+        host.innerHTML = '<div class="co-empty">No admin actions yet.</div>'
+        return
+      }
+      host.innerHTML = state.audit.slice(0, 6).map(function (entry) {
+        return '<div class="co-audit"><strong style="font-size:11px;">' + escapeHtml(entry.event) + '</strong><div class="co-meta">' + escapeHtml(entry.actor) + ' · ' + formatDate(entry.at) + '</div></div>'
+      }).join('')
+    }
+
+    function render() {
+      renderFlight()
+      renderKpis()
+      renderSteps()
+      renderRoster()
+      renderMemberDetail()
+      renderIssues()
+      renderStandby()
+      renderAudit()
+      document.getElementById('co-sync-badge').textContent = '● Synced ' + formatDate(state.updatedAt)
+    }
+
+    function findIssue(issueId) {
+      return state.issues.find(function (issue) { return issue.id === issueId })
+    }
+
+    function updateIssue(issueId, patchData, eventText) {
+      state.issues = state.issues.map(function (issue) {
+        return issue.id === issueId ? Object.assign({}, issue, patchData, { updatedAt: nowIso() }) : issue
+      })
+      patchJourneyIssue(issueId, Object.assign({}, patchData, { updatedAt: nowIso() }))
+      updateCrewProgress(state)
+      saveState(eventText)
+      render()
+    }
+
+    function triageIssue(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      updateIssue(issueId, { status: 'Triaged', assignedTo: 'Crew Control' }, (issue.ref || issue.id) + ' assigned to Crew Control')
+    }
+
+    function proposeReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      var candidates = member ? eligibleCandidates(member) : []
+      if (!candidates.length) {
+        window.alert('No eligible standby candidate matches role, fleet, rest and certification rules.')
+        return
+      }
+      replacementPickerIssueId = issueId
+      selectedReplacementCandidateId = null
+      renderIssues()
+    }
+
+    function reviewReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue || !selectedReplacementCandidateId) return
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      var candidate = state.standby.find(function (item) { return item.id === selectedReplacementCandidateId })
+      if (!member || !candidate || !isEligible(candidate, member)) {
+        window.alert('The selected crew member is no longer eligible. Refresh the list and choose another candidate.')
+        return
+      }
+      replacementPickerIssueId = null
+      selectedReplacementCandidateId = null
+      updateIssue(
+        issueId,
+        { status: 'Replacement proposed', assignedTo: 'Crew Control', replacementCandidateId: candidate.id },
+        candidate.name + ' proposed for ' + (issue.ref || issue.id)
+      )
+    }
+
+    function confirmReplacement(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue || !issue.replacementCandidateId) return
+      var candidate = state.standby.find(function (item) { return item.id === issue.replacementCandidateId })
+      var member = state.roster.find(function (item) { return item.id === (issue.crewMemberId || CREW_ID) })
+      if (!candidate || !member) return
+      var confirmed = window.confirm('Confirm ' + candidate.name + ' as replacement for ' + member.name + ' on ' + state.flight.number + '?')
+      if (!confirmed) return
+      state.roster = state.roster.map(function (item) {
+        return item.id === member.id ? Object.assign({}, item, { status: 'Replaced', assignmentStatus: 'replaced', active: false, canOperate: false, assignedFlightId: null, progress: 0 }) : item
+      })
+      if (!state.roster.some(function (item) { return item.id === candidate.id })) {
+        state.roster.push({
+          id: candidate.id,
+          name: candidate.name,
+          role: candidate.role,
+          assignment: member.assignment,
+          fleet: candidate.fleet,
+          status: 'Awaiting check-in',
+          assignmentStatus: 'active-replacement',
+          active: true,
+          canOperate: true,
+          assignedFlightId: state.flight.id,
+          progress: 100
+        })
+      }
+      state.standby = state.standby.map(function (item) {
+        return item.id === candidate.id ? Object.assign({}, item, { availability: 'Assigned' }) : item
+      })
+      var timestamp = nowIso()
+      state.notifications = Array.isArray(state.notifications) ? state.notifications : []
+      state.notifications.push({
+        id: 'NOT-' + Date.now(),
+        crewMemberId: member.id,
+        flightId: state.flight.id,
+        title: 'Duty reassigned',
+        message: 'Your duty has been reassigned. ' + candidate.name + ' has been confirmed as your replacement. No further action is required.',
+        createdAt: timestamp,
+        read: false
+      })
+      state.notifications.push({
+        id: 'NOT-' + (Date.now() + 1),
+        crewMemberId: candidate.id,
+        flightId: state.flight.id,
+        title: 'On-call duty activated',
+        message: 'Your on-call duty has been activated. You have been assigned as replacement crew for Flight ' + state.flight.number + '. Please report for duty.',
+        createdAt: timestamp,
+        read: false
+      })
+      updateIssue(
+        issueId,
+        { status: 'Resolved', resolutionNote: candidate.name + ' confirmed as replacement', replacementConfirmedAt: timestamp },
+        candidate.name + ' confirmed as replacement for ' + member.name
+      )
+    }
+
+    function resolveIssue(issueId) {
+      var issue = findIssue(issueId)
+      if (!issue) return
+      var note = window.prompt('Resolution note:', 'Reviewed and cleared by Crew Control')
+      if (note === null) return
+      applyJourneyTaskOutcome(issue, 'pending')
+      updateIssue(issueId, { status: 'Resolved', assignedTo: 'Crew Control', resolutionNote: note || 'Resolved by Crew Control' }, (issue.ref || issue.id) + ' resolved')
+    }
+
+    root.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-action]')
+      if (!button) return
+      var action = button.getAttribute('data-action')
+      var id = button.getAttribute('data-id')
+      if (action === 'refresh') {
+        state = readState()
+        render()
+      } else if (action === 'open-app') {
+        var crewAppPath = window.location.pathname.indexOf('/pages/') !== -1
+          ? '../crew-app/#/crew'
+          : './crew-app/#/crew'
+        window.open(new URL(crewAppPath, window.location.href).href, '_blank')
+      } else if (action === 'select-crew' && id) {
+        selectedCrewId = id
+        renderRoster()
+        renderMemberDetail()
+      } else if (action === 'propose' && id) {
+        proposeReplacement(id)
+      } else if (action === 'select-replacement' && id) {
+        selectedReplacementCandidateId = button.getAttribute('data-candidate-id')
+        renderIssues()
+      } else if (action === 'cancel-replacement' && id) {
+        replacementPickerIssueId = null
+        selectedReplacementCandidateId = null
+        renderIssues()
+      } else if (action === 'review-replacement' && id) {
+        reviewReplacement(id)
+      } else if (action === 'confirm-replacement' && id) {
+        confirmReplacement(id)
+      } else if (action === 'resolve' && id) {
+        resolveIssue(id)
+      }
+    })
+
+    document.getElementById('co-issue-filter').addEventListener('change', function (event) {
+      issueFilter = event.target.value
+      renderIssues()
+    })
+
+    window.addEventListener('storage', function (event) {
+      if (event.key !== OPS_KEY && event.key !== JOURNEY_KEY) return
+      state = readState()
+      render()
+    })
+
+    saveState()
+    render()
+  })()
+</script>
